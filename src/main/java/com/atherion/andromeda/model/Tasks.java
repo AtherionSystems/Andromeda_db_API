@@ -16,7 +16,7 @@ import java.time.Instant;
 @Entity
 @Table(name = "TASKS", schema = "ANDROMEDA_DB", indexes = {@Index(name = "IDX_TASKS_PROJECT_ID",
         columnList = "PROJECT_ID")})
-public class Task {
+public class Tasks {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
