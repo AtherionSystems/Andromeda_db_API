@@ -12,3 +12,10 @@ target/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Oracle Wallet
+Wallet_andromedadb/
+**/Wallet_*/
+*.sso
+*.p12
+*.jks
