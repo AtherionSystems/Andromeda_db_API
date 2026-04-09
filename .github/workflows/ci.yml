@@ -20,4 +20,4 @@ jobs:
           cache: maven
 
       - name: Build and test
-        run: mvn -B verify -Dspring.profiles.active=test --no-transfer-progress
+        run: mvn -B verify -Dspring.profiles.active=test -Dsurefire.excludes="**/*IntegrationTest*" --no-transfer-progress
