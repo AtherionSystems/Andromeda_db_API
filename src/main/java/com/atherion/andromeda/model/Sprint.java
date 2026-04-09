@@ -14,9 +14,9 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "TASKS", schema = "ANDROMEDA_DB", indexes = {@Index(name = "IDX_TASKS_PROJECT_ID",
+@Table(name = "SPRINTS", schema = "ANDROMEDA_DB", indexes = {@Index(name = "IDX_SPRINTS_PROJECT_ID",
         columnList = "PROJECT_ID")})
-public class Tasks {
+public class Sprint {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
@@ -28,22 +28,17 @@ public class Tasks {
     @JoinColumn(name = "PROJECT_ID", nullable = false)
     private Project project;
 
-    @Size(max = 255)
+    @Size(max = 100)
     @NotNull
-    @Column(name = "TITLE", nullable = false)
-    private String title;
+    @Column(name = "NAME", nullable = false, length = 100)
+    private String name;
 
-    @Lob
-    @Column(name = "DESCRIPTION")
-    private String description;
-
-    @Size(max = 10)
-    @ColumnDefault("'medium'")
-    @Column(name = "PRIORITY", length = 10)
-    private String priority;
+    @Size(max = 1000)
+    @Column(name = "GOAL", length = 1000)
+    private String goal;
 
     @Size(max = 20)
-    @ColumnDefault("'todo'")
+    @ColumnDefault("'planned'")
     @Column(name = "STATUS", length = 20)
     private String status;
 

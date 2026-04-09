@@ -14,9 +14,15 @@ import java.time.Instant;
 @Getter
 @Setter
 @Entity
-@Table(name = "TASKS", schema = "ANDROMEDA_DB", indexes = {@Index(name = "IDX_TASKS_PROJECT_ID",
-        columnList = "PROJECT_ID")})
-public class Tasks {
+@Table(name = "PROJECT_MEMBERS", schema = "ANDROMEDA_DB", indexes = {
+        @Index(name = "IDX_PM_PROJECT_ID",
+                columnList = "PROJECT_ID"),
+        @Index(name = "IDX_PM_USER_ID",
+                columnList = "USER_ID")}, uniqueConstraints = {@UniqueConstraint(name = "UQ_PM_PROJECT_USER",
+        columnNames = {
+                "PROJECT_ID",
+                "USER_ID"})})
+public class ProjectMember {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
@@ -28,37 +34,20 @@ public class Tasks {
     @JoinColumn(name = "PROJECT_ID", nullable = false)
     private Project project;
 
-    @Size(max = 255)
     @NotNull
-    @Column(name = "TITLE", nullable = false)
-    private String title;
-
-    @Lob
-    @Column(name = "DESCRIPTION")
-    private String description;
-
-    @Size(max = 10)
-    @ColumnDefault("'medium'")
-    @Column(name = "PRIORITY", length = 10)
-    private String priority;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "USER_ID", nullable = false)
+    private User user;
 
     @Size(max = 20)
-    @ColumnDefault("'todo'")
-    @Column(name = "STATUS", length = 20)
-    private String status;
-
-    @Column(name = "START_DATE")
-    private Instant startDate;
-
-    @Column(name = "DUE_DATE")
-    private Instant dueDate;
-
-    @Column(name = "ACTUAL_END")
-    private Instant actualEnd;
+    @ColumnDefault("'member'")
+    @Column(name = "ROLE", length = 20)
+    private String role;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "CREATED_AT")
-    private Instant createdAt;
+    @Column(name = "JOINED_AT")
+    private Instant joinedAt;
 
 
 }
