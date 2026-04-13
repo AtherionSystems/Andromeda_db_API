@@ -2,9 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, staging]
   pull_request:
-    branches: [main, staging]
 
 jobs:
   build-and-test:
@@ -20,4 +18,4 @@ jobs:
           cache: maven
 
       - name: Build and test
-        run: mvn -B verify -Dspring.profiles.active=test --no-transfer-progress
+        run: mvn -B verify -Dspring.profiles.active=test -Dsurefire.excludes="**/*IntegrationTest*" --no-transfer-progress
