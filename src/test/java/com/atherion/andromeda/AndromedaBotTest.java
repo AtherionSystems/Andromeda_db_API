@@ -26,10 +26,10 @@ class AndromedaBotTest {
     @BeforeEach
     void setUp() {
         when(props.getToken()).thenReturn("fake-token");
-        when(props.getUsername()).thenReturn("AndromedaBot");
+        lenient().when(props.getUsername()).thenReturn("AndromedaBot");
 
         bot = spy(new AndromedaBot(props));
-        doNothing().when(bot).sendText(anyString(), anyString());
+        lenient().doNothing().when(bot).sendText(anyString(), anyString());
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
