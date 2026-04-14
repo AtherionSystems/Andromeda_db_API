@@ -86,6 +86,12 @@
             <optional>true</optional>
         </dependency>
 
+        <!-- Spring Boot Actuator for monitoring and management -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
         <!-- Telegram Bot API -->
         <dependency>
             <groupId>org.telegram</groupId>
