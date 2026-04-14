@@ -1,0 +1,13 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    env_file:
+      - .env
+    environment:
+      # Override WALLET_PATH from .env with the container-internal path
+      WALLET_PATH: /app/wallet
+    volumes:
+      - ./Wallet_andromedadb:/app/wallet:ro
+    restart: unless-stopped
