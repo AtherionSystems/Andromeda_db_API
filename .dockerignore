@@ -1,0 +1,11 @@
+target/
+.git/
+.idea/
+*.iml
+.vscode/
+.env
+Wallet_andromedadb/
+**/Wallet_*/
+*.jks
+*.p12
+*.sso
