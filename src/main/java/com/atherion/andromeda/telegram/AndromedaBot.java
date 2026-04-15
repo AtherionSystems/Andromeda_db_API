@@ -10,10 +10,12 @@ import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 public class AndromedaBot extends TelegramLongPollingBot {
 
     private final TelegramBotProperties props;
+    private final BotCommandHandler commandHandler;
 
-    public AndromedaBot(TelegramBotProperties props) {
+    public AndromedaBot(TelegramBotProperties props, BotCommandHandler commandHandler) {
         super(props.getToken());
         this.props = props;
+        this.commandHandler = commandHandler;
     }
 
     @Override
@@ -25,13 +27,14 @@ public class AndromedaBot extends TelegramLongPollingBot {
     public void onUpdateReceived(Update update) {
         if (!update.hasMessage() || !update.getMessage().hasText()) return;
 
-        String text = update.getMessage().getText().trim();
+        String text   = update.getMessage().getText().trim();
         String chatId = update.getMessage().getChatId().toString();
 
-        if ("/ping".equals(text) || ("/ping@" + props.getUsername()).equals(text)) {
-            sendText(chatId, "Pong! Andromeda API is up and running.");
-        } else if ("/health".equals(text)) {
-            sendText(chatId, "Status: OK\nService: Andromeda Backend API\nBot: Connected");
+        if (!text.startsWith("/")) return;
+
+        String response = commandHandler.handle(text);
+        if (response != null) {
+            sendText(chatId, response);
         }
     }
 
@@ -43,7 +46,6 @@ public class AndromedaBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            // log or rethrow as needed
             throw new RuntimeException("Failed to send Telegram message", e);
         }
     }
