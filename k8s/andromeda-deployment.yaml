@@ -1,0 +1,89 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: andromeda
+  namespace: andromeda
+  labels:
+    app: andromeda
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: andromeda
+  template:
+    metadata:
+      labels:
+        app: andromeda
+    spec:
+      containers:
+        - name: andromeda
+          image: mx-queretaro-1.ocir.io/<YOUR_NAMESPACE>/andromeda-backend:0.1
+          ports:
+            - containerPort: 8080
+          env:
+            - name: DB_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: DB_USERNAME
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: DB_PASSWORD
+            - name: WALLET_PATH
+              value: /app/wallet
+            - name: WALLET_TRUSTSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: WALLET_TRUSTSTORE_PASSWORD
+            - name: WALLET_KEYSTORE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: WALLET_KEYSTORE_PASSWORD
+            - name: TELEGRAM_BOT_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: TELEGRAM_BOT_TOKEN
+            - name: TELEGRAM_BOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: TELEGRAM_BOT_USERNAME
+          volumeMounts:
+            - name: wallet-volume
+              mountPath: /app/wallet
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 20
+      volumes:
+        - name: wallet-volume
+          secret:
+            secretName: db-wallet-secret
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: andromeda-service
+  namespace: andromeda
+spec:
+  type: LoadBalancer
+  selector:
+    app: andromeda
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
