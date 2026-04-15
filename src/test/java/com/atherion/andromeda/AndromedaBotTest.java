@@ -1,6 +1,7 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.telegram.AndromedaBot;
+import com.atherion.andromeda.telegram.BotCommandHandler;
 import com.atherion.andromeda.telegram.TelegramBotProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,14 +22,21 @@ class AndromedaBotTest {
     @Mock
     private TelegramBotProperties props;
 
+    @Mock
+    private BotCommandHandler commandHandler;
+
     private AndromedaBot bot;
 
     @BeforeEach
     void setUp() {
         when(props.getToken()).thenReturn("fake-token");
         lenient().when(props.getUsername()).thenReturn("AndromedaBot");
+        lenient().when(commandHandler.handle(anyString())).thenReturn(null);
+        lenient().when(commandHandler.handle("/ping")).thenReturn("Pong! Andromeda API is up and running.");
+        lenient().when(commandHandler.handle("/ping@AndromedaBot")).thenReturn("Pong! Andromeda API is up and running.");
+        lenient().when(commandHandler.handle("/health")).thenReturn("Status: OK\nService: Andromeda Backend API\nBot: Connected");
 
-        bot = spy(new AndromedaBot(props));
+        bot = spy(new AndromedaBot(props, commandHandler));
         lenient().doNothing().when(bot).sendText(anyString(), anyString());
     }
 

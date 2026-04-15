@@ -5,7 +5,8 @@
       "WebFetch(domain:spring.io)",
       "WebFetch(domain:github.com)",
       "Bash(git check-ignore:*)",
-      "Bash(./mvnw compile:*)"
+      "Bash(./mvnw compile:*)",
+      "Bash(./mvnw test-compile:*)"
     ]
   }
 }
