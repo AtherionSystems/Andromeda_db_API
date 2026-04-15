@@ -140,6 +140,8 @@ List all users.
 ]
 ```
 
+> `telegramId` is an internal field managed by the bot's `/link` command and is not exposed in API responses.
+
 ---
 
 ### `GET /api/users/{id}`
@@ -293,6 +295,10 @@ List all tasks in a project.
     "description": null,
     "priority": "high",
     "status": "in_progress",
+    "estimatedHours": 3.0,
+    "actualHours": null,
+    "storyPoints": 5,
+    "acceptanceCriteria": "Pipeline must run on every push to main",
     "startDate": "2025-02-01T00:00:00Z",
     "dueDate": "2025-03-15T00:00:00Z",
     "actualEnd": null,
@@ -325,19 +331,26 @@ Create a task inside a project.
   "description": "Happens when session expires",
   "priority": "high",
   "status": "todo",
+  "estimatedHours": 2.0,
+  "storyPoints": 3,
+  "acceptanceCriteria": "Error message is shown within 2 seconds",
   "startDate": "2025-05-01T00:00:00Z",
   "dueDate": "2025-05-10T00:00:00Z"
 }
 ```
 
-| Field | Type | Required | Default |
-|---|---|---|---|
-| title | string | yes | — |
-| description | string | no | null |
-| priority | string | no | `medium` |
-| status | string | no | `todo` |
-| startDate | Instant | no | null |
-| dueDate | Instant | no | null |
+| Field | Type | Required | Default | Notes |
+|---|---|---|---|---|
+| title | string | yes | — | |
+| description | string | no | null | |
+| priority | string | no | `medium` | |
+| status | string | no | `todo` | |
+| estimatedHours | decimal | no | null | Enforced ≤ 4.0 by the Telegram bot |
+| actualHours | decimal | no | null | Set by the bot's `/completetask` command |
+| storyPoints | integer | no | null | |
+| acceptanceCriteria | string | no | null | Definition of done |
+| startDate | Instant | no | null | |
+| dueDate | Instant | no | null | |
 
 **Response `201`** — created task object.
 
@@ -622,3 +635,6 @@ All error responses follow this shape:
 | Task `priority` | `low` `medium` `high` `critical` |
 | Sprint `status` | `planned` `active` `completed` |
 | Member `role` | `owner` `manager` `member` |
+| Task `estimatedHours` | Positive decimal, max `4.0` (enforced by Telegram bot, not the REST API) |
+| Task `actualHours` | Positive decimal, recorded at completion |
+| Task `storyPoints` | Positive integer (common Fibonacci values: 1, 2, 3, 5, 8, 13) |

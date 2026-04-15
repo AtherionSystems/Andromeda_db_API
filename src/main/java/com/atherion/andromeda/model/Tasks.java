@@ -9,6 +9,7 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 
 @Getter
@@ -55,6 +56,18 @@ public class Tasks {
 
     @Column(name = "ACTUAL_END")
     private Instant actualEnd;
+
+    @Column(name = "ESTIMATED_HOURS", precision = 4, scale = 1)
+    private BigDecimal estimatedHours;
+
+    @Column(name = "ACTUAL_HOURS", precision = 4, scale = 1)
+    private BigDecimal actualHours;
+
+    @Column(name = "STORY_POINTS")
+    private Integer storyPoints;
+
+    @Column(name = "ACCEPTANCE_CRITERIA", length = 4000)
+    private String acceptanceCriteria;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")

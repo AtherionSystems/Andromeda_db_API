@@ -8,13 +8,17 @@ Commands work in private chats and in groups (use the `@BotUsername` suffix in g
 ## Table of Contents
 
 - [Info & Health](#info--health)
+- [Account Linking](#account-linking)
 - [Read — Projects](#read--projects)
 - [Read — Tasks](#read--tasks)
 - [Read — Members](#read--members)
 - [Read — Sprints](#read--sprints)
+- [Read — Sprint Board](#read--sprint-board)
 - [Read — Users](#read--users)
 - [Write — Create Project](#write--create-project)
 - [Write — Create Task](#write--create-task)
+- [Write — Assign Task to Sprint](#write--assign-task-to-sprint)
+- [Write — Complete Task](#write--complete-task)
 - [Write — Update Task Status](#write--update-task-status)
 - [Write — Update Task Priority](#write--update-task-priority)
 - [Write — Update Project Status](#write--update-project-status)
@@ -67,19 +71,25 @@ List every available command with syntax hints.
 Andromeda Bot — Commands
 ════════════════════════
 
-READ
-/projects              List all projects
-/project <id>          Project details
-/tasks <projectId>     Tasks in a project
-/task <id>             Task details
-/members <projectId>   Project members
-/sprints <projectId>   Project sprints
-/users                 List all users
-/user <id>             User details
+SETUP
+/link <username> <password>   Link your account
 
-WRITE
-/newproject <name> [| description] [| status]
-/newtask <projectId> | <title> [| priority] [| status]
+READ
+/projects                     List all projects
+/project <id>                 Project details
+/tasks <projectId>            Tasks in a project
+/task <id>                    Task details
+/members <projectId>          Project members
+/sprints <projectId>          Project sprints
+/sprinttasks <projectId>      Sprint board (last 2 sprints)
+/users                        List all users
+/user <id>                    User details
+
+WRITE  (requires /link)
+/newproject <name> [| desc] [| status]
+/newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]
+/assigntask <sprintId> <taskId>
+/completetask <taskId> <actualHours>
 /taskstatus <taskId> <status>
 /taskpriority <taskId> <priority>
 /projectstatus <projectId> <status>
@@ -90,10 +100,40 @@ Project status : active · paused · completed · cancelled
 Task status    : todo · in_progress · review · done
 Task priority  : low · medium · high · critical
 Member role    : owner · manager · member
+Max est. hours : 4.0 h per task
 
 OTHER
 /health                API health check
 /ping                  Ping the bot
+```
+
+---
+
+## Account Linking
+
+All write commands require your Telegram account to be linked to a system user. Read commands work without linking.
+
+### `/link <username> <password>`
+Authenticate with your system credentials. The bot stores your Telegram user ID so subsequent write commands know who you are.
+
+**Example**
+```
+/link santiago secret123
+```
+**Response**
+```
+Linked! Welcome, Santiago Quiroz (@santiago).
+You can now use all write commands.
+```
+
+**Wrong credentials**
+```
+Invalid username or password.
+```
+
+**Already linked**
+```
+Already linked to @santiago. Welcome back, Santiago Quiroz!
 ```
 
 ---
@@ -156,10 +196,10 @@ List all tasks that belong to a project.
 ```
 Tasks for project #1 (4)
 ───────────────────────
-[3] Set up CI/CD pipeline — high | in_progress
-[4] Write unit tests — medium | todo
-[5] Deploy to staging — high | todo
-[6] Update API docs — low | done
+[3] Set up CI/CD pipeline — high | in_progress | 5 pts | 3.0 h
+[4] Write unit tests — medium | todo | 2 pts | 1.5 h
+[5] Deploy to staging — high | todo | 5 pts | 4.0 h
+[6] Update API docs — low | done | 1 pts | 1.0 h
 ```
 
 ---
@@ -174,12 +214,15 @@ Full details for a single task.
 **Response**
 ```
 Task #3
-Title:    Set up CI/CD pipeline
-Project:  #1 Andromeda Backend
-Priority: high
-Status:   in_progress
-Start:    2025-02-01
-Due:      2025-03-15
+Title:       Set up CI/CD pipeline
+Project:     #1 Andromeda Backend
+Priority:    high
+Status:      in_progress
+Story pts:   5
+Est. hours:  3.0
+Act. hours:  —
+Start:       2025-02-01
+Due:         2025-03-15
 ```
 
 ---
@@ -219,6 +262,41 @@ Sprints for project #1 (2)
 ───────────────────────
 [1] Sprint 1 — completed | 2025-01-15 → 2025-01-29
 [2] Sprint 2 — active | 2025-01-29 → 2025-02-12
+```
+
+---
+
+## Read — Sprint Board
+
+### `/sprinttasks <projectId>`
+Displays the task board for the **last 2 sprints** of a project. Tasks are grouped by sprint and ordered by status (in_progress → review → todo → done) then priority. Assignees are JOINed from task assignments.
+
+**Example**
+```
+/sprinttasks 1
+```
+**Response**
+```
+Sprint Board — Project #1
+════════════════════════════════
+
+▸ Sprint 2
+────────────────────────────────
+[3] Set up CI/CD pipeline
+    IN_PROG | high | 5 pts | 3.0h est | @javier, @alfredo
+
+[4] Write unit tests
+    TODO    | medium | 2 pts | 1.5h est | —
+
+▸ Sprint 1
+────────────────────────────────
+[1] Initial DB schema
+    DONE    | high | 8 pts | 4.0h est / 3.5h act | @javier
+```
+
+**No tasks found**
+```
+No tasks found in recent sprints for project #1.
 ```
 
 ---
@@ -323,65 +401,130 @@ Invalid status 'unknown'. Valid: active, paused, completed, cancelled
 
 ## Write — Create Task
 
-### `/newtask <projectId> | <title> [| priority] [| status]`
+### `/newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]`
 
-Creates a task inside a project. Priority defaults to `medium`, status to `todo`.
+Creates a task inside a project. `estimatedHours` must be > 0 and **≤ 4.0** — tasks estimated above 4 h are rejected with a subdivision suggestion. Priority defaults to `medium`.
 
 **Minimal**
 ```
-/newtask 1 | Fix login redirect bug
+/newtask 1 | Fix login redirect bug | 2 | 3
 ```
 **Response**
 ```
 Task created!
-ID:       7
-Title:    Fix login redirect bug
-Project:  #1 Andromeda Backend
-Priority: medium
-Status:   todo
+ID:          7
+Title:       Fix login redirect bug
+Project:     #1 Andromeda Backend
+Priority:    medium
+Est. hours:  2.0 h
+Story pts:   3
 ```
 
 ---
 
-**With priority**
+**With priority and acceptance criteria**
 ```
-/newtask 1 | Fix login redirect bug | high
+/newtask 1 | Fix login redirect bug | 1.5 | 3 | high | Error message must be visible within 2 seconds
 ```
 **Response**
 ```
 Task created!
-ID:       7
-Title:    Fix login redirect bug
-Project:  #1 Andromeda Backend
-Priority: high
-Status:   todo
+ID:          7
+Title:       Fix login redirect bug
+Project:     #1 Andromeda Backend
+Priority:    high
+Est. hours:  1.5 h
+Story pts:   3
 ```
 
 ---
 
-**Fully specified**
+**Exceeds 4-hour limit**
 ```
-/newtask 1 | Fix login redirect bug | high | in_progress
+/newtask 1 | Big feature | 8 | 13
 ```
 **Response**
 ```
-Task created!
-ID:       7
-Title:    Fix login redirect bug
-Project:  #1 Andromeda Backend
-Priority: high
-Status:   in_progress
+This task is estimated at 8.0 h, which exceeds the 4 h limit.
+Please split it into 2 subtasks of ≤ 4 h each and add them separately.
 ```
 
 ---
 
 **Project not found**
 ```
-/newtask 99 | Some task
+/newtask 99 | Some task | 2 | 3
 ```
 **Response**
 ```
 Project #99 not found.
+```
+
+---
+
+## Write — Assign Task to Sprint
+
+### `/assigntask <sprintId> <taskId>`
+
+Adds the task to the sprint, sets its status to `in_progress`, records the start date, and auto-assigns the calling developer to the task.
+
+**Example**
+```
+/assigntask 2 7
+```
+**Response**
+```
+Task assigned to sprint!
+Task:   #7 Fix login redirect bug
+Sprint: #2 Sprint 2
+Status: todo → in_progress
+Dev:    @santiago
+```
+
+**Already in sprint**
+```
+Task #7 is already in sprint #2.
+```
+
+**Different projects**
+```
+Sprint #2 and task #7 belong to different projects.
+```
+
+---
+
+## Write — Complete Task
+
+### `/completetask <taskId> <actualHours>`
+
+Marks the task as `done`, records the actual hours worked, and sets the completion timestamp.
+
+**Example**
+```
+/completetask 7 1.5
+```
+**Response**
+```
+Task completed!
+ID:     7
+Title:  Fix login redirect bug
+Status: in_progress → done
+Est. hours:  2.0 h
+Act. hours:  1.5 h  (-0.5 h)
+```
+
+**Over estimate**
+```
+/completetask 7 3.0
+```
+**Response**
+```
+Task completed!
+ID:     7
+Title:  Fix login redirect bug
+Status: in_progress → done
+Est. hours:  2.0 h
+Act. hours:  3.0 h  (+1.0 h)
 ```
 
 ---
@@ -501,3 +644,6 @@ Role:    manager
 | Task status | `todo` `in_progress` `review` `done` |
 | Task priority | `low` `medium` `high` `critical` |
 | Member role | `owner` `manager` `member` |
+| estimatedHours | Any positive decimal ≤ 4.0 (e.g. `1`, `2.5`, `4`) |
+| actualHours | Any positive decimal (e.g. `0.5`, `3.0`) |
+| storyPoints | Any positive integer (e.g. `1`, `3`, `8`, `13`) |

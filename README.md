@@ -125,27 +125,37 @@ Full endpoint reference with request/response examples: [`docs/API_ENDPOINTS.md`
 
 ## Telegram Bot
 
-The bot connects on startup via long-polling and responds to `/commands`.
+The bot connects on startup via long-polling and responds to `/commands`.  
+Write commands require linking your Telegram account first with `/link`.
 
-**Read commands** — query the database:
+**Setup:**
+
+| Command | Description |
+|---|---|
+| `/link <username> <password>` | Link your Telegram account to your system user |
+
+**Read commands** — no authentication required:
 
 | Command | Description |
 |---|---|
 | `/projects` | List all projects |
 | `/project <id>` | Project details |
 | `/tasks <projectId>` | Tasks in a project |
-| `/task <id>` | Task details |
+| `/task <id>` | Task details (incl. story points and hours) |
 | `/members <projectId>` | Project members |
 | `/sprints <projectId>` | Project sprints |
+| `/sprinttasks <projectId>` | Sprint board for last 2 sprints (joined with assignees) |
 | `/users` | List all users |
 | `/user <id>` | User details |
 
-**Write commands** — mutate the database:
+**Write commands** — require `/link`:
 
 | Command | Description |
 |---|---|
 | `/newproject <name> [| description] [| status]` | Create a project |
-| `/newtask <projectId> \| <title> [| priority] [| status]` | Create a task |
+| `/newtask <projectId> \| <title> \| <estimatedHours> \| <storyPoints> [| priority] [| acceptanceCriteria]` | Create a task (max 4 h, otherwise rejected with split suggestion) |
+| `/assigntask <sprintId> <taskId>` | Add task to sprint, mark `in_progress`, auto-assign developer |
+| `/completetask <taskId> <actualHours>` | Mark task `done` and record actual hours |
 | `/taskstatus <taskId> <status>` | Update task status |
 | `/taskpriority <taskId> <priority>` | Update task priority |
 | `/projectstatus <projectId> <status>` | Update project status |

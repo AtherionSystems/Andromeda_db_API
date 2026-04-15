@@ -32,7 +32,11 @@ public class AndromedaBot extends TelegramLongPollingBot {
 
         if (!text.startsWith("/")) return;
 
-        String response = commandHandler.handle(text);
+        Long telegramUserId = (update.getMessage().getFrom() != null)
+                ? update.getMessage().getFrom().getId()
+                : null;
+
+        String response = commandHandler.handle(text, telegramUserId);
         if (response != null) {
             sendText(chatId, response);
         }
