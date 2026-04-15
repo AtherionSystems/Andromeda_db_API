@@ -56,6 +56,9 @@ public class User {
     @Column(name = "PHONE", length = 20)
     private String phone;
 
+    @Column(name = "TELEGRAM_ID", unique = true)
+    private Long telegramId;
+
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;

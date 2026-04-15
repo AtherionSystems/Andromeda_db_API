@@ -1,6 +1,7 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.telegram.AndromedaBot;
+import com.atherion.andromeda.telegram.BotCommandHandler;
 import com.atherion.andromeda.telegram.TelegramBotProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -11,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.telegram.telegrambots.meta.api.objects.Chat;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
+import org.telegram.telegrambots.meta.api.objects.User;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -21,26 +23,38 @@ class AndromedaBotTest {
     @Mock
     private TelegramBotProperties props;
 
+    @Mock
+    private BotCommandHandler commandHandler;
+
     private AndromedaBot bot;
 
     @BeforeEach
     void setUp() {
         when(props.getToken()).thenReturn("fake-token");
         lenient().when(props.getUsername()).thenReturn("AndromedaBot");
+        lenient().when(commandHandler.handle(anyString(), any())).thenReturn(null);
+        lenient().when(commandHandler.handle(eq("/ping"),             any())).thenReturn("Pong! Andromeda API is up and running.");
+        lenient().when(commandHandler.handle(eq("/ping@AndromedaBot"), any())).thenReturn("Pong! Andromeda API is up and running.");
+        lenient().when(commandHandler.handle(eq("/health"),           any())).thenReturn("Status: OK\nService: Andromeda Backend API\nBot: Connected");
 
-        bot = spy(new AndromedaBot(props));
+        bot = spy(new AndromedaBot(props, commandHandler));
         lenient().doNothing().when(bot).sendText(anyString(), anyString());
     }
 
     // ── helpers ────────────────────────────────────────────────────────────────
 
     private Update buildUpdate(String text, long chatId) {
+        User from = new User();
+        from.setId(999L);
+        from.setFirstName("Test");
+
         Chat chat = new Chat();
         chat.setId(chatId);
 
         Message message = new Message();
         message.setText(text);
         message.setChat(chat);
+        message.setFrom(from);
 
         Update update = new Update();
         update.setMessage(message);

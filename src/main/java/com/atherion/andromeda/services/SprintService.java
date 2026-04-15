@@ -15,6 +15,7 @@ public class SprintService {
     private final SprintRepository sprintRepository;
 
     public List<Sprint> findAll() { return sprintRepository.findAll(); }
+    public List<Sprint> findByProjectId(Long projectId) { return sprintRepository.findByProject_Id(projectId); }
     public Optional<Sprint> findById(Long id) { return sprintRepository.findById(id); }
     public Sprint save(Sprint sprint) { return sprintRepository.save(sprint); }
     public void deleteById(Long id) { sprintRepository.deleteById(id); }
