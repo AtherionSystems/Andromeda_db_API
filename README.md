@@ -115,6 +115,8 @@ Migration files live in `src/main/resources/db/migration/`.
 | Users | `/api/users` | CRUD |
 | Projects | `/api/projects` | CRUD |
 | Tasks | `/api/projects/{id}/tasks` | CRUD |
+| Sprints | `/api/projects/{id}/sprints` | CRUD |
+| Sprint Tasks | `/api/projects/{id}/sprints/{id}/tasks` (`/sprint_tasks` alias) | CRUD |
 | Task Assignments | `/api/projects/{id}/tasks/{id}/assignments` | List, assign, remove |
 | Project Members | `/api/project-members` | CRUD |
 | Logs | `/api/logs` | Search, create |
@@ -153,8 +155,10 @@ Write commands require linking your Telegram account first with `/link`.
 | Command | Description |
 |---|---|
 | `/newproject <name> [| description] [| status]` | Create a project |
+| `/newsprint <projectId> \| <name> [| goal] [| status] [| startDate] [| dueDate]` | Create a sprint in a project |
 | `/newtask <projectId> \| <title> \| <estimatedHours> \| <storyPoints> [| priority] [| acceptanceCriteria]` | Create a task (max 4 h, otherwise rejected with split suggestion) |
 | `/assigntask <sprintId> <taskId>` | Add task to sprint, mark `in_progress`, auto-assign developer |
+| `/addsprinttask <sprintId> <taskId>` | Alias of `/assigntask` |
 | `/completetask <taskId> <actualHours>` | Mark task `done` and record actual hours |
 | `/taskstatus <taskId> <status>` | Update task status |
 | `/taskpriority <taskId> <priority>` | Update task priority |

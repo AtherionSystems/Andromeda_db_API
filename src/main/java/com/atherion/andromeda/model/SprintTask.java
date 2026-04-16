@@ -9,6 +9,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -38,10 +39,10 @@ public class SprintTask {
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "ADDED_AT")
-    private Instant addedAt;
+    private LocalDateTime addedAt;
 
     @Column(name = "REMOVED_AT")
-    private Instant removedAt;
+    private LocalDateTime removedAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.RESTRICT)

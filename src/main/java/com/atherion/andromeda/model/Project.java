@@ -8,6 +8,7 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -34,14 +35,14 @@ public class Project {
     private String status;
 
     @Column(name = "START_DATE")
-    private Instant startDate;
+    private LocalDateTime startDate;
 
     @Column(name = "END_DATE")
-    private Instant endDate;
+    private LocalDateTime endDate;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
 
 }

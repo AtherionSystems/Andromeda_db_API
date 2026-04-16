@@ -9,6 +9,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -41,7 +42,7 @@ public class TaskAssignment {
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "ASSIGNED_AT")
-    private Instant assignedAt;
+    private LocalDateTime assignedAt;
 
 
 }

@@ -1,6 +1,7 @@
 package com.atherion.andromeda.controllers;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -61,7 +62,7 @@ public class TaskAssignmentsController {
         TaskAssignment assignment = new TaskAssignment();
         assignment.setTask(task);
         assignment.setUser(user);
-        assignment.setAssignedAt(Instant.now());
+        assignment.setAssignedAt(LocalDateTime.now());
 
         return ResponseEntity.status(HttpStatus.CREATED).body(taskAssignmentService.save(assignment));
     }

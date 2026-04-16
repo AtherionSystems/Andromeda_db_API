@@ -8,9 +8,11 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+import org.springframework.cglib.core.Local;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -49,13 +51,13 @@ public class Tasks {
     private String status;
 
     @Column(name = "START_DATE")
-    private Instant startDate;
+    private LocalDateTime startDate;
 
     @Column(name = "DUE_DATE")
-    private Instant dueDate;
+    private LocalDateTime dueDate;
 
     @Column(name = "ACTUAL_END")
-    private Instant actualEnd;
+    private LocalDateTime actualEnd;
 
     @Column(name = "ESTIMATED_HOURS", precision = 4, scale = 1)
     private BigDecimal estimatedHours;
@@ -71,7 +73,7 @@ public class Tasks {
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
 
 }
