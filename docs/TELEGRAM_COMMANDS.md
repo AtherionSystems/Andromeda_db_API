@@ -16,6 +16,7 @@ Commands work in private chats and in groups (use the `@BotUsername` suffix in g
 - [Read — Sprint Board](#read--sprint-board)
 - [Read — Users](#read--users)
 - [Write — Create Project](#write--create-project)
+- [Write — Create Sprint](#write--create-sprint)
 - [Write — Create Task](#write--create-task)
 - [Write — Assign Task to Sprint](#write--assign-task-to-sprint)
 - [Write — Complete Task](#write--complete-task)
@@ -87,8 +88,10 @@ READ
 
 WRITE  (requires /link)
 /newproject <name> [| desc] [| status]
+/newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
 /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]
 /assigntask <sprintId> <taskId>
+/addsprinttask <sprintId> <taskId>
 /completetask <taskId> <actualHours>
 /taskstatus <taskId> <status>
 /taskpriority <taskId> <priority>
@@ -97,6 +100,7 @@ WRITE  (requires /link)
 
 VALUES
 Project status : active · paused · completed · cancelled
+Sprint status  : planned · active · completed
 Task status    : todo · in_progress · review · done
 Task priority  : low · medium · high · critical
 Member role    : owner · manager · member
@@ -399,6 +403,30 @@ Invalid status 'unknown'. Valid: active, paused, completed, cancelled
 
 ---
 
+## Write — Create Sprint
+
+### `/newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]`
+
+Creates a sprint inside a project. Status defaults to `planned`.  
+Date formats accepted: `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`.
+
+**Example**
+```
+/newsprint 1 | Sprint 3 | Finish auth module | active | 2026-04-15 | 2026-04-30
+```
+**Response**
+```
+Sprint created!
+ID:      5
+Name:    Sprint 3
+Project: #1 Andromeda Backend
+Status:  active
+Start:   2026-04-15
+Due:     2026-04-30
+```
+
+---
+
 ## Write — Create Task
 
 ### `/newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]`
@@ -467,6 +495,8 @@ Project #99 not found.
 ### `/assigntask <sprintId> <taskId>`
 
 Adds the task to the sprint, sets its status to `in_progress`, records the start date, and auto-assigns the calling developer to the task.
+
+Alias: `/addsprinttask <sprintId> <taskId>`
 
 **Example**
 ```
@@ -641,6 +671,7 @@ Role:    manager
 | Field | Allowed values |
 |---|---|
 | Project status | `active` `paused` `completed` `cancelled` |
+| Sprint status | `planned` `active` `completed` |
 | Task status | `todo` `in_progress` `review` `done` |
 | Task priority | `low` `medium` `high` `critical` |
 | Member role | `owner` `manager` `member` |

@@ -15,6 +15,8 @@ Dates use ISO-8601 format (`2025-06-15T00:00:00Z` for `Instant`, `2025-06-15T10:
 - [Projects](#projects)
 - [Tasks](#tasks)
 - [Task Assignments](#task-assignments)
+- [Sprints](#sprints)
+- [Sprint Tasks](#sprint-tasks)
 - [Project Members](#project-members)
 - [Logs](#logs)
 - [Error Responses](#error-responses)
@@ -436,6 +438,171 @@ Remove a user's assignment from a task.
 | Status | Reason |
 |---|---|
 | `404` | Assignment not found |
+
+---
+
+## Sprints
+
+All sprint endpoints are nested under a project: `/api/projects/{projectId}/sprints`.
+
+### `GET /api/projects/{projectId}/sprints`
+List all sprints in a project.
+
+**Response `200`** — array of sprint objects.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Project not found |
+
+---
+
+### `GET /api/projects/{projectId}/sprints/{sprintId}`
+Get one sprint by ID.
+
+**Response `200`** — single sprint object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+
+---
+
+### `POST /api/projects/{projectId}/sprints`
+Create a sprint inside a project.
+
+**Request body**
+```json
+{
+  "name": "Sprint 7",
+  "goal": "Close auth and reporting backlog",
+  "status": "planned",
+  "startDate": "2026-04-01T09:00:00",
+  "dueDate": "2026-04-15T18:00:00"
+}
+```
+
+| Field | Type | Required | Default |
+|---|---|---|---|
+| name | string | yes | — |
+| goal | string | no | null |
+| status | string | no | `planned` |
+| startDate | LocalDateTime | no | null |
+| dueDate | LocalDateTime | no | null |
+| actualEnd | LocalDateTime | no | null |
+
+**Response `201`** — created sprint object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `400` | Missing name |
+| `404` | Project not found |
+
+---
+
+### `PATCH /api/projects/{projectId}/sprints/{sprintId}`
+Partially update a sprint. Only supplied fields are changed.
+
+**Response `200`** — updated sprint object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+
+---
+
+### `DELETE /api/projects/{projectId}/sprints/{sprintId}`
+Delete a sprint.
+
+**Response `204`** — no body.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+
+---
+
+## Sprint Tasks
+
+All sprint-task endpoints are nested under a project sprint:
+`/api/projects/{projectId}/sprints/{sprintId}/tasks`.
+
+Alias supported: `/api/projects/{projectId}/sprints/{sprintId}/sprint_tasks`.
+
+### `GET /api/projects/{projectId}/sprints/{sprintId}/tasks`
+List all task links in a sprint.
+
+**Response `200`** — array of sprint-task objects.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+
+---
+
+### `GET /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
+Get one sprint-task link by ID.
+
+**Response `200`** — single sprint-task object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint task not found |
+
+---
+
+### `POST /api/projects/{projectId}/sprints/{sprintId}/tasks`
+Add a task to a sprint.
+
+**Request body**
+```json
+{
+  "taskId": 15
+}
+```
+
+**Response `201`** — created sprint-task object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `400` | Missing taskId |
+| `404` | Sprint not found |
+| `404` | Task not found |
+| `409` | Task is already active in this sprint |
+
+---
+
+### `PATCH /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
+Partially update a sprint-task link. Supported fields: `removedAt`, `movedToId`.
+
+**Response `200`** — updated sprint-task object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint task not found |
+
+---
+
+### `DELETE /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
+Delete a sprint-task link.
+
+**Response `204`** — no body.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint task not found |
 
 ---
 

@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -77,7 +78,7 @@ class TaskAssignmentsControllerTest {
         a.setId(id);
         a.setTask(task);
         a.setUser(user);
-        a.setAssignedAt(Instant.now());
+        a.setAssignedAt(LocalDateTime.now());
         return a;
     }
 

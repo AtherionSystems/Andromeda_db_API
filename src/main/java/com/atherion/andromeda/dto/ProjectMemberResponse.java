@@ -3,6 +3,7 @@ package com.atherion.andromeda.dto;
 import com.atherion.andromeda.model.ProjectMember;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 public record ProjectMemberResponse(
         Long id,
@@ -11,7 +12,7 @@ public record ProjectMemberResponse(
         Long userId,
         String username,
         String role,
-        Instant joinedAt
+        LocalDateTime joinedAt
 ) {
     public static ProjectMemberResponse from(ProjectMember member) {
         return new ProjectMemberResponse(

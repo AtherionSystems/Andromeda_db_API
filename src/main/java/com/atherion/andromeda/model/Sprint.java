@@ -10,6 +10,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -43,17 +44,17 @@ public class Sprint {
     private String status;
 
     @Column(name = "START_DATE")
-    private Instant startDate;
+    private LocalDateTime startDate;
 
     @Column(name = "DUE_DATE")
-    private Instant dueDate;
+    private LocalDateTime dueDate;
 
     @Column(name = "ACTUAL_END")
-    private Instant actualEnd;
+    private LocalDateTime actualEnd;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
-    private Instant createdAt;
+    private LocalDateTime createdAt;
 
 
 }

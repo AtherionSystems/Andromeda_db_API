@@ -10,6 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -31,6 +32,8 @@ public class BotCommandHandler {
             Set.of("todo", "in_progress", "review", "done");
     private static final Set<String> VALID_TASK_PRIORITIES =
             Set.of("low", "medium", "high", "critical");
+    private static final Set<String> VALID_SPRINT_STATUSES =
+            Set.of("planned", "active", "completed");
     private static final Set<String> VALID_MEMBER_ROLES =
             Set.of("owner", "manager", "member");
 
@@ -73,8 +76,10 @@ public class BotCommandHandler {
             case "/user"          -> handleUser(args);
             // ── write ─────────────────────────────────────────────────────
             case "/newproject"    -> handleNewProject(args, telegramUserId);
+            case "/newsprint"     -> handleNewSprint(args, telegramUserId);
             case "/newtask"       -> handleNewTask(args, telegramUserId);
             case "/assigntask"    -> handleAssignTask(args, telegramUserId);
+            case "/addsprinttask" -> handleAssignTask(args, telegramUserId);
             case "/completetask"  -> handleCompleteTask(args, telegramUserId);
             case "/taskstatus"    -> handleTaskStatus(args, telegramUserId);
             case "/taskpriority"  -> handleTaskPriority(args, telegramUserId);
@@ -107,8 +112,10 @@ public class BotCommandHandler {
 
                 WRITE  (requires /link)
                 /newproject <name> [| desc] [| status]
+                /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
                 /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
                 /assigntask <sprintId> <taskId>
+                /addsprinttask <sprintId> <taskId>
                 /completetask <taskId> <actualHours>
                 /taskstatus <taskId> <status>
                 /taskpriority <taskId> <priority>
@@ -117,6 +124,7 @@ public class BotCommandHandler {
 
                 VALUES
                 Project status : active · paused · completed · cancelled
+                Sprint status  : planned · active · completed
                 Task status    : todo · in_progress · review · done
                 Task priority  : low · medium · high · critical
                 Member role    : owner · manager · member
@@ -370,6 +378,66 @@ public class BotCommandHandler {
     }
 
     /**
+     * /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
+     *
+     *
+     */
+    private String handleNewSprint(String args, Long telegramUserId) {
+        if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
+        if (args.isBlank())
+            return "Usage: /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]";
+
+        String[] pipes = splitPipes(args, 6);
+        if (pipes.length < 2)
+            return "Usage: /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]";
+
+        Long projectId = parseLong(pipes[0]);
+        if (projectId == null)
+            return "Usage: /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]";
+
+        String name = pipes[1];
+        if (name.isEmpty()) return "Sprint name cannot be empty.";
+
+        String goal = pipes.length > 2 && !pipes[2].isEmpty() ? pipes[2] : null;
+        String status = pipes.length > 3 && !pipes[3].isEmpty() ? pipes[3].toLowerCase() : "planned";
+        if (!VALID_SPRINT_STATUSES.contains(status))
+            return "Invalid status '" + status + "'. Valid: planned, active, completed";
+
+        LocalDateTime startDate = null;
+        if (pipes.length > 4 && !pipes[4].isEmpty()) {
+            startDate = parseDateInput(pipes[4]);
+            if (startDate == null)
+                return "Invalid startDate '" + pipes[4] + "'. Use yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss";
+        }
+
+        LocalDateTime dueDate = null;
+        if (pipes.length > 5 && !pipes[5].isEmpty()) {
+            dueDate = parseDateInput(pipes[5]);
+            if (dueDate == null)
+                return "Invalid dueDate '" + pipes[5] + "'. Use yyyy-MM-dd or yyyy-MM-ddTHH:mm:ss";
+        }
+
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
+
+        Sprint sprint = new Sprint();
+        sprint.setProject(project);
+        sprint.setName(name);
+        sprint.setGoal(goal);
+        sprint.setStatus(status);
+        sprint.setStartDate(startDate);
+        sprint.setDueDate(dueDate);
+        Sprint saved = sprintService.save(sprint);
+
+        return String.format(
+                "Sprint created!\nID:      %d\nName:    %s\nProject: #%d %s\nStatus:  %s\nStart:   %s\nDue:     %s",
+                saved.getId(), saved.getName(),
+                project.getId(), project.getName(),
+                saved.getStatus(),
+                fmt(saved.getStartDate()), fmt(saved.getDueDate()));
+    }
+
+    /**
      * /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
      *
      * estimatedHours must be > 0 and <= 4.0. If > 4, the bot rejects and
@@ -469,11 +537,12 @@ public class BotCommandHandler {
         SprintTask st = new SprintTask();
         st.setSprint(sprint);
         st.setTask(task);
+        st.setAddedAt(LocalDateTime.now());
         sprintTaskService.save(st);
 
         // mark task as started
         task.setStatus("in_progress");
-        if (task.getStartDate() == null) task.setStartDate(Instant.now());
+        if (task.getStartDate() == null) task.setStartDate(LocalDateTime.now());
         tasksService.save(task);
 
         // auto-assign developer if not already assigned
@@ -515,7 +584,7 @@ public class BotCommandHandler {
 
         String previousStatus = task.getStatus();
         task.setStatus("done");
-        task.setActualEnd(Instant.now());
+        task.setActualEnd(LocalDateTime.now());
         task.setActualHours(actualHours);
         tasksService.save(task);
 
@@ -674,8 +743,21 @@ public class BotCommandHandler {
         catch (NumberFormatException e) { return null; }
     }
 
-    private String fmt(Instant instant) {
-        return instant != null ? DATE_FMT.format(instant) : "—";
+    private LocalDateTime parseDateInput(String s) {
+        if (s == null || s.isBlank()) return null;
+        String value = s.trim();
+        try {
+            if (value.length() == 10) {
+                return java.time.LocalDate.parse(value).atStartOfDay();
+            }
+            return LocalDateTime.parse(value);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String fmt(LocalDateTime dt) {
+        return dt != null ? dt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd")) : "—";
     }
 
     private String nvl(String value, String fallback) {

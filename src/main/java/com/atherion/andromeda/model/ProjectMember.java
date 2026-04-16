@@ -10,6 +10,7 @@ import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -47,7 +48,7 @@ public class ProjectMember {
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "JOINED_AT")
-    private Instant joinedAt;
+    private LocalDateTime joinedAt;
 
 
 }
