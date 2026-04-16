@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: andromeda
-          image: mx-queretaro-1.ocir.io/<YOUR_NAMESPACE>/andromeda-backend:0.1
+          image: mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:0.1
           ports:
             - containerPort: 8080
           env:
