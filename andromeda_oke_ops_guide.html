@@ -1,471 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Andromeda — OKE Ops Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:        #0d0f12;
+      --bg-2:      #13161b;
+      --bg-3:      #1a1e26;
+      --bg-4:      #21262f;
+      --border:    #2a3040;
+      --border-2:  #374252;
+      --text:      #cdd6e8;
+      --text-2:    #7a8fa8;
+      --text-3:    #4a5a6e;
+      --green:     #4caf82;
+      --green-dim: #1a3028;
+      --green-mid: #2a5040;
+      --amber:     #d4a44c;
+      --amber-dim: #2d2010;
+      --red:       #e05555;
+      --red-dim:   #2d1212;
+      --blue:      #5b9bd5;
+      --blue-dim:  #0e1f34;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+      --radius:    6px;
+      --radius-lg: 10px;
+    }
 
-<style>
-  :root { --c-warn: #BA7517; --c-warn-bg: #FAEEDA; --c-danger: #A32D2D; --c-danger-bg: #FCEBEB; --c-ok: #3B6D11; --c-ok-bg: #EAF3DE; --c-info: #185FA5; --c-info-bg: #E6F1FB; --c-muted: var(--color-text-secondary); }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: var(--font-sans); font-size: 14px; color: var(--color-text-primary); }
-  .page { padding: 1.5rem 0; }
-  h1 { font-size: 20px; font-weight: 500; margin-bottom: 4px; }
-  .subtitle { font-size: 13px; color: var(--c-muted); margin-bottom: 2rem; }
-  .tabs { display: flex; gap: 4px; margin-bottom: 1.5rem; flex-wrap: wrap; }
-  .tab-btn { padding: 6px 14px; font-size: 13px; font-weight: 400; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); cursor: pointer; background: var(--color-background-secondary); color: var(--color-text-secondary); transition: all 0.15s; }
-  .tab-btn.active { background: var(--color-background-primary); color: var(--color-text-primary); border-color: var(--color-border-primary); font-weight: 500; }
-  .tab-pane { display: none; }
-  .tab-pane.active { display: block; }
-  .section { margin-bottom: 1.75rem; }
-  .section-title { font-size: 13px; font-weight: 500; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.75rem; }
-  .step-list { display: flex; flex-direction: column; gap: 10px; }
-  .step { display: flex; gap: 12px; padding: 12px 14px; border-radius: var(--border-radius-md); border: 0.5px solid var(--color-border-tertiary); background: var(--color-background-primary); }
-  .step-num { width: 22px; height: 22px; min-width: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; background: var(--color-background-tertiary); color: var(--color-text-secondary); }
-  .step-body { flex: 1; }
-  .step-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
-  .step-desc { font-size: 13px; color: var(--c-muted); line-height: 1.55; }
-  .code { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); padding: 2px 6px; border-radius: 4px; color: var(--color-text-primary); display: inline-block; margin: 1px 0; }
-  .code-block { font-family: var(--font-mono); font-size: 12px; background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 10px 12px; margin: 6px 0; line-height: 1.7; white-space: pre-wrap; word-break: break-all; }
-  .badge { font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 99px; display: inline-block; }
-  .badge-warn { background: var(--c-warn-bg); color: var(--c-warn); }
-  .badge-danger { background: var(--c-danger-bg); color: var(--c-danger); }
-  .badge-ok { background: var(--c-ok-bg); color: var(--c-ok); }
-  .badge-info { background: var(--c-info-bg); color: var(--c-info); }
-  .callout { padding: 10px 14px; border-radius: var(--border-radius-md); border-left: 3px solid; margin: 10px 0; font-size: 13px; line-height: 1.55; }
-  .callout-warn { background: var(--c-warn-bg); border-color: var(--c-warn); color: var(--c-warn); }
-  .callout-danger { background: var(--c-danger-bg); border-color: var(--c-danger); color: var(--c-danger); }
-  .callout-ok { background: var(--c-ok-bg); border-color: var(--c-ok); color: var(--c-ok); }
-  .callout-info { background: var(--c-info-bg); border-color: var(--c-info); color: var(--c-info); }
-  .expected { font-size: 12px; margin-top: 6px; padding: 8px 10px; border-radius: var(--border-radius-md); background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); }
-  .expected-label { font-weight: 500; font-size: 11px; color: var(--c-muted); margin-bottom: 3px; }
-  .issue-list { margin-top: 6px; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 3px; }
-  .issue-list li::before { content: "! "; color: var(--c-warn); font-weight: 500; }
-  .issue-list li { font-size: 12px; color: var(--c-muted); }
-  .checklist { display: flex; flex-direction: column; gap: 8px; }
-  .check-item { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); cursor: pointer; background: var(--color-background-primary); transition: background 0.1s; }
-  .check-item.done { background: var(--c-ok-bg); border-color: #97C459; }
-  .check-box { width: 16px; height: 16px; min-width: 16px; border-radius: 4px; border: 1.5px solid var(--color-border-secondary); margin-top: 1px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
-  .check-item.done .check-box { background: var(--c-ok); border-color: var(--c-ok); }
-  .check-box-tick { display: none; width: 9px; height: 7px; }
-  .check-item.done .check-box-tick { display: block; }
-  .check-text { font-size: 13px; line-height: 1.5; }
-  .check-item.done .check-text { color: var(--c-ok); }
-  .check-note { font-size: 11px; color: var(--c-muted); margin-top: 2px; }
-  .check-item.done .check-note { color: var(--c-ok); }
-  .check-section-title { font-size: 12px; font-weight: 500; color: var(--c-muted); margin: 1rem 0 0.5rem; }
-  .progress-bar-wrap { height: 4px; background: var(--color-background-secondary); border-radius: 99px; margin-bottom: 1.25rem; overflow: hidden; }
-  .progress-bar { height: 100%; background: var(--c-ok); border-radius: 99px; transition: width 0.3s; }
-  .progress-label { font-size: 12px; color: var(--c-muted); margin-bottom: 6px; }
-  .reset-btn { font-size: 12px; border: 0.5px solid var(--color-border-secondary); background: transparent; color: var(--color-text-secondary); padding: 5px 12px; border-radius: var(--border-radius-md); cursor: pointer; margin-top: 1rem; }
-  .team-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
-  .team-card { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 14px; }
-  .team-card-title { font-size: 13px; font-weight: 500; margin-bottom: 6px; }
-  .team-card ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 4px; }
-  .team-card li { font-size: 12px; color: var(--c-muted); padding-left: 10px; position: relative; line-height: 1.5; }
-  .team-card li::before { content: "·"; position: absolute; left: 0; color: var(--c-muted); }
-  .divider { height: 0.5px; background: var(--color-border-tertiary); margin: 1.25rem 0; }
-</style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-<div class="page">
-  <h1>Andromeda OKE — Ops Guide</h1>
-  <p class="subtitle">OKE cost management · Mexico Central (Querétaro) · Andromeda project</p>
+    html { scroll-behavior: smooth; }
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('now')">Right now</button>
-    <button class="tab-btn" onclick="switchTab('teardown')">Teardown</button>
-    <button class="tab-btn" onclick="switchTab('bringup')">Bring-up</button>
-    <button class="tab-btn" onclick="switchTab('team')">Team</button>
-    <button class="tab-btn" onclick="switchTab('checklist')">Daily checklist</button>
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    /* ── LAYOUT ── */
+    .shell {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 3rem 2rem 6rem;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      margin-bottom: 3rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header-eyebrow {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 400;
+      color: var(--green);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-eyebrow::before {
+      content: '';
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+
+    h1 {
+      font-family: var(--mono);
+      font-size: 26px;
+      font-weight: 600;
+      color: #fff;
+      letter-spacing: -0.02em;
+      margin-bottom: 0.5rem;
+    }
+
+    .header-sub {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text-3);
+      display: flex;
+      gap: 1.5rem;
+      flex-wrap: wrap;
+      margin-top: 0.75rem;
+    }
+
+    .header-sub span { display: flex; align-items: center; gap: 5px; }
+    .header-sub span::before { content: '//'; color: var(--text-3); }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      margin-bottom: 2rem;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 4px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 400;
+      padding: 7px 16px;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      background: transparent;
+      color: var(--text-2);
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover { color: var(--text); background: var(--bg-3); }
+
+    .tab-btn.active {
+      background: var(--bg-4);
+      color: var(--green);
+      border: 1px solid var(--border-2);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; animation: fadeIn 0.2s ease; }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+    /* ── SECTION TITLES ── */
+    .section { margin-bottom: 2rem; }
+
+    .section-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-title::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── CALLOUTS ── */
+    .callout {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.6;
+      padding: 12px 16px;
+      border-radius: var(--radius);
+      border: 1px solid;
+      margin-bottom: 1.5rem;
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .callout::before { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+    .callout-danger  { background: var(--red-dim);   border-color: var(--red);   color: var(--red);   }
+    .callout-warn    { background: var(--amber-dim);  border-color: var(--amber); color: var(--amber); }
+    .callout-info    { background: var(--blue-dim);   border-color: var(--blue);  color: var(--blue);  }
+    .callout-ok      { background: var(--green-dim);  border-color: var(--green); color: var(--green); }
+    .callout-danger::before  { content: '⚠'; }
+    .callout-warn::before    { content: '!'; }
+    .callout-info::before    { content: 'i'; }
+    .callout-ok::before      { content: '✓'; }
+
+    /* ── STEPS ── */
+    .step-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .step {
+      display: flex;
+      gap: 0;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      background: var(--bg-2);
+      transition: border-color 0.15s;
+    }
+
+    .step:hover { border-color: var(--border-2); }
+
+    .step-num-col {
+      width: 40px;
+      min-width: 40px;
+      background: var(--bg-3);
+      border-right: 1px solid var(--border);
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 14px;
+    }
+
+    .step-num {
+      font-family: var(--mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-3);
+    }
+
+    .step-body { padding: 14px 16px; flex: 1; }
+
+    .step-title {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 500;
+      color: #fff;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.65;
+      margin-bottom: 6px;
+    }
+
+    /* ── CODE ── */
+    code {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: var(--bg-4);
+      color: var(--green);
+      padding: 1px 6px;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+    }
+
+    .code-block {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 14px;
+      margin: 8px 0;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--text);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .code-block::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--green);
+      opacity: 0.4;
+    }
+
+    /* ── EXPECTED / ISSUES ── */
+    .expected {
+      margin-top: 8px;
+      padding: 8px 12px;
+      background: var(--green-dim);
+      border: 1px solid var(--green-mid);
+      border-radius: var(--radius);
+      font-size: 12px;
+      color: var(--green);
+    }
+
+    .expected-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      opacity: 0.7;
+      margin-bottom: 3px;
+    }
+
+    .issue-list { list-style: none; margin-top: 8px; display: flex; flex-direction: column; gap: 4px; }
+
+    .issue-list li {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--amber);
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.6;
+    }
+
+    .issue-list li::before { content: '! '; position: absolute; left: 0; }
+
+    /* ── BADGES ── */
+    .badge {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 500;
+      padding: 2px 8px;
+      border-radius: 3px;
+      letter-spacing: 0.04em;
+    }
+
+    .badge-danger { background: var(--red-dim);   color: var(--red);   border: 1px solid var(--red);   }
+    .badge-info   { background: var(--blue-dim);  color: var(--blue);  border: 1px solid var(--blue);  }
+    .badge-ok     { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+    .badge-warn   { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+
+    /* ── DIVIDER ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 2rem 0;
+    }
+
+    /* ── TEAM GRID ── */
+    .team-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .team-card {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      transition: border-color 0.15s;
+    }
+
+    .team-card:hover { border-color: var(--border-2); }
+
+    .team-card-title {
+      font-family: var(--mono);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--green);
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .team-card ul { list-style: none; display: flex; flex-direction: column; gap: 5px; }
+
+    .team-card li {
+      font-size: 12px;
+      color: var(--text-2);
+      padding-left: 14px;
+      position: relative;
+      line-height: 1.5;
+    }
+
+    .team-card li::before { content: '→'; position: absolute; left: 0; color: var(--text-3); font-size: 10px; top: 2px; }
+
+    /* ── CHECKLIST ── */
+    .checklist { display: flex; flex-direction: column; gap: 6px; }
+
+    .check-item {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 11px 14px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      background: var(--bg-2);
+      transition: all 0.15s;
+      user-select: none;
+    }
+
+    .check-item:hover { border-color: var(--border-2); background: var(--bg-3); }
+
+    .check-item.done {
+      background: var(--green-dim);
+      border-color: var(--green-mid);
+    }
+
+    .check-box {
+      width: 16px; height: 16px; min-width: 16px;
+      border-radius: 3px;
+      border: 1px solid var(--border-2);
+      margin-top: 1px;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      background: var(--bg-4);
+    }
+
+    .check-item.done .check-box {
+      background: var(--green);
+      border-color: var(--green);
+    }
+
+    .check-tick { display: none; }
+    .check-item.done .check-tick { display: block; }
+
+    .check-text {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--text);
+      line-height: 1.5;
+      transition: color 0.15s;
+    }
+
+    .check-item.done .check-text { color: var(--green); }
+
+    .check-note {
+      font-size: 11px;
+      color: var(--text-3);
+      margin-top: 3px;
+      font-family: var(--mono);
+      transition: color 0.15s;
+    }
+
+    .check-item.done .check-note { color: var(--green); opacity: 0.6; }
+
+    .check-section-title {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-3);
+      margin: 1.5rem 0 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .check-section-title.teardown { color: var(--red); }
+    .check-section-title.bringup  { color: var(--green); }
+
+    /* ── PROGRESS ── */
+    .progress-wrap {
+      margin-bottom: 1rem;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .progress-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+    }
+
+    .progress-pct {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--green);
+    }
+
+    .progress-bar-track {
+      height: 3px;
+      background: var(--bg-4);
+      border-radius: 99px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--green);
+      border-radius: 99px;
+      transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* ── RESET BTN ── */
+    .reset-btn {
+      font-family: var(--mono);
+      font-size: 11px;
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-3);
+      padding: 6px 14px;
+      border-radius: var(--radius);
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: all 0.15s;
+    }
+
+    .reset-btn:hover { border-color: var(--border-2); color: var(--text-2); }
+
+    /* ── CONFIG BLOCK ── */
+    .config-block {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 8px 0;
+    }
+
+    .config-row {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-row:last-child { border-bottom: none; }
+
+    .config-key {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-3);
+      padding: 9px 14px;
+      background: var(--bg-2);
+      border-right: 1px solid var(--border);
+    }
+
+    .config-val {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text);
+      padding: 9px 14px;
+    }
+
+    /* ── SCROLLBAR ── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">Atherion Systems · Andromeda</div>
+    <h1>OKE Ops Guide</h1>
+    <div class="header-sub">
+      <span>mx-queretaro-1</span>
+      <span>compartment: reacttodo</span>
+      <span>cluster: andromedaoke</span>
+      <span>scripts/andromeda-bringup.sh · scripts/andromeda-undeploy.sh</span>
+    </div>
   </div>
 
-  <!-- TAB: RIGHT NOW -->
-  <div id="tab-now" class="tab-pane active">
-    <div class="callout callout-danger">Stop the bleeding first. You are currently being billed ~$5/hr for a Load Balancer + OKE control plane with zero useful work being done.</div>
+  <!-- TABS -->
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('checklist', this)">daily checklist</button>
+    <button class="tab-btn" onclick="switchTab('bringup', this)">bring-up</button>
+    <button class="tab-btn" onclick="switchTab('teardown', this)">teardown</button>
+    <button class="tab-btn" onclick="switchTab('team', this)">team</button>
+    <button class="tab-btn" onclick="switchTab('now', this)">emergency</button>
+  </div>
+
+  <!-- TAB: EMERGENCY -->
+  <div id="tab-now" class="tab-pane">
+    <div class="callout callout-danger">Cluster is spending tokens with no useful work. Stop the bleeding before anything else.</div>
+
     <div class="section">
       <div class="section-title">Immediate actions</div>
       <div class="step-list">
+
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num-col"><span class="step-num">01</span></div>
           <div class="step-body">
             <div class="step-title">Delete the Load Balancer <span class="badge badge-danger">highest priority</span></div>
-            <div class="step-desc">Go to <strong>Networking → Load Balancers</strong> in OCI Console (same region: Mexico Central Querétaro). Find any LB whose name contains <span class="code">andromedaoke</span> or whose tags link to the cluster. Delete it.<br><br>
-            Alternatively from Cloud Shell:<br></div>
-            <div class="code-block">oci lb load-balancer list --compartment-id &lt;your-compartment-ocid&gt; --all
-# Find the OCID of the LB tied to your cluster, then:
-oci lb load-balancer delete --load-balancer-id &lt;lb-ocid&gt; --force</div>
-            <div class="expected"><div class="expected-label">Expected output</div>LB disappears from the list within 1–2 min. Cost line "Load Balancer" drops to 0.</div>
-            <ul class="issue-list"><li>If stuck in "Deleting" state: the LB is still referenced by a K8s Service. Run <span class="code">kubectl delete svc --all -n andromeda</span> first.</li></ul>
+            <div class="step-desc">Networking → Load Balancers (region: Mexico Central Querétaro). Find the LB tied to the cluster. Click ··· → Terminate.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              LB disappears within 1–2 min. Cost line "Load Balancer" drops to 0.
+            </div>
+            <ul class="issue-list">
+              <li>Stuck in "Deleting": LB is still referenced by a K8s Service. Run <code>kubectl delete svc --all -n andromeda</code> first, then retry.</li>
+            </ul>
           </div>
         </div>
+
         <div class="step">
-          <div class="step-num">2</div>
+          <div class="step-num-col"><span class="step-num">02</span></div>
           <div class="step-body">
-            <div class="step-title">Terminate the stopped compute instances</div>
-            <div class="step-desc">In Instances (Image 4), the three <span class="code">oke-c5zeswx6pna-*</span> nodes show "Terminated" but their boot volumes may still exist. The three <span class="code">oke-cwhpkfiezpq-*</span> nodes are "Stopped" — these are definitely still billing for compute + boot volume.<br><br>
-            Go to <strong>Compute → Instances</strong>, select all 6, click <strong>Actions → Terminate</strong>. Check the box <strong>"Permanently delete the attached boot volume"</strong> for each.</div>
-            <div class="expected"><div class="expected-label">Expected output</div>All instances move to Terminated state. The boot volumes list under Block Storage should show empty or only your Autonomous DB volume.</div>
-            <ul class="issue-list"><li>If OKE re-provisions nodes automatically: your node pool desired count is not 0. Go to Node Pools → Edit → set Size to 0 before terminating.</li></ul>
+            <div class="step-title">Set node pool size to 0 first</div>
+            <div class="step-desc">Containers → Clusters → andromedaoke → Node Pools → pool1 → Edit → Number of nodes: <code>0</code> → Save.<br><br>Do this before terminating instances — otherwise OKE auto-heals and keeps spawning new ones.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              "No nodes are associated with this node pool." The loop stops.
+            </div>
           </div>
         </div>
+
         <div class="step">
-          <div class="step-num">3</div>
+          <div class="step-num-col"><span class="step-num">03</span></div>
           <div class="step-body">
-            <div class="step-title">Set node pool size to 0</div>
-            <div class="step-desc">In <strong>Containers → Clusters → andromedaoke → Node Pools → pool1 → Edit</strong>. Set "Number of nodes" to <span class="code">0</span>. Save.</div>
-            <div class="expected"><div class="expected-label">Expected output</div>Pool shows 0 total worker nodes. No new instances will be auto-provisioned.</div>
+            <div class="step-title">Terminate all compute instances</div>
+            <div class="step-desc">Compute → Instances → select all OKE nodes → Actions → Terminate. Check <strong>"Permanently delete the attached boot volume"</strong> for each.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              All instances move to Terminated. No new ones spawn because pool is at 0.
+            </div>
+            <ul class="issue-list">
+              <li>Still spawning after step 02: delete the entire cluster — Containers → Clusters → andromedaoke → Delete. This is the nuclear option and always works.</li>
+            </ul>
           </div>
         </div>
+
         <div class="step">
-          <div class="step-num">4</div>
+          <div class="step-num-col"><span class="step-num">04</span></div>
           <div class="step-body">
-            <div class="step-title">Check boot volumes separately</div>
-            <div class="step-desc">Go to <strong>Block Storage → Boot Volumes</strong>. Filter by compartment <span class="code">reacttodo</span>. Delete any orphaned volumes not attached to a running instance.</div>
-            <div class="expected"><div class="expected-label">Expected output</div>Boot Volumes list is empty or contains only your DB-related volumes.</div>
+            <div class="step-title">Delete orphaned boot volumes</div>
+            <div class="step-desc">Block Storage → Boot Volumes → filter compartment <code>reacttodo</code>. Delete any volume not attached to a running instance.</div>
           </div>
         </div>
+
       </div>
     </div>
-    <div class="callout callout-warn">After these 4 steps, your only remaining cost should be the OKE control plane (~$0.10/hr, unavoidable while the cluster exists) and the Autonomous DB (typically near-zero at low load). The $3–4/hr Load Balancer line will be gone.</div>
+
+    <div class="callout callout-warn">After these steps the only remaining cost is the OKE control plane (~$0.10/hr) and Autonomous DB (near-zero at low load). The $3–4/hr Load Balancer line will be gone.</div>
   </div>
 
   <!-- TAB: TEARDOWN -->
   <div id="tab-teardown" class="tab-pane">
-    <div class="callout callout-info">Run this at the end of every work session. The full teardown takes about 5 minutes and reduces cost to near zero.</div>
+    <div class="callout callout-info">Run at end of every work session. Use the script — it handles everything automatically.</div>
+
     <div class="section">
-      <div class="section-title">Option A — Console (recommended for the team)</div>
+      <div class="section-title">Preferred — script</div>
       <div class="step-list">
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num-col"><span class="step-num">01</span></div>
           <div class="step-body">
-            <div class="step-title">Delete Kubernetes services that provision cloud resources</div>
-            <div class="step-desc">From Cloud Shell, before anything else:</div>
-            <div class="code-block">kubectl delete svc --all -n andromeda
-kubectl delete ingress --all -n andromeda</div>
-            <div class="expected"><div class="expected-label">Expected</div><span class="code">service "andromeda-service" deleted</span> (or similar). This releases the Load Balancer in OCI.</div>
-            <ul class="issue-list"><li>If namespace does not exist yet: skip this step.</li><li>If kubectl is not configured: run <span class="code">oci ce cluster create-kubeconfig --cluster-id &lt;ocid&gt; --region mx-queretaro-1</span> first.</li></ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">2</div>
-          <div class="step-body">
-            <div class="step-title">Scale node pool to 0</div>
-            <div class="step-desc"><strong>Containers → Clusters → andromedaoke → Node Pools → pool1 → Edit → Number of nodes: 0 → Save</strong><br><br>Or via CLI:</div>
-            <div class="code-block">oci ce node-pool update \
-  --node-pool-id &lt;node-pool-ocid&gt; \
-  --size 0</div>
-            <div class="expected"><div class="expected-label">Expected</div>Instances begin terminating (1–3 min). Node pool shows 0 total workers.</div>
-            <ul class="issue-list"><li>Instances stuck in "Stopping": wait 5 min, then manually terminate from Compute → Instances.</li></ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <div class="step-title">Confirm Load Balancer is gone</div>
-            <div class="step-desc"><strong>Networking → Load Balancers</strong>. The LB provisioned by your K8s LoadBalancer Service should be deleting or gone after step 1.</div>
-            <div class="expected"><div class="expected-label">Expected</div>Empty list or only pre-existing LBs unrelated to Andromeda.</div>
-            <ul class="issue-list"><li>LB still present: delete it manually (see Right Now tab, step 1).</li></ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <div class="step-title">Delete orphaned boot volumes</div>
-            <div class="step-desc"><strong>Block Storage → Boot Volumes</strong>, filter compartment <span class="code">reacttodo</span>. Delete any volume not attached to a running instance.</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-body">
-            <div class="step-title">Verify in Cost & Usage</div>
-            <div class="step-desc">Wait 5–10 min, then check <strong>Billing → Cost Analysis</strong>. The "Container Engine for Kubernetes" bar should drop sharply. Load Balancer should be 0.</div>
+            <div class="step-title">Run the undeploy script from Cloud Shell</div>
+            <div class="code-block">cd ~/reacttodo/oci_devops_project/MtdrSpring
+              bash scripts/andromeda-undeploy.sh</div>
+            <div class="step-desc" style="margin-top:6px;">The script will prompt for cluster OCID and node pool OCID, then handle everything: K8s service deletion, node pool scale-down, cluster deletion, and boot volume check.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              Final output: "Andromeda is DOWN · Token spend stopped."
+            </div>
           </div>
         </div>
       </div>
     </div>
+
     <div class="divider"></div>
+
     <div class="section">
-      <div class="section-title">Option B — Full cluster delete (use when no work for 2+ days)</div>
-      <div class="callout callout-warn">Only do this if no one will need the cluster for more than 2 days. Reprovisioning takes ~15 min.</div>
+      <div class="section-title">Manual — step by step</div>
       <div class="step-list">
+
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num-col"><span class="step-num">01</span></div>
           <div class="step-body">
-            <div class="step-title">Delete kubectl services first (same as Option A step 1)</div>
+            <div class="step-title">Delete K8s services to release Load Balancer</div>
             <div class="code-block">kubectl delete svc --all -n andromeda
-kubectl delete ingress --all -n andromeda</div>
+              kubectl delete ingress --all -n andromeda</div>
+            <div class="expected"><div class="expected-label">Expected</div><code>service "andromeda-service" deleted</code>. This triggers OCI to release the LB.</div>
+            <ul class="issue-list">
+              <li>Namespace not found: skip this step.</li>
+              <li>kubectl not configured: run <code>oci ce cluster create-kubeconfig --cluster-id &lt;ocid&gt; --region mx-queretaro-1</code> first.</li>
+            </ul>
           </div>
         </div>
+
         <div class="step">
-          <div class="step-num">2</div>
+          <div class="step-num-col"><span class="step-num">02</span></div>
           <div class="step-body">
-            <div class="step-title">Delete the cluster</div>
-            <div class="step-desc"><strong>Containers → Clusters → andromedaoke → Delete</strong>. Confirm. OCI will terminate all node pool instances automatically.</div>
-            <div class="expected"><div class="expected-label">Expected</div>Cluster disappears from the list. All node instances terminate. LB is released.</div>
-            <ul class="issue-list"><li>VCN will persist — that is fine, it costs nothing meaningful.</li><li>Autonomous DB is not deleted by this action — your data is safe.</li></ul>
+            <div class="step-title">Delete the cluster entirely</div>
+            <div class="step-desc">Containers → Clusters → andromedaoke → (top right) Delete cluster → confirm.<br><br>Or via CLI:</div>
+            <div class="code-block">oci ce cluster delete --cluster-id &lt;cluster-ocid&gt; --region mx-queretaro-1 --force</div>
+            <div class="expected"><div class="expected-label">Expected</div>Cluster disappears. All node instances terminate. LB is released. Autonomous DB untouched.</div>
           </div>
         </div>
+
+        <div class="step">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete orphaned boot volumes</div>
+            <div class="step-desc">Block Storage → Boot Volumes → compartment <code>reacttodo</code> → delete any AVAILABLE volume with no attached instance.</div>
+          </div>
+        </div>
+
+        <div class="step">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify in Cost Analysis (10 min later)</div>
+            <div class="step-desc">Billing → Cost Analysis. OKE bar gone. Load Balancer = 0. Only Autonomous DB remains.</div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
   <!-- TAB: BRING-UP -->
   <div id="tab-bringup" class="tab-pane">
-    <div class="callout callout-info">If you used Option A teardown (cluster kept, nodes at 0): only do steps 3–5. If you deleted the cluster entirely: do all steps.</div>
+    <div class="callout callout-info">Since we always fully delete the cluster, all steps apply every session. Total time ~15 min.</div>
+
     <div class="section">
-      <div class="section-title">Full bring-up (~15 min from scratch, ~5 min from Option A)</div>
+      <div class="section-title">Preferred — script</div>
       <div class="step-list">
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num-col"><span class="step-num">01</span></div>
           <div class="step-body">
-            <div class="step-title">Recreate the cluster <span class="badge badge-info">only if fully deleted</span></div>
-            <div class="step-desc"><strong>Containers → Clusters → Create cluster → Quick Create</strong><br>
-            Settings to use:<br></div>
-            <div class="code-block">Name:              andromedaoke
-Compartment:       reacttodo
-Kubernetes ver:    v1.34.2 (same as before)
-Shape:             VM.Standard.E3.Flex
-OCPUs:             1 per node
-Memory:            6 GB per node
-Node count:        1 (scale up if needed)
-VCN:               Create new or reuse oke-vcn-quick-andromedaoke-281194dc7</div>
-            <div class="expected"><div class="expected-label">Expected</div>Cluster status: Active within 10–12 min.</div>
+            <div class="step-title">Quick Create the cluster in OCI Console first</div>
+            <div class="step-desc">Containers → Clusters → Create cluster → Quick Create</div>
+            <div class="config-block">
+              <div class="config-row"><div class="config-key">Name</div><div class="config-val">andromedaoke</div></div>
+              <div class="config-row"><div class="config-key">Compartment</div><div class="config-val">reacttodo</div></div>
+              <div class="config-row"><div class="config-key">Kubernetes version</div><div class="config-val">v1.34.2</div></div>
+              <div class="config-row"><div class="config-key">Shape</div><div class="config-val">VM.Standard.E3.Flex</div></div>
+              <div class="config-row"><div class="config-key">OCPUs per node</div><div class="config-val">1</div></div>
+              <div class="config-row"><div class="config-key">Memory per node</div><div class="config-val">6 GB</div></div>
+              <div class="config-row"><div class="config-key">Node count</div><div class="config-val">1</div></div>
+            </div>
+            <div class="expected"><div class="expected-label">Expected</div>Cluster status: Active within 10–12 min. Copy the cluster OCID from the Details tab.</div>
           </div>
         </div>
+
         <div class="step">
-          <div class="step-num">2</div>
+          <div class="step-num-col"><span class="step-num">02</span></div>
           <div class="step-body">
-            <div class="step-title">Configure kubectl <span class="badge badge-info">only if fully deleted</span></div>
-            <div class="step-desc">In Cloud Shell (or local terminal with OCI CLI):</div>
-            <div class="code-block">oci ce cluster create-kubeconfig \
-  --cluster-id &lt;new-cluster-ocid&gt; \
-  --region mx-queretaro-1 \
-  --token-version 2.0.0 \
-  --kube-endpoint PUBLIC_ENDPOINT
-kubectl get nodes</div>
-            <div class="expected"><div class="expected-label">Expected</div><span class="code">NAME ... STATUS Ready</span> for each node.</div>
-            <ul class="issue-list"><li>Nodes show NotReady: wait 2–3 more min for kubelet startup.</li><li>"No resources found": kubeconfig is pointing at wrong cluster — re-run the create-kubeconfig command.</li></ul>
+            <div class="step-title">Run the bring-up script from Cloud Shell</div>
+            <div class="code-block">cd ~/reacttodo/oci_devops_project/MtdrSpring
+              git pull origin staging
+              bash scripts/andromeda-bringup.sh</div>
+            <div class="step-desc" style="margin-top:6px;">Script prompts for cluster OCID (paste from Console), then handles: kubectl config, namespace, OCIR secret, app secrets, wallet secret, manifest apply, and waits for external IP.</div>
+            <div class="expected"><div class="expected-label">Expected</div>Final output shows External IP and API base URL. Post it in the team channel immediately.</div>
+            <ul class="issue-list">
+              <li>Pod stuck Pending after 5 min: node not Ready yet — <code>kubectl describe pod -n andromeda &lt;name&gt;</code></li>
+              <li>ImagePullBackOff: OCIR secret missing or auth token expired. Re-run script, it will re-prompt.</li>
+              <li>CrashLoopBackOff: app startup error — <code>kubectl logs -n andromeda &lt;pod&gt;</code></li>
+            </ul>
           </div>
         </div>
-        <div class="step">
-          <div class="step-num">3</div>
-          <div class="step-body">
-            <div class="step-title">Scale node pool back to 1 <span class="badge badge-ok">Option A path</span></div>
-            <div class="step-desc"><strong>Node Pools → pool1 → Edit → Number of nodes: 1 → Save</strong><br>Wait for instance to become Running and node to become Ready.</div>
-            <div class="expected"><div class="expected-label">Expected</div><span class="code">kubectl get nodes</span> shows 1 node Ready.</div>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">4</div>
-          <div class="step-body">
-            <div class="step-title">Apply your Kubernetes manifests</div>
-            <div class="step-desc">From your repo root:</div>
-            <div class="code-block">kubectl apply -f k8s/namespace.yaml
-kubectl apply -f k8s/configmap.yaml
-kubectl apply -f k8s/secret.yaml
-kubectl apply -f k8s/deployment.yaml
-kubectl apply -f k8s/service.yaml</div>
-            <div class="step-desc" style="margin-top:6px;">Or if you have a single manifest file:</div>
-            <div class="code-block">kubectl apply -f k8s/andromeda.yaml</div>
-            <div class="expected"><div class="expected-label">Expected</div><span class="code">kubectl get pods -n andromeda</span> shows pod Running (not Pending). Takes 2–5 min for image pull.</div>
-            <ul class="issue-list"><li>Pod stuck Pending: node not Ready yet — wait. Check with <span class="code">kubectl describe pod &lt;name&gt; -n andromeda</span>.</li><li>ImagePullBackOff: check your OCIR secret is present and image tag is correct.</li><li>CrashLoopBackOff: application startup error — check <span class="code">kubectl logs &lt;pod&gt; -n andromeda</span>.</li></ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">5</div>
-          <div class="step-body">
-            <div class="step-title">Confirm Load Balancer is provisioned and get external IP</div>
-            <div class="code-block">kubectl get svc -n andromeda</div>
-            <div class="expected"><div class="expected-label">Expected</div>Service shows EXTERNAL-IP (not &lt;pending&gt;). Takes 2–4 min after <span class="code">kubectl apply</span>.</div>
-            <ul class="issue-list"><li>EXTERNAL-IP stuck pending: LB is still provisioning in OCI — wait and retry.</li></ul>
-          </div>
-        </div>
-        <div class="step">
-          <div class="step-num">6</div>
-          <div class="step-body">
-            <div class="step-title">Update the team with the new external IP</div>
-            <div class="step-desc">Each time the LB is reprovisioned it may get a new IP. Post the new IP in your team channel immediately after step 5.</div>
-          </div>
-        </div>
+
       </div>
     </div>
   </div>
 
   <!-- TAB: TEAM -->
   <div id="tab-team" class="tab-pane">
-    <div class="callout callout-info">The OCI tenancy is shared. Only one person needs OCI Console access to manage the cluster. Others interact via kubectl or the deployed API endpoint.</div>
+    <div class="callout callout-info">Only Santiago needs OCI Console access. Others interact via kubectl or the external IP.</div>
+
     <div class="section">
       <div class="section-title">Role assignments</div>
       <div class="team-grid">
         <div class="team-card">
-          <div class="team-card-title">Santiago (you) — Infra lead</div>
+          <div class="team-card-title">Santiago — Infra lead</div>
           <ul>
-            <li>Owns daily teardown and bring-up</li>
-            <li>Manages OCI Console access</li>
-            <li>Monitors cost dashboard</li>
-            <li>Updates team with current external IP after every bring-up</li>
-            <li>Sole person who deletes/recreates the cluster</li>
+            <li>Owns daily bring-up and teardown</li>
+            <li>Runs andromeda-bringup.sh and andromeda-undeploy.sh</li>
+            <li>Monitors OCI cost dashboard</li>
+            <li>Posts current external IP in team channel after every bring-up</li>
+            <li>Only person who touches OCI Console</li>
           </ul>
         </div>
         <div class="team-card">
-          <div class="team-card-title">Javier (Scrum Master) — Coordination</div>
+          <div class="team-card-title">Javier — Scrum Master</div>
           <ul>
-            <li>Confirms at daily standup whether cluster is needed that session</li>
-            <li>Communicates end of session to trigger teardown</li>
-            <li>Does not need OCI Console access</li>
+            <li>Confirms at standup whether cluster is needed that session</li>
+            <li>Signals end of session so Santiago can run undeploy</li>
+            <li>No OCI Console access needed</li>
           </ul>
         </div>
         <div class="team-card">
-          <div class="team-card-title">Rest of team — Developers</div>
+          <div class="team-card-title">Rest of team — Dev</div>
           <ul>
             <li>Use only the external IP posted by Santiago</li>
             <li>Do not apply manifests independently</li>
-            <li>Run <span class="code">kubectl get pods/logs</span> for debugging only</li>
-            <li>Signal when they're done working so teardown can start</li>
+            <li>Use <code>kubectl get pods/logs</code> for debugging only</li>
+            <li>Signal done so teardown can start</li>
           </ul>
         </div>
       </div>
     </div>
+
     <div class="divider"></div>
+
     <div class="section">
-      <div class="section-title">What teammates need installed (if they want kubectl access)</div>
+      <div class="section-title">Teammate kubectl setup (one-time)</div>
       <div class="step-list">
         <div class="step">
-          <div class="step-num">1</div>
+          <div class="step-num-col"><span class="step-num">01</span></div>
           <div class="step-body">
-            <div class="step-title">OCI CLI</div>
+            <div class="step-title">Install OCI CLI</div>
             <div class="code-block">bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)"</div>
           </div>
         </div>
         <div class="step">
-          <div class="step-num">2</div>
+          <div class="step-num-col"><span class="step-num">02</span></div>
           <div class="step-body">
-            <div class="step-title">Configure OCI CLI with their own profile</div>
+            <div class="step-title">Configure OCI CLI</div>
             <div class="code-block">oci setup config
-# Enter: tenancy OCID, user OCID, region = mx-queretaro-1</div>
+              # tenancy OCID, user OCID, region = mx-queretaro-1</div>
           </div>
         </div>
         <div class="step">
-          <div class="step-num">3</div>
+          <div class="step-num-col"><span class="step-num">03</span></div>
           <div class="step-body">
-            <div class="step-title">Get kubeconfig from Santiago (share the create-kubeconfig command)</div>
+            <div class="step-title">Get kubeconfig — run after every cluster recreation</div>
             <div class="code-block">oci ce cluster create-kubeconfig \
-  --cluster-id &lt;cluster-ocid&gt; \
-  --region mx-queretaro-1 \
-  --token-version 2.0.0 \
-  --kube-endpoint PUBLIC_ENDPOINT</div>
-            <div class="step-desc" style="margin-top:4px;">Each teammate runs this once. They must re-run it after a full cluster delete.</div>
+              --cluster-id &lt;cluster-ocid&gt; \
+              --region mx-queretaro-1 \
+              --token-version 2.0.0 \
+              --kube-endpoint PUBLIC_ENDPOINT</div>
+            <div class="step-desc" style="margin-top:4px;">Santiago shares the current cluster OCID after each bring-up. Each teammate runs this once per cluster lifecycle.</div>
           </div>
         </div>
       </div>
     </div>
-    <div class="callout callout-warn">Teammates should use Cloud Shell as a fallback if local OCI CLI setup is too slow. It has kubectl and OCI CLI pre-configured with the tenancy.</div>
+
+    <div class="callout callout-warn">Cloud Shell is the fastest fallback — it has kubectl and OCI CLI pre-configured with the tenancy. No local setup needed.</div>
   </div>
 
   <!-- TAB: DAILY CHECKLIST -->
-  <div id="tab-checklist" class="tab-pane">
-    <div id="teardown-section">
-      <div class="check-section-title">End-of-session teardown</div>
-      <div class="progress-label" id="td-progress-label">0 of 6 complete</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="td-bar" style="width:0%"></div></div>
-      <div class="checklist" id="teardown-list">
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Delete K8s services to release the Load Balancer</div><div class="check-note">kubectl delete svc --all -n andromeda</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Scale node pool to 0 in OCI Console</div><div class="check-note">Containers → Clusters → andromedaoke → Node Pools → pool1 → Edit → 0</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Confirm Load Balancer is deleted</div><div class="check-note">Networking → Load Balancers → should be empty</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Confirm all compute instances are terminated</div><div class="check-note">Compute → Instances → all OKE nodes show Terminated</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Delete orphaned boot volumes</div><div class="check-note">Block Storage → Boot Volumes → delete any not attached to a running instance</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'td')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Verify cost graph dropped (check in 10 min)</div><div class="check-note">Billing → Cost Analysis → LB line = 0, OKE sharply reduced</div></div>
+  <div id="tab-checklist" class="tab-pane active">
+
+    <!-- TEARDOWN -->
+    <div class="check-section-title teardown">// end-of-session teardown</div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="td-label">0 of 5 complete</span>
+        <span class="progress-pct" id="td-pct">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="td-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="checklist" id="td-list">
+      <div class="check-item" onclick="toggle(this,'td')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Delete K8s services to release the Load Balancer</div>
+          <div class="check-note">kubectl delete svc --all -n andromeda  |  kubectl delete ingress --all -n andromeda</div>
         </div>
       </div>
-      <button class="reset-btn" onclick="resetSection('td')">Reset teardown checklist</button>
+      <div class="check-item" onclick="toggle(this,'td')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Run andromeda-undeploy.sh</div>
+          <div class="check-note">bash scripts/andromeda-undeploy.sh  —  paste cluster OCID + node pool OCID when prompted</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'td')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Confirm cluster is deleted in OCI Console</div>
+          <div class="check-note">Containers → Clusters → andromedaoke should be gone from the list</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'td')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Delete orphaned boot volumes</div>
+          <div class="check-note">Block Storage → Boot Volumes → compartment reacttodo → delete any AVAILABLE volumes</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'td')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Verify cost graph dropped (wait 10 min)</div>
+          <div class="check-note">Billing → Cost Analysis → OKE bar gone, Load Balancer = 0, only Autonomous DB remains</div>
+        </div>
+      </div>
     </div>
+    <button class="reset-btn" onclick="resetSection('td')">reset teardown</button>
 
     <div class="divider"></div>
 
-    <div id="bringup-section">
-      <div class="check-section-title">Start-of-session bring-up</div>
-      <div class="progress-label" id="bu-progress-label">0 of 7 complete</div>
-      <div class="progress-bar-wrap"><div class="progress-bar" id="bu-bar" style="width:0%"></div></div>
-      <div class="checklist" id="bringup-list">
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Scale node pool back to 1</div><div class="check-note">Node Pools → pool1 → Edit → 1 → Save</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Wait for node to become Ready</div><div class="check-note">kubectl get nodes — STATUS must be Ready before proceeding</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Pull latest changes from main/staging</div><div class="check-note">git pull origin staging</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Apply Kubernetes manifests</div><div class="check-note">kubectl apply -f k8s/</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Confirm pods are Running</div><div class="check-note">kubectl get pods -n andromeda — all pods Running (not Pending)</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Get new external IP</div><div class="check-note">kubectl get svc -n andromeda — copy EXTERNAL-IP</div></div>
-        </div>
-        <div class="check-item" onclick="toggle(this,'bu')">
-          <div class="check-box"><svg class="check-box-tick" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><div class="check-text">Post external IP in team channel</div><div class="check-note">Everyone on the team needs the current IP — it may change every session</div></div>
+    <!-- BRING-UP -->
+    <div class="check-section-title bringup">// start-of-session bring-up</div>
+    <div class="progress-wrap">
+      <div class="progress-meta">
+        <span class="progress-label" id="bu-label">0 of 6 complete</span>
+        <span class="progress-pct" id="bu-pct">0%</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="bu-bar" style="width:0%"></div>
+      </div>
+    </div>
+
+    <div class="checklist" id="bu-list">
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Quick Create cluster in OCI Console</div>
+          <div class="check-note">Containers → Clusters → Create → Quick Create · shape E3.Flex · 1 OCPU · 6GB · 1 node · compartment reacttodo</div>
         </div>
       </div>
-      <button class="reset-btn" onclick="resetSection('bu')">Reset bring-up checklist</button>
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Wait for cluster status: Active (~12 min)</div>
+          <div class="check-note">Copy the cluster OCID from the Details tab once Active</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Pull latest changes from staging</div>
+          <div class="check-note">git pull origin staging</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Run andromeda-bringup.sh</div>
+          <div class="check-note">bash scripts/andromeda-bringup.sh  —  paste cluster OCID when prompted</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Confirm pods Running</div>
+          <div class="check-note">kubectl get pods -n andromeda  —  all STATUS: Running (not Pending)</div>
+        </div>
+      </div>
+      <div class="check-item" onclick="toggle(this,'bu')">
+        <div class="check-box"><svg class="check-tick" width="9" height="7" viewBox="0 0 9 7" fill="none"><polyline points="1,3.5 3.5,6 8,1" stroke="#0d0f12" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div>
+          <div class="check-text">Post external IP in team channel</div>
+          <div class="check-note">kubectl get svc -n andromeda  —  copy EXTERNAL-IP · share immediately · it changes every session</div>
+        </div>
+      </div>
     </div>
-  </div>
-</div>
+    <button class="reset-btn" onclick="resetSection('bu')">reset bring-up</button>
+
+  </div><!-- end checklist tab -->
+
+</div><!-- end shell -->
 
 <script>
-function switchTab(id) {
-  document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('tab-' + id).classList.add('active');
-  event.target.classList.add('active');
-}
+  var counts = { td: 0, bu: 0 };
+  var totals  = { td: 5, bu: 6 };
 
-var tdCount = 0, buCount = 0;
-var tdTotal = 6, buTotal = 7;
-
-function toggle(el, prefix) {
-  var wasDone = el.classList.contains('done');
-  el.classList.toggle('done');
-  if (prefix === 'td') {
-    tdCount = wasDone ? tdCount - 1 : tdCount + 1;
-    updateProgress('td', tdCount, tdTotal);
-  } else {
-    buCount = wasDone ? buCount - 1 : buCount + 1;
-    updateProgress('bu', buCount, buTotal);
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-pane').forEach(function(p) { p.classList.remove('active'); });
+    document.querySelectorAll('.tab-btn').forEach(function(b)  { b.classList.remove('active'); });
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
   }
-}
 
-function updateProgress(prefix, count, total) {
-  document.getElementById(prefix + '-bar').style.width = Math.round((count / total) * 100) + '%';
-  document.getElementById(prefix + '-progress-label').textContent = count + ' of ' + total + ' complete';
-}
+  function toggle(el, prefix) {
+    var wasDone = el.classList.contains('done');
+    el.classList.toggle('done');
+    counts[prefix] = wasDone ? counts[prefix] - 1 : counts[prefix] + 1;
+    updateProgress(prefix);
+  }
 
-function resetSection(prefix) {
-  var listId = prefix === 'td' ? 'teardown-list' : 'bringup-list';
-  document.querySelectorAll('#' + listId + ' .check-item').forEach(function(el) {
-    el.classList.remove('done');
-  });
-  if (prefix === 'td') { tdCount = 0; } else { buCount = 0; }
-  updateProgress(prefix, 0, prefix === 'td' ? tdTotal : buTotal);
-}
+  function updateProgress(prefix) {
+    var count = counts[prefix];
+    var total = totals[prefix];
+    var pct   = Math.round((count / total) * 100);
+    document.getElementById(prefix + '-bar').style.width   = pct + '%';
+    document.getElementById(prefix + '-label').textContent = count + ' of ' + total + ' complete';
+    document.getElementById(prefix + '-pct').textContent   = pct + '%';
+  }
+
+  function resetSection(prefix) {
+    var listId = prefix === 'td' ? 'td-list' : 'bu-list';
+    document.querySelectorAll('#' + listId + ' .check-item').forEach(function(el) {
+      el.classList.remove('done');
+    });
+    counts[prefix] = 0;
+    updateProgress(prefix);
+  }
 </script>
+
+</body>
+</html>
