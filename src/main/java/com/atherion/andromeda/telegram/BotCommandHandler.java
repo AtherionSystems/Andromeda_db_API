@@ -1,5 +1,6 @@
 package com.atherion.andromeda.telegram;
 
+import com.atherion.andromeda.services.AiService;
 import com.atherion.andromeda.dto.SprintTaskRow;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -45,6 +45,7 @@ public class BotCommandHandler {
     private final SprintTaskService     sprintTaskService;
     private final TaskAssignmentService taskAssignmentService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final AiService             aiService;
 
     // ── entry point ──────────────────────────────────────────────────────────
 
@@ -85,6 +86,11 @@ public class BotCommandHandler {
             case "/taskpriority"  -> handleTaskPriority(args, telegramUserId);
             case "/projectstatus" -> handleProjectStatus(args, telegramUserId);
             case "/addmember"     -> handleAddMember(args, telegramUserId);
+            // ── AI ────────────────────────────────────────────────────────────
+            case "/pingai"        -> handlePingAi();
+            case "/suggest"       -> handleSuggest(args);
+            case "/analyze"       -> handleAnalyze(args);
+            case "/fix"           -> handleFix(args);
             default               -> null;
         };
     }
@@ -121,6 +127,15 @@ public class BotCommandHandler {
                 /taskpriority <taskId> <priority>
                 /projectstatus <projectId> <status>
                 /addmember <projectId> <userId> [role]
+
+                AI
+                /pingai                       Test AI backend connectivity
+                /suggest <projectId>          AI improvement suggestions
+                /analyze <projectId>          AI health analysis
+                /fix <taskId>                 AI task resolution guidance
+
+                TIP: You can also message me in plain English!
+                e.g. "show me tasks in project 2" or "what's the status of task 5"
 
                 VALUES
                 Project status : active · paused · completed · cancelled
@@ -714,6 +729,171 @@ public class BotCommandHandler {
 
         return String.format("Member added!\nProject: #%d %s\nUser:    @%s\nRole:    %s",
                 project.getId(), project.getName(), user.getUsername(), saved.getRole());
+    }
+
+    // ── AI commands ───────────────────────────────────────────────────────────
+
+    /**
+     * /pingai
+     * Tests AI backend reachability and reports round-trip latency.
+     */
+    private String handlePingAi() {
+        if (!aiService.isEnabled())
+            return "AI is disabled (agent.ai.enabled=false).";
+
+        long ms = aiService.ping();
+        if (ms < 0)
+            return "AI backend is not responding. Check the API key and base URL configuration.";
+
+        return String.format(
+                "AI Backend — Online\nModel:   %s\nLatency: %d ms\n\n" +
+                "Try AI commands:\n" +
+                "/suggest <projectId> — improvement suggestions\n" +
+                "/analyze <projectId> — project health analysis\n" +
+                "/fix <taskId>        — task resolution guidance\n\n" +
+                "Or ask in plain English — I'll figure it out.\n" +
+                "Debug: try mentioning guacamole in any message.",
+                aiService.getModel(), ms);
+    }
+
+    /**
+     * /suggest <projectId>
+     * Fetches project data and asks the AI for actionable improvement suggestions.
+     */
+    private String handleSuggest(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /suggest <projectId>";
+
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
+
+        List<Tasks> tasks     = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints  = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+
+        long todo       = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
+        long inProgress = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
+        long review     = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
+        long done       = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
+        long critical   = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long activeSp   = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Project: ").append(project.getName())
+           .append(" (ID: ").append(projectId).append(", status: ")
+           .append(nvl(project.getStatus(), "unknown")).append(")\n");
+        ctx.append("Tasks: ").append(tasks.size()).append(" total — ")
+           .append("todo=").append(todo).append(", in_progress=").append(inProgress)
+           .append(", review=").append(review).append(", done=").append(done).append("\n");
+        ctx.append("Critical priority tasks: ").append(critical).append("\n");
+        ctx.append("Sprints: ").append(sprints.size()).append(" (").append(activeSp).append(" active)\n");
+        ctx.append("Members: ").append(members.size()).append("\n");
+        if (!tasks.isEmpty()) {
+            ctx.append("Recent tasks:\n");
+            tasks.stream().limit(6).forEach(t ->
+                ctx.append("  [").append(nvl(t.getStatus(), "?")).append("] ")
+                   .append(t.getTitle()).append(" (").append(nvl(t.getPriority(), "?")).append(")\n"));
+        }
+
+        String answer = aiService.chat(
+                "You are a project management expert for the Andromeda system. " +
+                "Analyze the project data and give 3-5 concise, actionable suggestions to improve project health. " +
+                "Format as a numbered list. Be specific and practical.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Suggestions — " + project.getName() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
+    }
+
+    /**
+     * /analyze <projectId>
+     * Fetches project data and asks the AI for a health analysis with risk identification.
+     */
+    private String handleAnalyze(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /analyze <projectId>";
+
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
+
+        List<Tasks> tasks    = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+
+        long notDone     = tasks.stream().filter(t -> !"done".equals(t.getStatus())).count();
+        long overdueCount = tasks.stream().filter(t ->
+                t.getDueDate() != null &&
+                t.getDueDate().isBefore(LocalDateTime.now()) &&
+                !"done".equals(t.getStatus())).count();
+        long critical    = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long highPri     = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
+        long activeSp    = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long completedSp = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
+
+        double completionRate = tasks.isEmpty() ? 0.0
+                : (double) tasks.stream().filter(t -> "done".equals(t.getStatus())).count() / tasks.size() * 100.0;
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Project: ").append(project.getName())
+           .append(" | Status: ").append(nvl(project.getStatus(), "unknown")).append("\n");
+        ctx.append("Completion rate: ").append(String.format("%.0f%%", completionRate)).append("\n");
+        ctx.append("Open tasks: ").append(notDone).append(" | Overdue: ").append(overdueCount).append("\n");
+        ctx.append("Critical: ").append(critical).append(" | High priority: ").append(highPri).append("\n");
+        ctx.append("Sprints: active=").append(activeSp).append(", completed=").append(completedSp).append("\n");
+        ctx.append("Team size: ").append(members.size()).append("\n");
+        ctx.append("Start: ").append(fmt(project.getStartDate()))
+           .append(" | End: ").append(fmt(project.getEndDate())).append("\n");
+
+        String answer = aiService.chat(
+                "You are a project health analyst for the Andromeda system. " +
+                "Given the project metrics, provide: 1) an overall health score (0-10), " +
+                "2) top 2-3 risks identified, 3) one key recommendation. " +
+                "Be concise — maximum 200 words.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Health Analysis — " + project.getName() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
+    }
+
+    /**
+     * /fix <taskId>
+     * Fetches task details and asks the AI for practical resolution guidance.
+     */
+    private String handleFix(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long taskId = parseLong(args);
+        if (taskId == null) return "Usage: /fix <taskId>";
+
+        Tasks task = tasksService.findById(taskId).orElse(null);
+        if (task == null) return "Task #" + taskId + " not found.";
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Task: ").append(task.getTitle()).append("\n");
+        ctx.append("Project: ").append(task.getProject().getName()).append("\n");
+        ctx.append("Status: ").append(nvl(task.getStatus(), "unknown")).append("\n");
+        ctx.append("Priority: ").append(nvl(task.getPriority(), "unknown")).append("\n");
+        if (task.getDescription() != null && !task.getDescription().isBlank())
+            ctx.append("Description: ").append(task.getDescription()).append("\n");
+        if (task.getAcceptanceCriteria() != null && !task.getAcceptanceCriteria().isBlank())
+            ctx.append("Acceptance Criteria: ").append(task.getAcceptanceCriteria()).append("\n");
+        if (task.getEstimatedHours() != null)
+            ctx.append("Estimated: ").append(task.getEstimatedHours()).append("h\n");
+        if (task.getDueDate() != null)
+            ctx.append("Due: ").append(fmt(task.getDueDate())).append("\n");
+
+        String answer = aiService.chat(
+                "You are a technical project management assistant for the Andromeda system. " +
+                "Given a task description, provide practical, step-by-step guidance on how to approach, " +
+                "implement, or resolve it. Be specific and actionable. Maximum 150 words.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Guidance — Task #" + task.getId() + " " + task.getTitle() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

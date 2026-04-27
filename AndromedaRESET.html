@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Andromeda — Full OCI Reset Guide</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0d0f12;
+    --bg-2:      #13161b;
+    --bg-3:      #1a1e26;
+    --bg-4:      #21262f;
+    --border:    #2a3040;
+    --border-2:  #374252;
+    --text:      #cdd6e8;
+    --text-2:    #7a8fa8;
+    --text-3:    #4a5a6e;
+    --green:     #4caf82;
+    --green-dim: #1a3028;
+    --green-mid: #2a5040;
+    --amber:     #d4a44c;
+    --amber-dim: #2d2010;
+    --red:       #e05555;
+    --red-dim:   #2d1212;
+    --blue:      #5b9bd5;
+    --blue-dim:  #0e1f34;
+    --purple:    #9b7fd4;
+    --purple-dim:#1e1530;
+    --mono:      'IBM Plex Mono', monospace;
+    --sans:      'IBM Plex Sans', sans-serif;
+    --radius:    6px;
+    --radius-lg: 10px;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; line-height: 1.6; }
+
+  .shell { max-width: 960px; margin: 0 auto; padding: 3rem 2rem 8rem; }
+
+  /* HEADER */
+  .header { margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 1px solid var(--border); }
+  .eyebrow { font-family: var(--mono); font-size: 11px; color: var(--red); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 8px; }
+  .eyebrow::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--red); display: inline-block; }
+  h1 { font-family: var(--mono); font-size: 26px; font-weight: 600; color: #fff; letter-spacing: -0.02em; margin-bottom: 0.5rem; }
+  .header-meta { font-family: var(--mono); font-size: 12px; color: var(--text-3); margin-top: 0.75rem; display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .header-meta span::before { content: '// '; }
+
+  /* WARNING BANNER */
+  .warning-banner { background: var(--red-dim); border: 1px solid var(--red); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 2.5rem; display: flex; gap: 14px; align-items: flex-start; }
+  .warning-icon { font-family: var(--mono); font-size: 18px; color: var(--red); flex-shrink: 0; }
+  .warning-text { font-size: 13px; color: var(--red); line-height: 1.6; }
+  .warning-text strong { font-weight: 500; display: block; margin-bottom: 4px; font-size: 14px; }
+
+  /* PHASE NAV */
+  .phase-nav { display: flex; gap: 4px; margin-bottom: 2.5rem; flex-wrap: wrap; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 4px; }
+  .phase-nav-btn { font-family: var(--mono); font-size: 11px; padding: 6px 14px; border: none; border-radius: var(--radius); cursor: pointer; background: transparent; color: var(--text-3); transition: all 0.15s; white-space: nowrap; }
+  .phase-nav-btn:hover { color: var(--text); background: var(--bg-3); }
+  .phase-nav-btn.active { background: var(--bg-4); color: var(--text); border: 1px solid var(--border-2); }
+
+  /* PHASE PANE */
+  .phase-pane { display: none; animation: fadeIn 0.2s ease; }
+  .phase-pane.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; } }
+
+  /* PHASE HEADER */
+  .phase-header { display: flex; align-items: flex-start; gap: 16px; margin-bottom: 2rem; padding: 20px; background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .phase-num { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--text-3); min-width: 40px; }
+  .phase-title-block { flex: 1; }
+  .phase-title { font-family: var(--mono); font-size: 18px; font-weight: 500; color: #fff; margin-bottom: 4px; }
+  .phase-desc { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+  .phase-badge { font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 3px 10px; border-radius: 3px; margin-left: auto; align-self: flex-start; white-space: nowrap; }
+  .badge-destroy { background: var(--red-dim); color: var(--red); border: 1px solid var(--red); }
+  .badge-setup   { background: var(--green-dim); color: var(--green); border: 1px solid var(--green); }
+  .badge-safe    { background: var(--blue-dim); color: var(--blue); border: 1px solid var(--blue); }
+  .badge-shell   { background: var(--amber-dim); color: var(--amber); border: 1px solid var(--amber); }
+
+  /* STEPS */
+  .steps { display: flex; flex-direction: column; gap: 12px; }
+  .step { border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--bg-2); overflow: hidden; transition: border-color 0.15s; }
+  .step:hover { border-color: var(--border-2); }
+  .step-header { display: flex; gap: 0; }
+  .step-num-col { width: 44px; min-width: 44px; background: var(--bg-3); border-right: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: center; padding-top: 16px; }
+  .step-num { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--text-3); }
+  .step-body { padding: 14px 16px; flex: 1; }
+  .step-title { font-family: var(--mono); font-size: 13px; font-weight: 500; color: #fff; margin-bottom: 2px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .step-where { font-family: var(--mono); font-size: 11px; color: var(--purple); margin-bottom: 8px; }
+  .step-where::before { content: '@ '; }
+  .step-desc { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 8px; }
+
+  /* CODE */
+  code { font-family: var(--mono); font-size: 11px; background: var(--bg-4); color: var(--green); padding: 1px 6px; border-radius: 3px; border: 1px solid var(--border); }
+  .code-block { font-family: var(--mono); font-size: 12px; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; margin: 8px 0; line-height: 1.8; white-space: pre-wrap; word-break: break-all; color: var(--text); position: relative; overflow: hidden; }
+  .code-block::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2px; background: var(--green); opacity: 0.5; }
+  .code-block.cmd::before { background: var(--amber); }
+  .code-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); margin-bottom: 4px; margin-top: 10px; }
+
+  /* EXPECTED / ISSUES */
+  .expected { margin-top: 8px; padding: 10px 12px; background: var(--green-dim); border: 1px solid var(--green-mid); border-radius: var(--radius); }
+  .expected-label { font-family: var(--mono); font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--green); opacity: 0.7; margin-bottom: 4px; }
+  .expected-content { font-family: var(--mono); font-size: 12px; color: var(--green); line-height: 1.7; white-space: pre-wrap; }
+  .issues { margin-top: 8px; }
+  .issue { font-family: var(--mono); font-size: 11px; color: var(--amber); padding: 4px 0 4px 14px; position: relative; line-height: 1.6; }
+  .issue::before { content: '! '; position: absolute; left: 0; }
+
+  /* CALLOUTS */
+  .callout { padding: 12px 16px; border-radius: var(--radius); border: 1px solid; margin: 10px 0; font-size: 13px; line-height: 1.6; display: flex; gap: 10px; }
+  .callout::before { font-family: var(--mono); font-size: 14px; flex-shrink: 0; }
+  .callout-warn  { background: var(--amber-dim); border-color: var(--amber); color: var(--amber); }
+  .callout-info  { background: var(--blue-dim);  border-color: var(--blue);  color: var(--blue);  }
+  .callout-ok    { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .callout-red   { background: var(--red-dim);   border-color: var(--red);   color: var(--red);   }
+  .callout-warn::before { content: '!'; }
+  .callout-info::before { content: 'i'; }
+  .callout-ok::before   { content: '✓'; }
+  .callout-red::before  { content: '⚠'; }
+
+  /* BADGES */
+  .badge { font-family: var(--mono); font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 3px; }
+  .badge-console { background: var(--blue-dim);   color: var(--blue);   border: 1px solid var(--blue);   }
+  .badge-cli     { background: var(--amber-dim);  color: var(--amber);  border: 1px solid var(--amber);  }
+  .badge-keep    { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green);  }
+  .badge-danger  { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red);    }
+
+  .divider { height: 1px; background: var(--border); margin: 1.5rem 0; }
+
+  /* PROGRESS */
+  .overall-progress { background: var(--bg-2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 2rem; }
+  .progress-title { font-family: var(--mono); font-size: 11px; color: var(--text-3); margin-bottom: 8px; letter-spacing: 0.1em; text-transform: uppercase; }
+  .phase-pills { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+  .phase-pill { font-family: var(--mono); font-size: 10px; padding: 3px 10px; border-radius: 3px; border: 1px solid var(--border); color: var(--text-3); cursor: pointer; transition: all 0.15s; }
+  .phase-pill.done { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+  .phase-pill:hover { border-color: var(--border-2); color: var(--text-2); }
+
+  ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: var(--bg); } ::-webkit-scrollbar-thumb { background: var(--border-2); border-radius: 99px; }
+</style>
+</head>
+<body>
+<div class="shell">
+
+  <div class="header">
+    <div class="eyebrow">Andromeda · Full OCI Reset</div>
+    <h1>Clean Slate Guide</h1>
+    <div class="header-meta">
+      <span>tenancy: santiagoquintanamoreno</span>
+      <span>region: mx-queretaro-1</span>
+      <span>compartment: reacttodo</span>
+      <span>ADB: preserved</span>
+    </div>
+  </div>
+
+  <div class="warning-banner">
+    <div class="warning-icon">⚠</div>
+    <div class="warning-text">
+      <strong>This guide deletes most OCI resources in the reacttodo compartment.</strong>
+      The Autonomous Database (ADB) is the only resource intentionally preserved. Follow phases in order — deleting in the wrong sequence causes dependency errors that require manual cleanup.
+    </div>
+  </div>
+
+  <div class="overall-progress">
+    <div class="progress-title">Phase completion — click to mark done</div>
+    <div class="phase-pills">
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P1 · OKE &amp; Compute</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P2 · DevOps Project</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P3 · Vault</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P4 · Policies &amp; Groups</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P5 · VCNs</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P6 · Cloud Shell</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P7 · Auth Token</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P8 · Fresh Setup</div>
+      <div class="phase-pill" onclick="this.classList.toggle('done')">P9 · OKE Bring-up</div>
+    </div>
+  </div>
+
+  <div class="phase-nav">
+    <button class="phase-nav-btn active" onclick="switchPhase('p1',this)">P1 · OKE &amp; Compute</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p2',this)">P2 · DevOps</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p3',this)">P3 · Vault</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p4',this)">P4 · IAM</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p5',this)">P5 · VCNs</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p6',this)">P6 · Cloud Shell</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p7',this)">P7 · Auth Token</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p8',this)">P8 · Fresh Setup</button>
+    <button class="phase-nav-btn" onclick="switchPhase('p9',this)">P9 · OKE Bring-up</button>
+  </div>
+
+  <!-- ============================================================ P1 -->
+  <div id="p1" class="phase-pane active">
+    <div class="phase-header">
+      <div class="phase-num">01</div>
+      <div class="phase-title-block">
+        <div class="phase-title">OKE Cluster, Nodes &amp; Compute</div>
+        <div class="phase-desc">Delete the cluster, all node instances, and orphaned boot volumes. If you already did this today, verify and move to P2.</div>
+      </div>
+      <div class="phase-badge badge-destroy">DESTROY</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify cluster status <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="step-where">Cloud Shell</div>
+            <div class="code-label">command</div>
+            <div class="code-block cmd">oci ce cluster list \
+  --compartment-id $(oci iam compartment list --all --query "data[?name=='reacttodo'].id | [0]" --raw-output) \
+  --region mx-queretaro-1 \
+  --query 'data[].{"name":"name","state":"lifecycle-state","id":"id"}' \
+  --output table</div>
+            <div class="expected">
+              <div class="expected-label">Expected — cluster already deleted</div>
+              <div class="expected-content">+------------------+------------+
+| name             | state      |
++------------------+------------+
+(empty — no rows)
++------------------+------------+</div>
+            </div>
+            <div class="expected" style="background:var(--amber-dim);border-color:var(--amber);margin-top:6px;">
+              <div class="expected-label" style="color:var(--amber);">Expected — cluster still exists</div>
+              <div class="expected-content" style="color:var(--amber);">+---------------+--------+
+| name          | state  |
++---------------+--------+
+| andromedaoke  | ACTIVE |
++---------------+--------+</div>
+            </div>
+            <div class="issues">
+              <div class="issue">If cluster still exists, proceed to step 02. If already gone, skip to step 04.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete K8s services first (releases Load Balancer) <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="step-where">Cloud Shell — run before deleting the cluster</div>
+            <div class="code-block cmd">kubectl delete svc --all -n andromeda 2>/dev/null || echo "namespace not found, skipping"
+kubectl delete ingress --all -n andromeda 2>/dev/null || echo "no ingress, skipping"</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">service "andromeda-service" deleted
+no ingress, skipping</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the OKE cluster <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Containers → Clusters → andromedaoke</div>
+            <div class="step-desc">Click into the cluster → top-right <strong>Delete cluster</strong> button → type the cluster name to confirm → Delete.<br><br>OCI will automatically terminate all node pool instances.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Cluster disappears from list within 5–10 min.
+All associated compute instances move to Terminated.</div>
+            </div>
+            <div class="issues">
+              <div class="issue">If delete button is greyed out: there are active work requests. Check the Work Requests tab and wait for them to complete.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify all compute instances are terminated <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Compute → Instances → filter: compartment reacttodo</div>
+            <div class="step-desc">All <code>oke-*</code> instances must show <strong>Terminated</strong> state. If any show Running or Stopped, select them → Actions → Terminate → check "Permanently delete boot volume".</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">All instances: Terminated
+No Running or Stopped instances in reacttodo compartment</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">05</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete orphaned boot volumes <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Storage → Block Storage → Boot Volumes → compartment: reacttodo</div>
+            <div class="step-desc">Select all AVAILABLE volumes with no attached instance → Delete. Do not delete any volumes attached to the Autonomous DB.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Boot Volumes list: empty (or only ADB-related volumes)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">06</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify Load Balancer is gone <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Networking → Load Balancers → compartment: reacttodo</div>
+            <div class="step-desc">Should be empty. If an LB remains, click ··· → Terminate.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Load Balancers list: empty</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P2 -->
+  <div id="p2" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">02</div>
+      <div class="phase-title-block">
+        <div class="phase-title">DevOps Project &amp; Pipelines</div>
+        <div class="phase-desc">Delete the OCI DevOps project, which removes all pipelines, build configs, and external connections. Must be done before deleting the Vault.</div>
+      </div>
+      <div class="phase-badge badge-destroy">DESTROY</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Navigate to DevOps Projects <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Developer Services → DevOps → Projects → compartment: reacttodo</div>
+            <div class="step-desc">You should see the project created from the professor's slides (e.g. <code>ReactDevOps</code> or similar). Click into it.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete all Pipelines inside the project <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">DevOps Project → Build Pipelines + Deployment Pipelines</div>
+            <div class="step-desc">Click <strong>Build Pipelines</strong> in the left menu → delete each one. Then click <strong>Deployment Pipelines</strong> → delete each one. The project itself cannot be deleted while pipelines exist.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Both pipeline lists: empty</div>
+            </div>
+            <div class="issues">
+              <div class="issue">If a pipeline is in a running state, wait for it to complete or cancel it first.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete External Connections <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">DevOps Project → left menu → External Connections</div>
+            <div class="step-desc">Delete <code>GithubConn</code> or whatever the GitHub connection is named.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the DevOps Project <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Developer Services → DevOps → Projects → ··· → Delete</div>
+            <div class="step-desc">From the Projects list, click ··· on your project → Delete → confirm.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Project disappears from list. Status briefly shows "Deleting" then gone.</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Error "has dependent resources": you missed deleting a pipeline or connection. Go back and check both pipeline types.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P3 -->
+  <div id="p3" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">03</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Vault &amp; Secrets</div>
+        <div class="phase-desc">Schedule the Vault for deletion. OCI enforces a minimum 7-day waiting period — you cannot bypass this, but it won't block the rest of the reset.</div>
+      </div>
+      <div class="phase-badge badge-destroy">DESTROY</div>
+    </div>
+
+    <div class="callout callout-warn">OCI Vaults cannot be immediately deleted — they go into a "Pending Deletion" state for a minimum of 7 days. This is a security feature. You can proceed with the rest of the reset immediately after scheduling deletion.</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Navigate to the Vault <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Security → Vault → compartment: reacttodo → click reactvault</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the secret inside first <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Inside reactvault → Secrets (left menu) → github_secret_token</div>
+            <div class="step-desc">Click <code>github_secret_token</code> → Schedule deletion → set pending period to 7 days (minimum) → Schedule Deletion.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Secret state changes to: Pending Deletion
+Scheduled deletion date shown</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Schedule Vault deletion <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Security → Vault → reactvault → Schedule Deletion button</div>
+            <div class="step-desc">Click <strong>Schedule Deletion</strong> at the top of the vault page. Set pending period to 7 days. Confirm.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Vault state: Pending Deletion
+Vault will be permanently deleted in 7 days automatically</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P4 -->
+  <div id="p4" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">04</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Policies &amp; Dynamic Group (IAM)</div>
+        <div class="phase-desc">Delete the policy set and dynamic group created during initial setup. These are tenancy-level resources.</div>
+      </div>
+      <div class="phase-badge badge-destroy">DESTROY</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the Policy set <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Identity &amp; Security → Policies → compartment: root (top of dropdown)</div>
+            <div class="step-desc">Switch the compartment selector to <strong>root</strong> (the tenancy root, not reacttodo). Find the policy set you created from the slides — it contained rules like "Allow dynamic-group dg to manage devops-family in tenancy". Click it → Delete → confirm.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Policy disappears from list immediately.</div>
+            </div>
+            <div class="issues">
+              <div class="issue">If you don't see it at root: check the reacttodo compartment — it may have been created there instead.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the Dynamic Group <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Identity &amp; Security → Domains → Default Domain → Dynamic Groups</div>
+            <div class="step-desc">Find the dynamic group named <code>dg</code> (or whatever name you used). Click it → Delete → confirm.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Dynamic group deleted immediately.</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Cannot delete: a policy still references this dynamic group. Go back and confirm the policy was deleted first.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P5 -->
+  <div id="p5" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">05</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Virtual Cloud Networks (VCNs)</div>
+        <div class="phase-desc">You have 3 orphaned VCNs from previous cluster recreations. Each must be cleaned out inside before the VCN itself can be deleted.</div>
+      </div>
+      <div class="phase-badge badge-destroy">DESTROY</div>
+    </div>
+
+    <div class="callout callout-info">Repeat steps 02–06 for each of the 3 VCNs: oke-vcn-quick-andromedaoke-6bebe2695, oke-vcn-quick-andromedaoke-281194dc7, oke-vcn-quick-andromedaoke-c7a083c9a</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Navigate to VCNs <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Networking → Virtual Cloud Networks → compartment: reacttodo</div>
+            <div class="step-desc">You should see 3 VCNs all named <code>oke-vcn-quick-andromedaoke-*</code>. Click into the first one.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete all Subnets inside this VCN <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Inside the VCN → left menu → Subnets</div>
+            <div class="step-desc">Select all subnets → Delete. OCI Quick Create typically creates 3 subnets: one public for the LB, one private for nodes, one for API endpoint.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Subnets list: empty</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Subnet has attached resources: the LB or instances weren't fully terminated. Go back to P1 and verify no instances remain.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete Security Lists (non-default) <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Inside the VCN → left menu → Security Lists</div>
+            <div class="step-desc">Delete all security lists EXCEPT "Default Security List for...". The default one is deleted automatically when the VCN is deleted.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete Route Tables (non-default) <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Inside the VCN → left menu → Route Tables</div>
+            <div class="step-desc">Delete all route tables EXCEPT "Default Route Table for...". Same logic as security lists.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">05</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete Internet Gateways &amp; NAT Gateways <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Inside the VCN → left menu → Internet Gateways / NAT Gateways</div>
+            <div class="step-desc">Delete any gateways present. Quick Create VCNs usually have 1 Internet Gateway and 1 NAT Gateway.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">06</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the VCN itself <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Networking → Virtual Cloud Networks → ··· → Delete VCN</div>
+            <div class="step-desc">Go back to the VCN list. Click ··· on this VCN → Delete VCN → confirm. Repeat steps 02–06 for each of the remaining 2 VCNs.</div>
+            <div class="expected">
+              <div class="expected-label">Expected after all 3 VCNs deleted</div>
+              <div class="expected-content">Networking → Virtual Cloud Networks → compartment reacttodo
+List: empty</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Error "VCN has dependent resources": a subnet, gateway, or security list still exists inside it. Use the VCN's Subnets/Gateways menus to find and delete it.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P6 -->
+  <div id="p6" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">06</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Cloud Shell Reset</div>
+        <div class="phase-desc">Wipe your Cloud Shell home directory — cloned repo, kubeconfig, OCI CLI config, wallet files. Cloud Shell storage is persistent per user and must be manually cleared.</div>
+      </div>
+      <div class="phase-badge badge-shell">SHELL</div>
+    </div>
+
+    <div class="callout callout-warn">This deletes everything in your Cloud Shell home directory. Make sure any important files are committed to GitHub first.</div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Check what's in your home directory <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">ls -la ~
+du -sh ~/* 2>/dev/null</div>
+            <div class="expected">
+              <div class="expected-label">Expected — you'll see something like</div>
+              <div class="expected-content">drwxr-xr-x  reacttodo/
+drwxr-xr-x  .oci/
+drwxr-xr-x  .kube/
+-rw-r--r--  wallet.zip
+drwxr-xr-x  wallet/</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Wipe the home directory <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">cd ~
+rm -rf reacttodo/ 2>/dev/null
+rm -rf .kube/ .oci/ .config/ .ssh/ 2>/dev/null
+rm -f wallet.zip 2>/dev/null
+rm -rf wallet/ 2>/dev/null
+rm -rf oci_devops_project/ 2>/dev/null
+echo "Done. Current contents:"
+ls -la ~</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Done. Current contents:
+total 0
+drwxr-xr-x  .
+drwxr-xr-x  ..
+(only hidden system files — .bash_history, .bashrc etc)</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify kubectl and OCI CLI still work (they're built-in) <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">kubectl version --client --short 2>/dev/null || kubectl version --client
+oci --version</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Client Version: v1.xx.x
+Oracle Cloud Infrastructure CLI xx.xx.xx</div>
+            </div>
+            <div class="step-desc" style="margin-top:8px;">These are system-level tools in Cloud Shell — they survive the home directory wipe. Only your config files (.oci/, .kube/) were deleted, which is intentional.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P7 -->
+  <div id="p7" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">07</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Auth Token Rotation</div>
+        <div class="phase-desc">Revoke the old OCIR auth token and generate a new one. The old token was used in the K8s pull secret which no longer exists — generate fresh for the new setup.</div>
+      </div>
+      <div class="phase-badge badge-destroy">ROTATE</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Navigate to your profile <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Top-right → Profile icon → My Profile → Auth Tokens (left menu)</div>
+            <div class="step-desc">You'll see your existing token(s). Note: OCI only shows the token value once when generated — you cannot retrieve it again.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Delete the old token <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">My Profile → Auth Tokens → ··· → Delete</div>
+            <div class="step-desc">Click ··· next to each existing token → Delete → confirm. This immediately invalidates the token.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Generate new token <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">My Profile → Auth Tokens → Generate Token</div>
+            <div class="step-desc">Click <strong>Generate Token</strong>. Give it a description like <code>andromeda-ocir-pull</code>. Click Generate.</div>
+            <div class="expected">
+              <div class="expected-label">Expected — a token value appears ONCE</div>
+              <div class="expected-content">Token: AbCdEfGhIjKlMnOpQrStUvWxYz12345678901234</div>
+            </div>
+            <div class="callout callout-red" style="margin-top:8px;">Copy this token immediately and save it in a password manager or your notes. OCI will NEVER show it again. This is the value you'll use as OCIR_TOKEN when running the bringup script.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P8 -->
+  <div id="p8" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">08</div>
+      <div class="phase-title-block">
+        <div class="phase-title">Fresh Setup — IAM, DevOps, Vault, GitHub</div>
+        <div class="phase-desc">Recreate everything from scratch following the professor's slides. Do these in order — each depends on the previous.</div>
+      </div>
+      <div class="phase-badge badge-setup">SETUP</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Get your compartment OCID — you'll need it repeatedly <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">oci iam compartment list --all \
+  --query "data[?name=='reacttodo'].id | [0]" \
+  --raw-output</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">ocid1.compartment.oc1..aaaaaaaabcdef1234567890abcdefghijklmnop</div>
+            </div>
+            <div class="step-desc" style="margin-top:6px;">Save this. You'll paste it into the Dynamic Group rule and several CLI commands below. Call it <strong>COMPARTMENT_OCID</strong>.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Create Dynamic Group <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Identity &amp; Security → Domains → Default Domain → Dynamic Groups → Create Dynamic Group</div>
+            <div class="step-desc">Name: <code>andromedadg</code> (or <code>dg</code>)<br>Description: Andromeda DevOps resources<br><br>Matching rules — paste this, replacing <code>&lt;COMPARTMENT_OCID&gt;</code> with the value from step 01:</div>
+            <div class="code-block">All {resource.compartment.id = '<strong>&lt;COMPARTMENT_OCID&gt;</strong>', Any {resource.type = 'devopsdeploypipeline', resource.type = 'devopsbuildpipeline', resource.type = 'devopsrepository', resource.type = 'devopsconnection', resource.type = 'devopstrigger'}}</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Dynamic Group "andromedadg" created. State: Active.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Create Policy set <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Identity &amp; Security → Policies → compartment: ROOT → Create Policy</div>
+            <div class="step-desc">Name: <code>andromeda-devops-policy</code><br>Description: Andromeda DevOps access<br>Compartment: <strong>root</strong> (not reacttodo)<br><br>Switch to Manual Editor and paste all of these (replace <code>andromedadg</code> with your dynamic group name if different):</div>
+            <div class="code-block">Allow dynamic-group andromedadg to manage devops-family in tenancy
+Allow dynamic-group andromedadg to manage repos in tenancy
+Allow dynamic-group andromedadg to read secret-family in tenancy
+Allow dynamic-group andromedadg to manage devops-family in tenancy
+Allow dynamic-group andromedadg to manage generic-artifacts in tenancy
+Allow dynamic-group andromedadg to use ons-topics in tenancy
+Allow dynamic-group andromedadg to manage all-resources in tenancy
+Allow dynamic-group andromedadg to use devops-connection in tenancy
+Allow dynamic-group andromedadg to manage cluster in tenancy
+Allow dynamic-group andromedadg to read all-artifacts in tenancy</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Policy "andromeda-devops-policy" created. 10 statements.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Create Vault <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Security → Vault → compartment: reacttodo → Create Vault</div>
+            <div class="step-desc">Name: <code>reactvault</code><br>Type: Default (not Virtual Private — that costs money)<br>Click Create Vault. Takes ~2 min to become Active.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Vault "reactvault" State: Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">05</span></div>
+          <div class="step-body">
+            <div class="step-title">Create Master Encryption Key inside the Vault <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Security → Vault → reactvault → Master Encryption Keys → Create Key</div>
+            <div class="step-desc">Name: <code>key</code><br>Protection Mode: HSM<br>Key Shape Algorithm: AES<br>Key Shape Length: 256<br>Click Create Key.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Key "key" State: Enabled</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">06</span></div>
+          <div class="step-body">
+            <div class="step-title">Create Secret for GitHub Token <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Security → Vault → reactvault → Secrets → Create Secret</div>
+            <div class="step-desc">Name: <code>github_secret_token</code><br>Encryption Key: select <code>key</code> (the one you just created)<br>Secret Type: Plain-Text<br>Secret Contents: paste your GitHub Personal Access Token (classic, with repo + read:packages scopes)<br>Click Create Secret.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Secret "github_secret_token" State: Active</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Don't have a GitHub token: GitHub → Settings → Developer Settings → Personal Access Tokens → Tokens (classic) → Generate new token → select scopes: repo, read:packages, write:packages.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">07</span></div>
+          <div class="step-body">
+            <div class="step-title">Create DevOps Project <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Developer Services → DevOps → Projects → Create DevOps Project</div>
+            <div class="step-desc">Name: <code>AndromedaDevOps</code><br>Compartment: reacttodo<br>Notification Topic: click <strong>Create new topic</strong> → name it <code>andromeda-topic</code> → Create<br>Click Create DevOps Project.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Project "AndromedaDevOps" State: Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">08</span></div>
+          <div class="step-body">
+            <div class="step-title">Create GitHub External Connection <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">DevOps Project → AndromedaDevOps → left menu → External Connections → Create Connection</div>
+            <div class="step-desc">Name: <code>GithubConn</code><br>Type: GitHub<br>Vault: reactvault<br>Secret: github_secret_token<br>Click Create.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Connection "GithubConn" State: Active</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">09</span></div>
+          <div class="step-body">
+            <div class="step-title">Re-download the ADB Wallet <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Oracle Database → Autonomous Database → your DB → DB Connection → Download wallet</div>
+            <div class="step-desc">Set a wallet password — <strong>write this down, you will need it</strong>. This becomes your <code>WALLET_KEYSTORE_PASSWORD</code> and <code>WALLET_TRUSTSTORE_PASSWORD</code>.<br><br>Download the zip file.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">10</span></div>
+          <div class="step-body">
+            <div class="step-title">Upload wallet to Cloud Shell and unzip <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="step-where">Cloud Shell toolbar → Upload icon (paper clip) → select wallet.zip</div>
+            <div class="step-desc">After uploading:</div>
+            <div class="code-block cmd">mkdir -p ~/wallet
+unzip ~/wallet.zip -d ~/wallet
+ls ~/wallet</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">cwallet.sso  ewallet.p12  keystore.jks  ojdbc.properties
+sqlnet.ora   tnsnames.ora  truststore.jks</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">11</span></div>
+          <div class="step-body">
+            <div class="step-title">Clone the repo <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">cd ~
+git clone https://github.com/&lt;your-org&gt;/Andromeda_db_API.git
+cd Andromeda_db_API
+ls</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Dockerfile  docker-compose.yml  k8s/  scripts/  src/  pom.xml  ...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================ P9 -->
+  <div id="p9" class="phase-pane">
+    <div class="phase-header">
+      <div class="phase-num">09</div>
+      <div class="phase-title-block">
+        <div class="phase-title">OKE Cluster Bring-up</div>
+        <div class="phase-desc">Create the new cluster and run the bringup script. This is the same flow as the daily bring-up, but it's your first time so all secrets will be created fresh.</div>
+      </div>
+      <div class="phase-badge badge-setup">SETUP</div>
+    </div>
+
+    <div class="steps">
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">01</span></div>
+          <div class="step-body">
+            <div class="step-title">Quick Create OKE Cluster <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Containers → Kubernetes Clusters (OKE) → Create cluster → Quick Create</div>
+            <div class="step-desc">Use these exact settings:</div>
+            <div class="code-block">Name:                  andromedaoke
+Compartment:           reacttodo
+Kubernetes version:    v1.34.2
+Shape:                 VM.Standard.E3.Flex
+Number of OCPUs:       1
+Amount of memory (GB): 6
+Node count:            1
+Public API endpoint:   checked (Public)</div>
+            <div class="expected">
+              <div class="expected-label">Expected — after ~12 min</div>
+              <div class="expected-content">Cluster "andromedaoke" State: Active
+Node pool pool1: 1 worker node Running</div>
+            </div>
+            <div class="step-desc" style="margin-top:8px;">While waiting, copy the <strong>Cluster OCID</strong> from the Details tab — you'll need it in 2 minutes.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">02</span></div>
+          <div class="step-body">
+            <div class="step-title">Add port 80 ingress rule to the LB security list <span class="badge badge-console">OCI Console</span></div>
+            <div class="step-where">Networking → VCNs → new oke-vcn-quick-andromedaoke-* → Security Lists → oke-svclbseclist-*</div>
+            <div class="step-desc">Add Ingress Rule:<br>Stateless: No<br>Source CIDR: <code>0.0.0.0/0</code><br>Protocol: TCP<br>Destination Port Range: <code>80</code><br><br>Do this now before the bringup script runs — otherwise the LB will be inaccessible.</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">Ingress Rules list now shows:
+TCP  0.0.0.0/0  All  80  TCP traffic for ports: 80</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">03</span></div>
+          <div class="step-body">
+            <div class="step-title">Run the bringup script <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="step-where">Cloud Shell — from inside your repo root</div>
+            <div class="code-block cmd">cd ~/Andromeda_db_API
+bash scripts/andromeda-bringup.sh</div>
+            <div class="step-desc" style="margin-top:8px;">The script will prompt you for:</div>
+            <div class="code-block">Cluster OCID:           → paste from OCI Console Details tab
+OCIR username:          → axieboiigznv/a01571222@tec.mx
+OCIR Auth Token:        → the token you saved in P7
+DB_USERNAME:            → your ADB username
+DB_PASSWORD:            → your ADB password
+WALLET_TRUSTSTORE_PASSWORD: → the password you set when downloading the wallet (P8 step 09)
+WALLET_KEYSTORE_PASSWORD:   → same password as above
+TELEGRAM_BOT_TOKEN:    → your bot token from BotFather
+TELEGRAM_BOT_USERNAME: → your bot username
+Wallet directory:       → /home/a01571222/wallet</div>
+            <div class="expected">
+              <div class="expected-label">Expected final output</div>
+              <div class="expected-content">========================================
+  Andromeda is UP
+  External IP : 1xx.xx.xxx.xxx
+  API base URL: http://1xx.xx.xxx.xxx/api
+  Health check: http://1xx.xx.xxx.xxx/actuator/health
+========================================
+
+Post this IP in your team channel now.</div>
+            </div>
+            <div class="issues">
+              <div class="issue">Pod CrashLoopBackOff: wallet password wrong — delete andromeda-secrets secret and re-run script.</div>
+              <div class="issue">ImagePullBackOff: auth token wrong or expired — delete ocir-secret and re-run script.</div>
+              <div class="issue">Node not Ready after 5 min: check OCI Console → Compute → Instances — node may still be provisioning.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">04</span></div>
+          <div class="step-body">
+            <div class="step-title">Verify health endpoint <span class="badge badge-cli">Cloud Shell</span></div>
+            <div class="code-block cmd">curl http://&lt;EXTERNAL_IP&gt;/actuator/health</div>
+            <div class="expected">
+              <div class="expected-label">Expected</div>
+              <div class="expected-content">{"status":"UP"}</div>
+            </div>
+            <div class="issues">
+              <div class="issue">{"status":"DOWN"}: DB connection failing — wallet password mismatch. Check kubectl logs.</div>
+              <div class="issue">Connection reset by peer: security list rule for port 80 missing — go back to step 02.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-header">
+          <div class="step-num-col"><span class="step-num">05</span></div>
+          <div class="step-body">
+            <div class="step-title">Post external IP in team channel</div>
+            <div class="step-desc">Share the IP with the team. Remind them it changes every time the cluster is recreated. From now on: end of session → run <code>andromeda-undeploy.sh</code>. Start of session → Quick Create cluster + run <code>andromeda-bringup.sh</code>.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-ok" style="margin-top:1.5rem;">Clean slate complete. The wallet password you set in P8 step 09 is now the permanent password for your setup — write it somewhere safe so you don't have to re-download the wallet every session.</div>
+  </div>
+
+</div>
+
+<script>
+function switchPhase(id, btn) {
+  document.querySelectorAll('.phase-pane').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.phase-nav-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>
