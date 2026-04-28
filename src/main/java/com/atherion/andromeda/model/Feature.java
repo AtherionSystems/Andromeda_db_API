@@ -6,21 +6,31 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "PROJECTS", schema = "ANDROMEDA_DB")
-public class Project {
+@Table(name = "FEATURES", schema = "ANDROMEDA_DB", indexes = {
+        @Index(name = "IDX_FEATURES_CAPABILITY_ID", columnList = "CAPABILITY_ID")
+})
+public class Feature {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
     private Long id;
 
-    @Size(max = 255)
     @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "CAPABILITY_ID", nullable = false)
+    private Capability capability;
+
+    @NotNull
+    @Size(max = 255)
     @Column(name = "NAME", nullable = false)
     private String name;
 
@@ -33,24 +43,20 @@ public class Project {
     @Column(name = "STATUS", length = 20)
     private String status;
 
-    @Column(name = "START_DATE")
-    private LocalDateTime startDate;
-
-    @Column(name = "END_DATE")
-    private LocalDateTime endDate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "CREATED_BY")
+    private User createdBy;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
 
-    @Column(name = "CREATED_BY")
-    private Long createdBy;
-
-    @Column(name = "UPDATED_BY")
-    private Long updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "UPDATED_BY")
+    private User updatedBy;
 
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
-
-
 }

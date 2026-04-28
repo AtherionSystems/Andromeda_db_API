@@ -27,7 +27,7 @@ class BotCommandHandlerTest {
     @Mock private UserService userService;
     @Mock private ProjectMemberService projectMemberService;
     @Mock private SprintService sprintService;
-    @Mock private SprintTaskService sprintTaskService;
+    @Mock private SprintStoryAssignmentService sprintStoryAssignmentService;
     @Mock private TaskAssignmentService taskAssignmentService;
     @Mock private BCryptPasswordEncoder passwordEncoder;
 
@@ -41,7 +41,7 @@ class BotCommandHandlerTest {
                 userService,
                 projectMemberService,
                 sprintService,
-                sprintTaskService,
+                sprintStoryAssignmentService,
                 taskAssignmentService,
                 passwordEncoder
         );
@@ -101,17 +101,18 @@ class BotCommandHandlerTest {
         task.setTitle("Fix login");
         task.setStatus("todo");
         task.setProject(project);
+        task.setUserStoryId(77L);
 
         when(userService.findByTelegramId(321L)).thenReturn(Optional.of(user));
         when(sprintService.findById(5L)).thenReturn(Optional.of(sprint));
         when(tasksService.findById(9L)).thenReturn(Optional.of(task));
-        when(sprintTaskService.isTaskActiveInSprint(5L, 9L)).thenReturn(false);
+        when(sprintStoryAssignmentService.isStoryActiveInSprint(5L, 77L)).thenReturn(false);
         when(taskAssignmentService.findByTaskIdAndUserId(9L, 2L)).thenReturn(Optional.empty());
         when(tasksService.save(any(Tasks.class))).thenReturn(task);
 
         String response = handler.handle("/addsprinttask 5 9", 321L);
 
-        verify(sprintTaskService).save(any(SprintTask.class));
+        verify(sprintStoryAssignmentService).save(any(SprintStoryAssignment.class));
         verify(taskAssignmentService).save(any(TaskAssignment.class));
         assertTrue(response.contains("Task assigned to sprint!"));
     }

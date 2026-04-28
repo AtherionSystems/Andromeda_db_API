@@ -16,6 +16,7 @@ public class TasksService {
 
     public List<Tasks> findAll() { return tasksRepository.findAll(); }
     public List<Tasks> findByProjectId(Long projectId) { return tasksRepository.findByProject_Id(projectId); }
+    public List<Tasks> findByUserStoryIds(List<Long> userStoryIds) { return tasksRepository.findByUserStoryIdIn(userStoryIds); }
     public Optional<Tasks> findById(Long id) { return tasksRepository.findById(id); }
     public Tasks save(Tasks task) { return tasksRepository.save(task); }
     public void deleteById(Long id) { tasksRepository.deleteById(id); }

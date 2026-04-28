@@ -805,3 +805,63 @@ All error responses follow this shape:
 | Task `estimatedHours` | Positive decimal, max `4.0` (enforced by Telegram bot, not the REST API) |
 | Task `actualHours` | Positive decimal, recorded at completion |
 | Task `storyPoints` | Positive integer (common Fibonacci values: 1, 2, 3, 5, 8, 13) |
+
+---
+
+## V5 Product Backlog Endpoints
+
+### Capabilities
+- `GET /api/projects/{projectId}/capabilities`
+- `GET /api/projects/{projectId}/capabilities/{capabilityId}`
+- `POST /api/projects/{projectId}/capabilities`
+- `PATCH /api/projects/{projectId}/capabilities/{capabilityId}`
+- `DELETE /api/projects/{projectId}/capabilities/{capabilityId}`
+
+### Features
+- `GET /api/projects/{projectId}/capabilities/{capabilityId}/features`
+- `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
+- `POST /api/projects/{projectId}/capabilities/{capabilityId}/features`
+- `PATCH /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
+- `DELETE /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
+
+### User Stories
+- `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories`
+- `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
+- `POST /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories`
+- `PATCH /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
+- `DELETE /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
+
+### User Story Dependencies
+- `GET /api/projects/{projectId}/stories/{storyId}/dependencies`
+- `GET /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
+- `POST /api/projects/{projectId}/stories/{storyId}/dependencies`
+- `PATCH /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
+- `DELETE /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
+
+### Sprint Retrospective
+- `GET /api/projects/{projectId}/sprints/{sprintId}/retrospective`
+- `POST /api/projects/{projectId}/sprints/{sprintId}/retrospective`
+- `PATCH /api/projects/{projectId}/sprints/{sprintId}/retrospective`
+- `DELETE /api/projects/{projectId}/sprints/{sprintId}/retrospective`
+
+### Story Spillovers
+- `GET /api/projects/{projectId}/story-spillovers`
+- `GET /api/projects/{projectId}/story-spillovers/{spilloverId}`
+- `POST /api/projects/{projectId}/story-spillovers`
+- `PATCH /api/projects/{projectId}/story-spillovers/{spilloverId}`
+- `DELETE /api/projects/{projectId}/story-spillovers/{spilloverId}`
+
+### Technical Debt
+- `GET /api/projects/{projectId}/technical-debt`
+- `GET /api/projects/{projectId}/technical-debt/{debtId}`
+- `POST /api/projects/{projectId}/technical-debt`
+- `PATCH /api/projects/{projectId}/technical-debt/{debtId}`
+- `DELETE /api/projects/{projectId}/technical-debt/{debtId}`
+
+### Project Work Items (aggregate view)
+- `GET /api/projects/{projectId}/work-items`
+
+Returns one JSON payload with:
+- project summary
+- capabilities → features → user stories → tasks hierarchy
+- sprints with active story IDs

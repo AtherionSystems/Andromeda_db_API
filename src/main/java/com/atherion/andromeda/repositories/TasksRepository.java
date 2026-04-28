@@ -11,4 +11,5 @@ import java.util.List;
 public interface TasksRepository extends JpaRepository<Tasks, Long> {
 
     List<Tasks> findByProject_Id(Long projectId);
+    List<Tasks> findByUserStoryIdIn(List<Long> userStoryIds);
 }

@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -77,6 +78,7 @@ public class ProjectController {
         if (request.endDate() != null) {
             project.setEndDate(request.endDate());
         }
+        project.setUpdatedAt(LocalDateTime.now());
 
         return ResponseEntity.ok(ProjectResponse.from(projectService.save(project)));
     }
