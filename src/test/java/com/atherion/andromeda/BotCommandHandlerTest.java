@@ -30,6 +30,9 @@ class BotCommandHandlerTest {
     @Mock private SprintService sprintService;
     @Mock private SprintStoryAssignmentService sprintStoryAssignmentService;
     @Mock private TaskAssignmentService taskAssignmentService;
+    @Mock private CapabilityService capabilityService;
+    @Mock private FeatureService featureService;
+    @Mock private UserStoryService userStoryService;
     @Mock private BCryptPasswordEncoder passwordEncoder;
     @Mock private AiService aiService;
 
@@ -45,6 +48,9 @@ class BotCommandHandlerTest {
                 sprintService,
                 sprintStoryAssignmentService,
                 taskAssignmentService,
+                capabilityService,
+                featureService,
+                userStoryService,
                 passwordEncoder,
                 aiService
         );
