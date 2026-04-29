@@ -3,6 +3,7 @@ package com.atherion.andromeda;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
 import com.atherion.andromeda.telegram.BotCommandHandler;
+import com.atherion.andromeda.services.AiService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,7 +30,11 @@ class BotCommandHandlerTest {
     @Mock private SprintService sprintService;
     @Mock private SprintStoryAssignmentService sprintStoryAssignmentService;
     @Mock private TaskAssignmentService taskAssignmentService;
+    @Mock private CapabilityService capabilityService;
+    @Mock private FeatureService featureService;
+    @Mock private UserStoryService userStoryService;
     @Mock private BCryptPasswordEncoder passwordEncoder;
+    @Mock private AiService aiService;
 
     private BotCommandHandler handler;
 
@@ -43,7 +48,11 @@ class BotCommandHandlerTest {
                 sprintService,
                 sprintStoryAssignmentService,
                 taskAssignmentService,
-                passwordEncoder
+                capabilityService,
+                featureService,
+                userStoryService,
+                passwordEncoder,
+                aiService
         );
     }
 
