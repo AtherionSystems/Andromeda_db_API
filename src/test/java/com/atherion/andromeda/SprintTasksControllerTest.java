@@ -3,10 +3,10 @@ package com.atherion.andromeda;
 import com.atherion.andromeda.controllers.SprintTasksController;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
-import com.atherion.andromeda.model.SprintTask;
+import com.atherion.andromeda.model.SprintStoryAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.services.SprintService;
-import com.atherion.andromeda.services.SprintTaskService;
+import com.atherion.andromeda.services.SprintStoryAssignmentService;
 import com.atherion.andromeda.services.TasksService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ExtendWith(MockitoExtension.class)
 class SprintTasksControllerTest {
 
-    @Mock private SprintTaskService sprintTaskService;
+    @Mock private SprintStoryAssignmentService sprintStoryAssignmentService;
     @Mock private SprintService sprintService;
     @Mock private TasksService tasksService;
     @InjectMocks private SprintTasksController controller;
@@ -69,14 +69,16 @@ class SprintTasksControllerTest {
         t.setProject(project);
         t.setTitle("Task");
         t.setStatus("todo");
+        t.setUserStoryId(200L + id);
         return t;
     }
 
-    private SprintTask buildSprintTask(Long id, Sprint sprint, Tasks task) {
-        SprintTask st = new SprintTask();
+    private SprintStoryAssignment buildSprintTask(Long id, Sprint sprint, Tasks task) {
+        SprintStoryAssignment st = new SprintStoryAssignment();
         st.setId(id);
         st.setSprint(sprint);
-        st.setTask(task);
+        st.setUserStoryId(task.getUserStoryId());
+        st.setIsActive(1);
         return st;
     }
 
@@ -85,9 +87,9 @@ class SprintTasksControllerTest {
         Project project = buildProject(1L);
         Sprint sprint = buildSprint(2L, project);
         Tasks task = buildTask(3L, project);
-        SprintTask sprintTask = buildSprintTask(4L, sprint, task);
+        SprintStoryAssignment sprintTask = buildSprintTask(4L, sprint, task);
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
-        when(sprintTaskService.findBySprintId(2L)).thenReturn(List.of(sprintTask));
+        when(sprintStoryAssignmentService.findBySprintId(2L)).thenReturn(List.of(sprintTask));
 
         mockMvc.perform(get("/api/projects/1/sprints/2/tasks"))
                 .andExpect(status().isOk())
@@ -108,12 +110,12 @@ class SprintTasksControllerTest {
         Project project = buildProject(1L);
         Sprint sprint = buildSprint(2L, project);
         Tasks task = buildTask(3L, project);
-        SprintTask saved = buildSprintTask(5L, sprint, task);
+        SprintStoryAssignment saved = buildSprintTask(5L, sprint, task);
 
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
         when(tasksService.findById(3L)).thenReturn(Optional.of(task));
-        when(sprintTaskService.isTaskActiveInSprint(2L, 3L)).thenReturn(false);
-        when(sprintTaskService.save(any(SprintTask.class))).thenReturn(saved);
+        when(sprintStoryAssignmentService.isStoryActiveInSprint(2L, task.getUserStoryId())).thenReturn(false);
+        when(sprintStoryAssignmentService.save(any(SprintStoryAssignment.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/projects/1/sprints/2/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +131,7 @@ class SprintTasksControllerTest {
         Tasks task = buildTask(3L, project);
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
         when(tasksService.findById(3L)).thenReturn(Optional.of(task));
-        when(sprintTaskService.isTaskActiveInSprint(2L, 3L)).thenReturn(true);
+        when(sprintStoryAssignmentService.isStoryActiveInSprint(2L, task.getUserStoryId())).thenReturn(true);
 
         mockMvc.perform(post("/api/projects/1/sprints/2/tasks")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -143,7 +145,7 @@ class SprintTasksControllerTest {
         Project project = buildProject(1L);
         Sprint sprint = buildSprint(2L, project);
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
-        when(sprintTaskService.findById(999L)).thenReturn(Optional.empty());
+        when(sprintStoryAssignmentService.findById(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(patch("/api/projects/1/sprints/2/tasks/999")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -157,10 +159,10 @@ class SprintTasksControllerTest {
         Project project = buildProject(1L);
         Sprint sprint = buildSprint(2L, project);
         Tasks task = buildTask(3L, project);
-        SprintTask sprintTask = buildSprintTask(4L, sprint, task);
+        SprintStoryAssignment sprintTask = buildSprintTask(4L, sprint, task);
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
-        when(sprintTaskService.findById(4L)).thenReturn(Optional.of(sprintTask));
-        doNothing().when(sprintTaskService).deleteById(4L);
+        when(sprintStoryAssignmentService.findById(4L)).thenReturn(Optional.of(sprintTask));
+        doNothing().when(sprintStoryAssignmentService).deleteById(4L);
 
         mockMvc.perform(delete("/api/projects/1/sprints/2/tasks/4"))
                 .andExpect(status().isNoContent());

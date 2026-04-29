@@ -1,5 +1,7 @@
 package com.atherion.andromeda;
 
+import com.atherion.andromeda.services.AiService;
+import com.atherion.andromeda.telegram.AiIntentRouter;
 import com.atherion.andromeda.telegram.AndromedaBot;
 import com.atherion.andromeda.telegram.BotCommandHandler;
 import com.atherion.andromeda.telegram.TelegramBotProperties;
@@ -20,11 +22,10 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AndromedaBotTest {
 
-    @Mock
-    private TelegramBotProperties props;
-
-    @Mock
-    private BotCommandHandler commandHandler;
+    @Mock private TelegramBotProperties props;
+    @Mock private BotCommandHandler commandHandler;
+    @Mock private AiService aiService;
+    @Mock private AiIntentRouter intentRouter;
 
     private AndromedaBot bot;
 
@@ -33,11 +34,11 @@ class AndromedaBotTest {
         when(props.getToken()).thenReturn("fake-token");
         lenient().when(props.getUsername()).thenReturn("AndromedaBot");
         lenient().when(commandHandler.handle(anyString(), any())).thenReturn(null);
-        lenient().when(commandHandler.handle(eq("/ping"),             any())).thenReturn("Pong! Andromeda API is up and running.");
+        lenient().when(commandHandler.handle(eq("/ping"),              any())).thenReturn("Pong! Andromeda API is up and running.");
         lenient().when(commandHandler.handle(eq("/ping@AndromedaBot"), any())).thenReturn("Pong! Andromeda API is up and running.");
-        lenient().when(commandHandler.handle(eq("/health"),           any())).thenReturn("Status: OK\nService: Andromeda Backend API\nBot: Connected");
+        lenient().when(commandHandler.handle(eq("/health"),            any())).thenReturn("Status: OK\nService: Andromeda Backend API\nBot: Connected");
 
-        bot = spy(new AndromedaBot(props, commandHandler));
+        bot = spy(new AndromedaBot(props, commandHandler, aiService, intentRouter));
         lenient().doNothing().when(bot).sendText(anyString(), anyString());
     }
 

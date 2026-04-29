@@ -1,0 +1,339 @@
+================================================================================
+  ANDROMEDA PROJECT MANAGEMENT SYSTEM
+  AI Natural Language Bot — Executive Summary
+  Date: 2026-04-28
+================================================================================
+
+
+1. EXECUTIVE SUMMARY
+────────────────────────────────────────────────────────────────────────────────
+
+The Andromeda Backend API is a Spring Boot 4 project management platform that
+exposes a full REST API for managing projects, tasks, sprints, users, and team
+members, backed by an Oracle Autonomous Database.
+
+The development team identified a recurring friction point: stakeholders and
+developers had to memorize exact slash-command syntax to interact with the
+Telegram bot (e.g., /tasks 3, /sprinttasks 2), creating a barrier to adoption
+and reducing the bot's utility as a real-time project dashboard.
+
+To address this, a natural language AI layer was integrated directly into the
+Telegram bot. This layer intercepts any free-form user message (one that does
+not begin with a slash command), sends it to a large language model (LLM) via
+the Groq API, and asks the model to classify the user's intent and map it to
+the correct internal command — transparently, without the user needing to know
+the command exists.
+
+This architectural decision provides three concrete benefits:
+
+  1. Accessibility — Any team member can query project status in plain
+     Spanish or English without consulting a command reference. A message
+     like "show me tasks in project 2" or "¿cuáles son los sprints del
+     proyecto 5?" is understood and answered automatically.
+
+  2. AI-Augmented Insights — Beyond routing, the bot exposes three
+     AI-powered analysis commands (/suggest, /analyze, /fix) that feed
+     live project metrics to the LLM and return actionable recommendations,
+     health scores, and task resolution guidance — turning the bot into an
+     intelligent project advisor, not just a data query tool.
+
+  3. Zero Infrastructure Cost — The AI layer runs through the Groq API
+     (OpenAI-compatible, pay-per-use) and is toggled via a single
+     environment variable (AGENT_AI_ENABLED). The system gracefully
+     degrades to slash-command-only mode when AI is disabled, requiring
+     no code changes.
+
+
+2. VERBATIM SYSTEM PROMPT — NATURAL LANGUAGE INTENT ROUTER
+────────────────────────────────────────────────────────────────────────────────
+
+Source file: src/main/java/com/atherion/andromeda/telegram/AiIntentRouter.java
+Field: SYSTEM_PROMPT (private static final String)
+
+The following prompt is sent as the "system" role message on every natural
+language request received by the Telegram bot. The user's raw message is sent
+as the "user" role message alongside it.
+
+--- PROMPT START ---
+
+You are a routing assistant for the Andromeda project management Telegram bot.
+Given a natural language message from a user, map it to the closest matching bot command.
+
+Available commands:
+  /projects                   — list all projects
+  /project <id>               — project details
+  /tasks <projectId>          — list tasks in a project
+  /task <id>                  — task details
+  /members <projectId>        — list project members
+  /sprints <projectId>        — list project sprints
+  /sprinttasks <projectId>    — sprint task board
+  /users                      — list all users
+  /user <id>                  — user details
+  /suggest <projectId>        — AI suggestions for a project
+  /analyze <projectId>        — AI health analysis of a project
+  /fix <taskId>               — AI guidance to resolve a task
+  /pingai                     — test AI backend connectivity
+
+Rules:
+- Respond ONLY with a JSON object; no markdown, no explanation, no extra text.
+- If the message maps to a command: {"cmd": "/command_name", "args": "arguments_here"}
+- If args are empty, use: {"cmd": "/command_name", "args": ""}
+- If you cannot map the message to any command: {"cmd": "none", "args": ""}
+
+--- PROMPT END ---
+
+
+3. ADDITIONAL AI SYSTEM PROMPTS (AI Command Handlers)
+────────────────────────────────────────────────────────────────────────────────
+
+Source file: src/main/java/com/atherion/andromeda/telegram/BotCommandHandler.java
+
+The following prompts are used by the dedicated AI analysis commands. In each
+case the user context (project metrics, task details) is assembled from live
+database data and sent as the "user" role message.
+
+3a. /suggest <projectId> — Improvement Suggestions
+    System prompt (verbatim):
+    "You are a project management expert for the Andromeda system. "
+    "Analyze the project data and give 3-5 concise, actionable suggestions to improve project health. "
+    "Format as a numbered list. Be specific and practical."
+
+3b. /analyze <projectId> — Health Analysis
+    System prompt (verbatim):
+    "You are a project health analyst for the Andromeda system. "
+    "Given the project metrics, provide: 1) an overall health score (0-10), "
+    "2) top 2-3 risks identified, 3) one key recommendation. "
+    "Be concise — maximum 200 words."
+
+3c. /fix <taskId> — Task Resolution Guidance
+    System prompt (verbatim):
+    "You are a technical project management assistant for the Andromeda system. "
+    "Given a task description, provide practical, step-by-step guidance on how to approach, "
+    "implement, or resolve it. Be specific and actionable. Maximum 150 words."
+
+3d. Debug / Direct Passthrough (triggered by the keyword "guacamole")
+    System prompt (verbatim):
+    "You are a helpful assistant. Answer any question the user asks clearly and concisely."
+
+3e. /pingai — Connectivity Test
+    System prompt (verbatim):
+    "You are a test assistant."
+    User message (verbatim):
+    "Reply with exactly one word: pong"
+
+
+4. AI CONFIGURATION WITHIN THE SPRING BOOT PROJECT
+────────────────────────────────────────────────────────────────────────────────
+
+4a. Properties Class
+    File: src/main/java/com/atherion/andromeda/config/AiProperties.java
+    Prefix: agent.ai
+    Fields and defaults:
+      enabled  = true                          (boolean)
+      baseUrl  = "https://api.groq.com/openai/v1"  (String)
+      apiKey   = (none — must be injected)     (String)
+      model    = "qwen/qwen3-32b"              (String)
+
+4b. application.properties bindings
+    File: src/main/resources/application.properties
+
+      agent.ai.enabled=${AGENT_AI_ENABLED}
+      agent.ai.base-url=${AGENT_AI_BASE_URL}
+      agent.ai.api-key=${AGENT_AI_API_KEY}
+      agent.ai.model=${AGENT_AI_MODEL}
+
+    All four values are injected at runtime via environment variables, keeping
+    secrets out of source control.
+
+4c. Service Layer
+    File: src/main/java/com/atherion/andromeda/services/AiService.java
+    - Uses Spring's RestClient against the configured baseUrl.
+    - Sends OpenAI-compatible /chat/completions requests (works with any
+      OpenAI-compatible provider, not just Groq).
+    - Automatically strips <think>...</think> scratchpad blocks produced
+      by reasoning/thinking models such as Qwen3 in thinking mode.
+    - Exposes three public methods:
+        chat(systemPrompt, userMessage)  → String (plain text response)
+        chatJson(systemPrompt, userMessage) → JsonNode (structured JSON)
+        ping()                           → long (latency in ms, -1 on fail)
+
+4d. Intent Router
+    File: src/main/java/com/atherion/andromeda/telegram/AiIntentRouter.java
+    - Calls aiService.chatJson() with the routing system prompt (Section 2).
+    - Parses the returned JSON {"cmd": "...", "args": "..."}.
+    - Delegates to BotCommandHandler.handle() with the resolved command.
+    - Returns null (bot stays silent) when no intent is recognized.
+
+4e. Bot Entry Point
+    File: src/main/java/com/atherion/andromeda/telegram/AndromedaBot.java
+    - Extends TelegramLongPollingBot.
+    - Message routing logic:
+        • Starts with "/"         → BotCommandHandler (direct slash command)
+        • Contains "guacamole"    → handleDirectAiQuestion() (AI passthrough)
+        • Any other text          → AiIntentRouter.route() (NL intent routing)
+        • AI disabled + no "/"   → silently ignored
+
+4f. Telegram Bot Configuration
+    File: src/main/resources/application.properties
+      telegram.bot.token=${TELEGRAM_BOT_TOKEN}
+      telegram.bot.username=${TELEGRAM_BOT_USERNAME}
+
+4g. Required Environment Variables (summary)
+    Variable                    Purpose
+    ─────────────────────────── ───────────────────────────────────────────
+    AGENT_AI_ENABLED            "true" or "false" — master AI toggle
+    AGENT_AI_BASE_URL           API base URL (e.g. https://api.groq.com/openai/v1)
+    AGENT_AI_API_KEY            Provider API key (secret)
+    AGENT_AI_MODEL              Model ID (e.g. qwen/qwen3-32b)
+    TELEGRAM_BOT_TOKEN          Token from @BotFather
+    TELEGRAM_BOT_USERNAME       Bot username (without @)
+    DB_USERNAME                 Oracle DB username
+    DB_PASSWORD                 Oracle DB password
+    WALLET_PATH                 Path to Oracle wallet directory
+    WALLET_TRUSTSTORE_PASSWORD  JKS truststore password
+    WALLET_KEYSTORE_PASSWORD    JKS keystore password
+
+
+4h. About the AI Provider and Model
+    ──────────────────────────────────────────────────────────────────────────
+
+    GROQ (API Provider)
+    Groq is an AI infrastructure company that designed its own silicon — the
+    Language Processing Unit (LPU) — specifically for running large language
+    model inference. Unlike GPU-based providers, the LPU architecture is
+    optimized for the sequential, memory-bound nature of token generation,
+    which results in inference speeds that are typically 10–20x faster than
+    equivalent GPU deployments. For a real-time Telegram bot where users
+    expect near-instant replies, this latency advantage is significant.
+
+    Groq exposes an OpenAI-compatible REST API (same request/response schema
+    as the OpenAI /chat/completions endpoint), which is why AiService works
+    against any OpenAI-compatible provider without code changes — swapping
+    providers is a single environment-variable change (AGENT_AI_BASE_URL).
+    Groq operates on a generous free tier, making it appropriate for academic
+    and prototype projects before committing to a paid inference budget.
+
+    QWEN3-32B (Model)
+    Qwen3 is the third generation of the Qwen open-weight large
+    language model family, developed and released by Alibaba Cloud. The
+    "32b" variant has 32 billion parameters, placing it in the upper-mid
+    tier of open models — large enough for strong reasoning and instruction
+    following, small enough to run efficiently on Groq's LPU cluster.
+
+    Key characteristics relevant to Andromeda:
+
+      • Thinking mode — Qwen3 models support an optional chain-of-thought
+        reasoning mode where the model emits a <think>...</think> scratchpad
+        before its final answer. AiService.extractContent() automatically
+        strips this block so users never see raw reasoning traces. This mode
+        improves accuracy on complex routing decisions at the cost of a small
+        latency increase.
+
+      • Multilingual strength — Qwen3 was trained on a large multilingual
+        corpus with particular emphasis on Chinese, English, and Spanish,
+        making it well-suited for a team that communicates primarily in
+        Spanish. The intent router handles Spanish natural language queries
+        (e.g., "muéstrame las tareas del proyecto 3") reliably.
+
+      • Instruction following — The model scores highly on JSON-output and
+        instruction-adherence benchmarks, which is critical for the intent
+        router whose correctness depends entirely on the model returning a
+        well-formed {"cmd": "...", "args": "..."} object and nothing else.
+
+      • Open weights — Qwen3 weights are publicly available under a
+        permissive license, meaning the team could self-host the model on
+        local or institutional GPU infrastructure in the future, eliminating
+        the dependency on Groq's external API entirely.
+
+
+5. NEXT STEPS — AI IMPLEMENTATION ROADMAP
+────────────────────────────────────────────────────────────────────────────────
+
+The current AI integration establishes a solid foundation. The following steps
+represent the natural progression for deepening AI capabilities within the
+Andromeda platform, ordered roughly by implementation complexity.
+
+5a. Extend Natural Language Routing to Write Commands
+    Currently, the intent router only maps messages to read commands. Write
+    operations (creating tasks, sprints, projects, updating statuses) still
+    require explicit slash-command syntax and a linked account.
+    Next step: expand the SYSTEM_PROMPT in AiIntentRouter to include all write
+    commands, and teach the router to extract structured arguments from natural
+    language (e.g., "create a task called Login Page in project 3, 2 hours,
+    high priority" → /newtask 3 | Login Page | 2 | 5 | high).
+    The /link authentication gate already exists; the router just needs to be
+    told about write commands and their argument formats.
+
+5b. Conversational Memory / Multi-Turn Context
+    Every message is currently stateless — the AI has no memory of what was
+    said earlier in a conversation. This means a user cannot ask follow-up
+    questions like "and what about project 4?" after asking about project 3.
+    Next step: introduce a per-user conversation history store (in-memory map
+    or Redis) in AiIntentRouter that accumulates the last N message pairs
+    (user + assistant) and includes them in the messages[] array sent to the
+    API. This unlocks natural follow-up questions and context-aware routing.
+
+5c. Proactive AI Notifications
+    The bot is currently reactive — it only responds when messaged. The
+    AiNotifyController endpoint already exists (src/main/java/.../controllers/
+    AiNotifyController.java) as a webhook entry point.
+    Next step: add a scheduled job (Spring @Scheduled) that runs nightly,
+    calls handleAnalyze() for every active project, and pushes a Telegram
+    message to project owners only when the health score drops below a
+    configurable threshold. This turns the bot into a proactive risk monitor.
+
+5d. AI-Powered Task Decomposition
+    The bot already enforces the 4-hour task limit and tells the user how many
+    subtasks to create. However, the user still has to name and create them
+    manually.
+    Next step: add a /decompose <taskId> command that sends the task title,
+    description, and acceptance criteria to the AI and asks it to generate a
+    ready-to-use list of subtasks (each ≤ 4 h), which the bot then creates
+    automatically via the existing handleNewTask() logic.
+
+5e. AI-Generated Sprint Planning
+    When a new sprint is created, the bot currently does nothing beyond
+    persisting the record.
+    Next step: add a /planSprint <sprintId> command that gathers all todo
+    tasks in the project (ordered by priority and story points), presents them
+    to the AI with the sprint goal and team capacity, and receives a suggested
+    task selection and assignment list. The bot can then apply the plan with
+    user confirmation.
+
+5f. Automated Daily / Weekly Digest
+    Next step: a scheduled digest message sent each morning to each project's
+    Telegram group. The digest would include: tasks completed yesterday, tasks
+    due today, overdue items, and a one-line AI commentary on team velocity.
+    This reuses handleAnalyze() output and the existing sendText() mechanism
+    with no new AI prompt engineering required.
+
+5g. Semantic Search Across Tasks and Projects
+    The current /tasks command returns all tasks for a project as a flat list.
+    For large projects this is noisy and hard to scan.
+    Next step: add a /search <query> command that sends the query and all task
+    titles/descriptions to the AI and asks it to return the top 5 most
+    relevant tasks ranked by semantic similarity to the query. This avoids
+    the need for a vector database by leveraging the LLM's own understanding.
+
+5h. Model Evaluation and A/B Testing
+    The model is currently hardcoded to qwen/qwen3-32b via environment
+    variable. There is no measurement of routing accuracy or user satisfaction.
+    Next step: add a lightweight logging table (ai_request_log) that records
+    every NL message, the resolved command, and whether the user corrected it
+    (i.e., sent a slash command immediately after). This dataset can be used
+    to evaluate whether switching models (e.g., llama3-70b, mixtral) improves
+    routing accuracy for Spanish-language input, which is the team's primary
+    language.
+
+5i. Web UI Chat Panel
+    The AI layer is currently accessible only through Telegram.
+    Next step: expose a /api/ai/chat REST endpoint (similar to the existing
+    AiNotifyController pattern) that accepts a JSON body with a userId and
+    message, runs it through AiIntentRouter, and returns the structured
+    response. A simple chat panel in the frontend project can then embed the
+    same natural language experience directly in the web dashboard.
+
+
+================================================================================
+  END OF DOCUMENT
+================================================================================

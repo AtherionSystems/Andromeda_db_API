@@ -10,4 +10,5 @@ import java.util.List;
 @Repository
 public interface SprintRepository extends JpaRepository<Sprint, Long> {
     List<Sprint> findByProject_Id(Long projectId);
+    List<Sprint> findTop2ByProject_IdOrderByCreatedAtDesc(Long projectId);
 }

@@ -1,5 +1,6 @@
 package com.atherion.andromeda.telegram;
 
+import com.atherion.andromeda.services.AiService;
 import com.atherion.andromeda.dto.SprintTaskRow;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
@@ -9,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -42,9 +42,13 @@ public class BotCommandHandler {
     private final UserService           userService;
     private final ProjectMemberService  projectMemberService;
     private final SprintService         sprintService;
-    private final SprintTaskService     sprintTaskService;
+    private final SprintStoryAssignmentService sprintStoryAssignmentService;
     private final TaskAssignmentService taskAssignmentService;
+    private final CapabilityService     capabilityService;
+    private final FeatureService        featureService;
+    private final UserStoryService      userStoryService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final AiService             aiService;
 
     // ── entry point ──────────────────────────────────────────────────────────
 
@@ -65,15 +69,22 @@ public class BotCommandHandler {
             // ── auth ──────────────────────────────────────────────────────
             case "/link"          -> handleLink(args, telegramUserId);
             // ── read ──────────────────────────────────────────────────────
-            case "/projects"      -> handleProjects();
-            case "/project"       -> handleProject(args);
-            case "/tasks"         -> handleTasks(args);
-            case "/task"          -> handleTask(args);
-            case "/members"       -> handleMembers(args);
-            case "/sprints"       -> handleSprints(args);
-            case "/sprinttasks"   -> handleSprintTasks(args);
-            case "/users"         -> handleUsers();
-            case "/user"          -> handleUser(args);
+            case "/projects"        -> handleProjects();
+            case "/project"         -> handleProject(args);
+            case "/capabilities"    -> handleCapabilities(args);
+            case "/capability"      -> handleCapability(args);
+            case "/features"        -> handleFeatures(args);
+            case "/feature"         -> handleFeature(args);
+            case "/projectstories"  -> handleProjectStories(args);
+            case "/userstories"     -> handleUserStories(args);
+            case "/userstory"       -> handleUserStory(args);
+            case "/tasks"           -> handleTasks(args);
+            case "/task"            -> handleTask(args);
+            case "/members"         -> handleMembers(args);
+            case "/sprints"         -> handleSprints(args);
+            case "/sprinttasks"     -> handleSprintTasks(args);
+            case "/users"           -> handleUsers();
+            case "/user"            -> handleUser(args);
             // ── write ─────────────────────────────────────────────────────
             case "/newproject"    -> handleNewProject(args, telegramUserId);
             case "/newsprint"     -> handleNewSprint(args, telegramUserId);
@@ -85,6 +96,11 @@ public class BotCommandHandler {
             case "/taskpriority"  -> handleTaskPriority(args, telegramUserId);
             case "/projectstatus" -> handleProjectStatus(args, telegramUserId);
             case "/addmember"     -> handleAddMember(args, telegramUserId);
+            // ── AI ────────────────────────────────────────────────────────────
+            case "/pingai"        -> handlePingAi();
+            case "/suggest"       -> handleSuggest(args);
+            case "/analyze"       -> handleAnalyze(args);
+            case "/fix"           -> handleFix(args);
             default               -> null;
         };
     }
@@ -99,9 +115,16 @@ public class BotCommandHandler {
                 SETUP
                 /link <username> <password>   Link your account
 
-                READ
+                READ  (hierarchy: Project → Capabilities → Features → User Stories → Tasks)
                 /projects                     List all projects
                 /project <id>                 Project details
+                /capabilities <projectId>     Capabilities in a project
+                /capability <id>              Capability details
+                /features <capabilityId>      Features in a capability
+                /feature <id>                 Feature details
+                /projectstories <projectId>   All user stories in a project
+                /userstories <featureId>      User stories in a feature
+                /userstory <id>               User story details
                 /tasks <projectId>            Tasks in a project
                 /task <id>                    Task details
                 /members <projectId>          Project members
@@ -113,7 +136,7 @@ public class BotCommandHandler {
                 WRITE  (requires /link)
                 /newproject <name> [| desc] [| status]
                 /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
-                /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
+                /newtask <projectId> | <title> | <estimatedHours> [| priority]
                 /assigntask <sprintId> <taskId>
                 /addsprinttask <sprintId> <taskId>
                 /completetask <taskId> <actualHours>
@@ -121,6 +144,15 @@ public class BotCommandHandler {
                 /taskpriority <taskId> <priority>
                 /projectstatus <projectId> <status>
                 /addmember <projectId> <userId> [role]
+
+                AI
+                /pingai                       Test AI backend connectivity
+                /suggest <projectId>          AI improvement suggestions
+                /analyze <projectId>          AI health analysis
+                /fix <taskId>                 AI task resolution guidance
+
+                TIP: You can also message me in plain English!
+                e.g. "show me tasks in project 2" or "what's the status of task 5"
 
                 VALUES
                 Project status : active · paused · completed · cancelled
@@ -211,10 +243,9 @@ public class BotCommandHandler {
         StringBuilder sb = new StringBuilder(
                 "Tasks for project #" + projectId + " (" + tasks.size() + ")\n───────────────────────\n");
         for (Tasks t : tasks)
-            sb.append(String.format("[%d] %s — %s | %s | %s pts | %s h\n",
+            sb.append(String.format("[%d] %s — %s | %s | %s h\n",
                     t.getId(), t.getTitle(),
                     nvl(t.getPriority(), "?"), nvl(t.getStatus(), "?"),
-                    t.getStoryPoints() != null ? t.getStoryPoints() : "—",
                     t.getEstimatedHours() != null ? t.getEstimatedHours() : "—"));
         return sb.toString().trim();
     }
@@ -232,7 +263,6 @@ public class BotCommandHandler {
                 "Project:     #%d %s\n" +
                 "Priority:    %s\n" +
                 "Status:      %s\n" +
-                "Story pts:   %s\n" +
                 "Est. hours:  %s\n" +
                 "Act. hours:  %s\n" +
                 "Start:       %s\n" +
@@ -240,7 +270,6 @@ public class BotCommandHandler {
                 t.getId(), t.getTitle(),
                 proj.getId(), proj.getName(),
                 nvl(t.getPriority(), "—"), nvl(t.getStatus(), "—"),
-                t.getStoryPoints() != null ? t.getStoryPoints() : "—",
                 t.getEstimatedHours() != null ? t.getEstimatedHours() : "—",
                 t.getActualHours() != null ? t.getActualHours() : "—",
                 fmt(t.getStartDate()), fmt(t.getDueDate()));
@@ -276,15 +305,14 @@ public class BotCommandHandler {
 
     /**
      * /sprinttasks <projectId>
-     * Displays the task board for the last 2 sprints, grouped by sprint,
-     * joined with assignee usernames via a native SQL subquery.
+     * Displays the task board for the last 2 sprints, grouped by sprint.
      */
     private String handleSprintTasks(String args) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprinttasks <projectId>";
         if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
 
-        List<SprintTaskRow> rows = sprintTaskService.findSprintBoard(projectId);
+        List<SprintTaskRow> rows = sprintStoryAssignmentService.findSprintBoard(projectId);
         if (rows.isEmpty()) return "No tasks found in recent sprints for project #" + projectId + ".";
 
         StringBuilder sb = new StringBuilder();
@@ -313,15 +341,14 @@ public class BotCommandHandler {
                     ? "@" + r.getAssignees().replace(", ", ", @")
                     : "—";
 
-            String pts = r.getStoryPoints() != null ? r.getStoryPoints() + " pts" : "— pts";
             String est = r.getEstimatedHours() != null ? r.getEstimatedHours() + "h est" : "";
             String act = r.getActualHours()    != null ? " / " + r.getActualHours() + "h act" : "";
 
             sb.append(String.format("[%d] %s\n", r.getId(), r.getTitle()));
-            sb.append(String.format("    %s | %s | %s | %s%s | %s\n",
+            sb.append(String.format("    %s | %s | %s%s | %s\n",
                     badge,
                     nvl(r.getPriority(), "—"),
-                    pts, est, act,
+                    est, act,
                     assignees));
         }
 
@@ -346,6 +373,112 @@ public class BotCommandHandler {
         return String.format(
                 "User #%d\nName:     %s\nUsername: @%s\nEmail:    %s\nPhone:    %s",
                 u.getId(), u.getName(), u.getUsername(), u.getEmail(), nvl(u.getPhone(), "—"));
+    }
+
+    private String handleCapabilities(String args) {
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /capabilities <projectId>";
+        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        List<Capability> caps = capabilityService.findByProjectId(projectId);
+        if (caps.isEmpty()) return "No capabilities found for project #" + projectId + ".";
+        StringBuilder sb = new StringBuilder(
+                "Capabilities for project #" + projectId + " (" + caps.size() + ")\n───────────────────────\n");
+        for (Capability c : caps)
+            sb.append(String.format("[%d] %s — %s\n", c.getId(), c.getName(), nvl(c.getStatus(), "?")));
+        return sb.toString().trim();
+    }
+
+    private String handleCapability(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /capability <id>";
+        Capability cap = capabilityService.findById(id).orElse(null);
+        if (cap == null) return "Capability #" + id + " not found.";
+        int featureCount = featureService.findByCapabilityId(id).size();
+        return String.format(
+                "Capability #%d\nName:     %s\nProject:  #%d %s\nStatus:   %s\nFeatures: %d",
+                cap.getId(), cap.getName(),
+                cap.getProject().getId(), cap.getProject().getName(),
+                nvl(cap.getStatus(), "—"), featureCount);
+    }
+
+    private String handleFeatures(String args) {
+        Long capabilityId = parseLong(args);
+        if (capabilityId == null) return "Usage: /features <capabilityId>";
+        Capability cap = capabilityService.findById(capabilityId).orElse(null);
+        if (cap == null) return "Capability #" + capabilityId + " not found.";
+        List<Feature> features = featureService.findByCapabilityId(capabilityId);
+        if (features.isEmpty()) return "No features found for capability #" + capabilityId + ".";
+        StringBuilder sb = new StringBuilder(
+                "Features for capability #" + capabilityId + " — " + cap.getName() +
+                " (" + features.size() + ")\n───────────────────────\n");
+        for (Feature f : features)
+            sb.append(String.format("[%d] %s — %s\n", f.getId(), f.getName(), nvl(f.getStatus(), "?")));
+        return sb.toString().trim();
+    }
+
+    private String handleFeature(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /feature <id>";
+        Feature feature = featureService.findById(id).orElse(null);
+        if (feature == null) return "Feature #" + id + " not found.";
+        int storyCount = userStoryService.findByFeatureId(id).size();
+        Capability cap = feature.getCapability();
+        return String.format(
+                "Feature #%d\nName:         %s\nCapability:   #%d %s\nProject:      #%d %s\nStatus:       %s\nUser Stories: %d",
+                feature.getId(), feature.getName(),
+                cap.getId(), cap.getName(),
+                cap.getProject().getId(), cap.getProject().getName(),
+                nvl(feature.getStatus(), "—"), storyCount);
+    }
+
+    private String handleProjectStories(String args) {
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /projectstories <projectId>";
+        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        List<UserStory> stories = userStoryService.findByProjectId(projectId);
+        if (stories.isEmpty()) return "No user stories found for project #" + projectId + ".";
+        StringBuilder sb = new StringBuilder(
+                "User Stories for project #" + projectId + " (" + stories.size() + ")\n───────────────────────\n");
+        for (UserStory s : stories)
+            sb.append(String.format("[%d] %s — %s | %s | %s pts\n",
+                    s.getId(), s.getTitle(),
+                    nvl(s.getPriority(), "?"), nvl(s.getStatus(), "?"),
+                    s.getStoryPoints() != null ? s.getStoryPoints() : "—"));
+        return sb.toString().trim();
+    }
+
+    private String handleUserStories(String args) {
+        Long featureId = parseLong(args);
+        if (featureId == null) return "Usage: /userstories <featureId>";
+        Feature feature = featureService.findById(featureId).orElse(null);
+        if (feature == null) return "Feature #" + featureId + " not found.";
+        List<UserStory> stories = userStoryService.findByFeatureId(featureId);
+        if (stories.isEmpty()) return "No user stories found for feature #" + featureId + ".";
+        StringBuilder sb = new StringBuilder(
+                "User Stories for feature #" + featureId + " — " + feature.getName() +
+                " (" + stories.size() + ")\n───────────────────────\n");
+        for (UserStory s : stories)
+            sb.append(String.format("[%d] %s — %s | %s | %s pts\n",
+                    s.getId(), s.getTitle(),
+                    nvl(s.getPriority(), "?"), nvl(s.getStatus(), "?"),
+                    s.getStoryPoints() != null ? s.getStoryPoints() : "—"));
+        return sb.toString().trim();
+    }
+
+    private String handleUserStory(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /userstory <id>";
+        UserStory s = userStoryService.findById(id).orElse(null);
+        if (s == null) return "User story #" + id + " not found.";
+        Feature feature = s.getFeature();
+        String owner = s.getOwner() != null ? "@" + s.getOwner().getUsername() : "—";
+        return String.format(
+                "User Story #%d\nTitle:     %s\nFeature:   #%d %s\nPriority:  %s\nStatus:    %s\nPoints:    %s\nOwner:     %s",
+                s.getId(), s.getTitle(),
+                feature.getId(), feature.getName(),
+                nvl(s.getPriority(), "—"), nvl(s.getStatus(), "—"),
+                s.getStoryPoints() != null ? s.getStoryPoints() : "—",
+                owner);
     }
 
     // ── write commands ────────────────────────────────────────────────────────
@@ -438,7 +571,7 @@ public class BotCommandHandler {
     }
 
     /**
-     * /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
+     * /newtask <projectId> | <title> | <estimatedHours> [| priority]
      *
      * estimatedHours must be > 0 and <= 4.0. If > 4, the bot rejects and
      * suggests how many subtasks to split into.
@@ -447,15 +580,15 @@ public class BotCommandHandler {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
         if (args.isBlank())
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]";
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
-        String[] pipes = splitPipes(args, 6);
-        if (pipes.length < 4)
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria] [| acceptanceCriteria]";
+        String[] pipes = splitPipes(args, 4);
+        if (pipes.length < 3)
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
         Long projectId = parseLong(pipes[0]);
         if (projectId == null)
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria] [| acceptanceCriteria]";
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
         String title = pipes[1];
         if (title.isEmpty()) return "Task title cannot be empty.";
@@ -473,12 +606,7 @@ public class BotCommandHandler {
                     estimatedHours, subtasks);
         }
 
-        Integer storyPoints = parseInteger(pipes[3]);
-        if (storyPoints == null || storyPoints <= 0)
-            return "storyPoints must be a positive integer (e.g. 3).";
-
-        String priority = pipes.length > 4 && !pipes[4].isEmpty() ? pipes[4] : "medium";
-        String acceptance = pipes.length > 5 ? pipes[5] : null;
+        String priority = pipes.length > 3 && !pipes[3].isEmpty() ? pipes[3] : "medium";
 
         if (!VALID_TASK_PRIORITIES.contains(priority))
             return "Invalid priority '" + priority + "'. Valid: low, medium, high, critical";
@@ -492,16 +620,14 @@ public class BotCommandHandler {
         task.setPriority(priority);
         task.setStatus("todo");
         task.setEstimatedHours(estimatedHours);
-        task.setStoryPoints(storyPoints);
-        task.setAcceptanceCriteria(acceptance);
         Tasks saved = tasksService.save(task);
 
         return String.format(
                 "Task created!\nID:          %d\nTitle:       %s\nProject:     #%d %s\n" +
-                "Priority:    %s\nEst. hours:  %s h\nStory pts:   %d",
+                "Priority:    %s\nEst. hours:  %s h",
                 saved.getId(), saved.getTitle(),
                 project.getId(), project.getName(),
-                saved.getPriority(), saved.getEstimatedHours(), saved.getStoryPoints());
+                saved.getPriority(), saved.getEstimatedHours());
     }
 
     /**
@@ -530,15 +656,19 @@ public class BotCommandHandler {
         if (!sprint.getProject().getId().equals(task.getProject().getId()))
             return "Sprint #" + sprintId + " and task #" + taskId + " belong to different projects.";
 
-        if (sprintTaskService.isTaskActiveInSprint(sprintId, taskId))
+        if (task.getUserStoryId() == null)
+            return "Task #" + taskId + " is not linked to any user story.";
+
+        if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, task.getUserStoryId()))
             return "Task #" + taskId + " is already in sprint #" + sprintId + ".";
 
         // link task → sprint
-        SprintTask st = new SprintTask();
+        SprintStoryAssignment st = new SprintStoryAssignment();
         st.setSprint(sprint);
-        st.setTask(task);
+        st.setUserStoryId(task.getUserStoryId());
         st.setAddedAt(LocalDateTime.now());
-        sprintTaskService.save(st);
+        st.setIsActive(1);
+        sprintStoryAssignmentService.save(st);
 
         // mark task as started
         task.setStatus("in_progress");
@@ -714,6 +844,193 @@ public class BotCommandHandler {
 
         return String.format("Member added!\nProject: #%d %s\nUser:    @%s\nRole:    %s",
                 project.getId(), project.getName(), user.getUsername(), saved.getRole());
+    }
+
+    // ── AI commands ───────────────────────────────────────────────────────────
+
+    /**
+     * /pingai
+     * Tests AI backend reachability and reports round-trip latency.
+     */
+    private String handlePingAi() {
+        if (!aiService.isEnabled())
+            return "AI is disabled (agent.ai.enabled=false).";
+
+        long ms = aiService.ping();
+        if (ms < 0)
+            return "AI backend is not responding. Check the API key and base URL configuration.";
+
+        return String.format(
+                "AI Backend — Online\nModel:   %s\nLatency: %d ms\n\n" +
+                "Try AI commands:\n" +
+                "/suggest <projectId> — improvement suggestions\n" +
+                "/analyze <projectId> — project health analysis\n" +
+                "/fix <taskId>        — task resolution guidance\n\n" +
+                "Or ask in plain English — I'll figure it out.\n" +
+                "Debug: try mentioning guacamole in any message.",
+                aiService.getModel(), ms);
+    }
+
+    /**
+     * /suggest <projectId>
+     * Fetches project data and asks the AI for actionable improvement suggestions.
+     */
+    private String handleSuggest(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /suggest <projectId>";
+
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
+
+        List<Tasks> tasks            = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints         = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members  = projectMemberService.findByProjectId(projectId);
+        List<UserStory> stories      = userStoryService.findByProjectId(projectId);
+
+        long todo         = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
+        long inProgress   = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
+        long review       = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
+        long done         = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
+        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
+        long storiesInPrg = stories.stream().filter(s -> "in_progress".equals(s.getStatus())).count();
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Project: ").append(project.getName())
+           .append(" (ID: ").append(projectId).append(", status: ")
+           .append(nvl(project.getStatus(), "unknown")).append(")\n");
+        ctx.append("User Stories: ").append(stories.size()).append(" total — ")
+           .append("done=").append(storiesDone).append(", in_progress=").append(storiesInPrg).append("\n");
+        ctx.append("Tasks: ").append(tasks.size()).append(" total — ")
+           .append("todo=").append(todo).append(", in_progress=").append(inProgress)
+           .append(", review=").append(review).append(", done=").append(done).append("\n");
+        ctx.append("Critical priority tasks: ").append(critical).append("\n");
+        ctx.append("Sprints: ").append(sprints.size()).append(" (").append(activeSp).append(" active)\n");
+        ctx.append("Members: ").append(members.size()).append("\n");
+        if (!stories.isEmpty()) {
+            ctx.append("Recent user stories:\n");
+            stories.stream().limit(4).forEach(s ->
+                ctx.append("  [").append(nvl(s.getStatus(), "?")).append("] ")
+                   .append(s.getTitle()).append(" (").append(nvl(s.getPriority(), "?")).append(")\n"));
+        }
+        if (!tasks.isEmpty()) {
+            ctx.append("Recent tasks:\n");
+            tasks.stream().limit(4).forEach(t ->
+                ctx.append("  [").append(nvl(t.getStatus(), "?")).append("] ")
+                   .append(t.getTitle()).append(" (").append(nvl(t.getPriority(), "?")).append(")\n"));
+        }
+
+        String answer = aiService.chat(
+                "You are a project management expert for the Andromeda system. " +
+                "Analyze the project data and give 3-5 concise, actionable suggestions to improve project health. " +
+                "Format as a numbered list. Be specific and practical.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Suggestions — " + project.getName() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
+    }
+
+    /**
+     * /analyze <projectId>
+     * Fetches project data and asks the AI for a health analysis with risk identification.
+     */
+    private String handleAnalyze(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /analyze <projectId>";
+
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
+
+        List<Tasks> tasks           = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints        = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+        List<UserStory> stories     = userStoryService.findByProjectId(projectId);
+
+        long notDone      = tasks.stream().filter(t -> !"done".equals(t.getStatus())).count();
+        long overdueCount = tasks.stream().filter(t ->
+                t.getDueDate() != null &&
+                t.getDueDate().isBefore(LocalDateTime.now()) &&
+                !"done".equals(t.getStatus())).count();
+        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long highPri      = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
+        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long completedSp  = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
+        long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
+
+        double taskCompletion  = tasks.isEmpty()   ? 0.0
+                : (double) tasks.stream().filter(t -> "done".equals(t.getStatus())).count() / tasks.size() * 100.0;
+        double storyCompletion = stories.isEmpty() ? 0.0
+                : (double) storiesDone / stories.size() * 100.0;
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Project: ").append(project.getName())
+           .append(" | Status: ").append(nvl(project.getStatus(), "unknown")).append("\n");
+        ctx.append("User Stories: ").append(stories.size())
+           .append(" | Completed: ").append(String.format("%.0f%%", storyCompletion)).append("\n");
+        ctx.append("Task completion rate: ").append(String.format("%.0f%%", taskCompletion)).append("\n");
+        ctx.append("Open tasks: ").append(notDone).append(" | Overdue: ").append(overdueCount).append("\n");
+        ctx.append("Critical: ").append(critical).append(" | High priority: ").append(highPri).append("\n");
+        ctx.append("Sprints: active=").append(activeSp).append(", completed=").append(completedSp).append("\n");
+        ctx.append("Team size: ").append(members.size()).append("\n");
+        ctx.append("Start: ").append(fmt(project.getStartDate()))
+           .append(" | End: ").append(fmt(project.getEndDate())).append("\n");
+
+        String answer = aiService.chat(
+                "You are a project health analyst for the Andromeda system. " +
+                "Given the project metrics, provide: 1) an overall health score (0-10), " +
+                "2) top 2-3 risks identified, 3) one key recommendation. " +
+                "Be concise — maximum 200 words.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Health Analysis — " + project.getName() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
+    }
+
+    /**
+     * /fix <taskId>
+     * Fetches task details and asks the AI for practical resolution guidance.
+     */
+    private String handleFix(String args) {
+        if (!aiService.isEnabled()) return "AI is currently disabled.";
+        Long taskId = parseLong(args);
+        if (taskId == null) return "Usage: /fix <taskId>";
+
+        Tasks task = tasksService.findById(taskId).orElse(null);
+        if (task == null) return "Task #" + taskId + " not found.";
+
+        StringBuilder ctx = new StringBuilder();
+        ctx.append("Task: ").append(task.getTitle()).append("\n");
+        ctx.append("Project: ").append(task.getProject().getName()).append("\n");
+        ctx.append("Status: ").append(nvl(task.getStatus(), "unknown")).append("\n");
+        ctx.append("Priority: ").append(nvl(task.getPriority(), "unknown")).append("\n");
+        if (task.getDescription() != null && !task.getDescription().isBlank())
+            ctx.append("Description: ").append(task.getDescription()).append("\n");
+        if (task.getUserStoryId() != null) {
+            userStoryService.findById(task.getUserStoryId()).ifPresent(us -> {
+                ctx.append("User Story: ").append(us.getTitle()).append("\n");
+                if (us.getAcceptanceCriteria() != null && !us.getAcceptanceCriteria().isBlank())
+                    ctx.append("Acceptance Criteria: ").append(us.getAcceptanceCriteria()).append("\n");
+            });
+        }
+        if (task.getEstimatedHours() != null)
+            ctx.append("Estimated: ").append(task.getEstimatedHours()).append("h\n");
+        if (task.getDueDate() != null)
+            ctx.append("Due: ").append(fmt(task.getDueDate())).append("\n");
+
+        String answer = aiService.chat(
+                "You are a technical project management assistant for the Andromeda system. " +
+                "Given a task description, provide practical, step-by-step guidance on how to approach, " +
+                "implement, or resolve it. Be specific and actionable. Maximum 150 words.",
+                ctx.toString());
+
+        return answer != null
+                ? "AI Guidance — Task #" + task.getId() + " " + task.getTitle() + ":\n\n" + answer
+                : "AI did not respond. Try again later.";
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────

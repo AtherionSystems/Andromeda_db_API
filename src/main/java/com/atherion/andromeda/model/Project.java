@@ -7,7 +7,6 @@ import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -43,6 +42,15 @@ public class Project {
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
+
+    @Column(name = "CREATED_BY")
+    private Long createdBy;
+
+    @Column(name = "UPDATED_BY")
+    private Long updatedBy;
+
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
 
 
 }
