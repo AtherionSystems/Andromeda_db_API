@@ -870,9 +870,7 @@ public class BotCommandHandler {
         ctx.append("Priority: ").append(nvl(task.getPriority(), "unknown")).append("\n");
         if (task.getDescription() != null && !task.getDescription().isBlank())
             ctx.append("Description: ").append(task.getDescription()).append("\n");
-        if (task.getAcceptanceCriteria() != null && !task.getAcceptanceCriteria().isBlank())
-            ctx.append("Acceptance Criteria: ").append(task.getAcceptanceCriteria()).append("\n");
-        if (task.getEstimatedHours() != null)
+if (task.getEstimatedHours() != null)
             ctx.append("Estimated: ").append(task.getEstimatedHours()).append("h\n");
         if (task.getDueDate() != null)
             ctx.append("Due: ").append(fmt(task.getDueDate())).append("\n");
