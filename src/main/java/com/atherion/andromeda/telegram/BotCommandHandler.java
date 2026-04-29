@@ -44,6 +44,9 @@ public class BotCommandHandler {
     private final SprintService         sprintService;
     private final SprintStoryAssignmentService sprintStoryAssignmentService;
     private final TaskAssignmentService taskAssignmentService;
+    private final CapabilityService     capabilityService;
+    private final FeatureService        featureService;
+    private final UserStoryService      userStoryService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final AiService             aiService;
 
@@ -66,15 +69,22 @@ public class BotCommandHandler {
             // ── auth ──────────────────────────────────────────────────────
             case "/link"          -> handleLink(args, telegramUserId);
             // ── read ──────────────────────────────────────────────────────
-            case "/projects"      -> handleProjects();
-            case "/project"       -> handleProject(args);
-            case "/tasks"         -> handleTasks(args);
-            case "/task"          -> handleTask(args);
-            case "/members"       -> handleMembers(args);
-            case "/sprints"       -> handleSprints(args);
-            case "/sprinttasks"   -> handleSprintTasks(args);
-            case "/users"         -> handleUsers();
-            case "/user"          -> handleUser(args);
+            case "/projects"        -> handleProjects();
+            case "/project"         -> handleProject(args);
+            case "/capabilities"    -> handleCapabilities(args);
+            case "/capability"      -> handleCapability(args);
+            case "/features"        -> handleFeatures(args);
+            case "/feature"         -> handleFeature(args);
+            case "/projectstories"  -> handleProjectStories(args);
+            case "/userstories"     -> handleUserStories(args);
+            case "/userstory"       -> handleUserStory(args);
+            case "/tasks"           -> handleTasks(args);
+            case "/task"            -> handleTask(args);
+            case "/members"         -> handleMembers(args);
+            case "/sprints"         -> handleSprints(args);
+            case "/sprinttasks"     -> handleSprintTasks(args);
+            case "/users"           -> handleUsers();
+            case "/user"            -> handleUser(args);
             // ── write ─────────────────────────────────────────────────────
             case "/newproject"    -> handleNewProject(args, telegramUserId);
             case "/newsprint"     -> handleNewSprint(args, telegramUserId);
@@ -105,9 +115,16 @@ public class BotCommandHandler {
                 SETUP
                 /link <username> <password>   Link your account
 
-                READ
+                READ  (hierarchy: Project → Capabilities → Features → User Stories → Tasks)
                 /projects                     List all projects
                 /project <id>                 Project details
+                /capabilities <projectId>     Capabilities in a project
+                /capability <id>              Capability details
+                /features <capabilityId>      Features in a capability
+                /feature <id>                 Feature details
+                /projectstories <projectId>   All user stories in a project
+                /userstories <featureId>      User stories in a feature
+                /userstory <id>               User story details
                 /tasks <projectId>            Tasks in a project
                 /task <id>                    Task details
                 /members <projectId>          Project members
@@ -356,6 +373,112 @@ public class BotCommandHandler {
         return String.format(
                 "User #%d\nName:     %s\nUsername: @%s\nEmail:    %s\nPhone:    %s",
                 u.getId(), u.getName(), u.getUsername(), u.getEmail(), nvl(u.getPhone(), "—"));
+    }
+
+    private String handleCapabilities(String args) {
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /capabilities <projectId>";
+        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        List<Capability> caps = capabilityService.findByProjectId(projectId);
+        if (caps.isEmpty()) return "No capabilities found for project #" + projectId + ".";
+        StringBuilder sb = new StringBuilder(
+                "Capabilities for project #" + projectId + " (" + caps.size() + ")\n───────────────────────\n");
+        for (Capability c : caps)
+            sb.append(String.format("[%d] %s — %s\n", c.getId(), c.getName(), nvl(c.getStatus(), "?")));
+        return sb.toString().trim();
+    }
+
+    private String handleCapability(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /capability <id>";
+        Capability cap = capabilityService.findById(id).orElse(null);
+        if (cap == null) return "Capability #" + id + " not found.";
+        int featureCount = featureService.findByCapabilityId(id).size();
+        return String.format(
+                "Capability #%d\nName:     %s\nProject:  #%d %s\nStatus:   %s\nFeatures: %d",
+                cap.getId(), cap.getName(),
+                cap.getProject().getId(), cap.getProject().getName(),
+                nvl(cap.getStatus(), "—"), featureCount);
+    }
+
+    private String handleFeatures(String args) {
+        Long capabilityId = parseLong(args);
+        if (capabilityId == null) return "Usage: /features <capabilityId>";
+        Capability cap = capabilityService.findById(capabilityId).orElse(null);
+        if (cap == null) return "Capability #" + capabilityId + " not found.";
+        List<Feature> features = featureService.findByCapabilityId(capabilityId);
+        if (features.isEmpty()) return "No features found for capability #" + capabilityId + ".";
+        StringBuilder sb = new StringBuilder(
+                "Features for capability #" + capabilityId + " — " + cap.getName() +
+                " (" + features.size() + ")\n───────────────────────\n");
+        for (Feature f : features)
+            sb.append(String.format("[%d] %s — %s\n", f.getId(), f.getName(), nvl(f.getStatus(), "?")));
+        return sb.toString().trim();
+    }
+
+    private String handleFeature(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /feature <id>";
+        Feature feature = featureService.findById(id).orElse(null);
+        if (feature == null) return "Feature #" + id + " not found.";
+        int storyCount = userStoryService.findByFeatureId(id).size();
+        Capability cap = feature.getCapability();
+        return String.format(
+                "Feature #%d\nName:         %s\nCapability:   #%d %s\nProject:      #%d %s\nStatus:       %s\nUser Stories: %d",
+                feature.getId(), feature.getName(),
+                cap.getId(), cap.getName(),
+                cap.getProject().getId(), cap.getProject().getName(),
+                nvl(feature.getStatus(), "—"), storyCount);
+    }
+
+    private String handleProjectStories(String args) {
+        Long projectId = parseLong(args);
+        if (projectId == null) return "Usage: /projectstories <projectId>";
+        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        List<UserStory> stories = userStoryService.findByProjectId(projectId);
+        if (stories.isEmpty()) return "No user stories found for project #" + projectId + ".";
+        StringBuilder sb = new StringBuilder(
+                "User Stories for project #" + projectId + " (" + stories.size() + ")\n───────────────────────\n");
+        for (UserStory s : stories)
+            sb.append(String.format("[%d] %s — %s | %s | %s pts\n",
+                    s.getId(), s.getTitle(),
+                    nvl(s.getPriority(), "?"), nvl(s.getStatus(), "?"),
+                    s.getStoryPoints() != null ? s.getStoryPoints() : "—"));
+        return sb.toString().trim();
+    }
+
+    private String handleUserStories(String args) {
+        Long featureId = parseLong(args);
+        if (featureId == null) return "Usage: /userstories <featureId>";
+        Feature feature = featureService.findById(featureId).orElse(null);
+        if (feature == null) return "Feature #" + featureId + " not found.";
+        List<UserStory> stories = userStoryService.findByFeatureId(featureId);
+        if (stories.isEmpty()) return "No user stories found for feature #" + featureId + ".";
+        StringBuilder sb = new StringBuilder(
+                "User Stories for feature #" + featureId + " — " + feature.getName() +
+                " (" + stories.size() + ")\n───────────────────────\n");
+        for (UserStory s : stories)
+            sb.append(String.format("[%d] %s — %s | %s | %s pts\n",
+                    s.getId(), s.getTitle(),
+                    nvl(s.getPriority(), "?"), nvl(s.getStatus(), "?"),
+                    s.getStoryPoints() != null ? s.getStoryPoints() : "—"));
+        return sb.toString().trim();
+    }
+
+    private String handleUserStory(String args) {
+        Long id = parseLong(args);
+        if (id == null) return "Usage: /userstory <id>";
+        UserStory s = userStoryService.findById(id).orElse(null);
+        if (s == null) return "User story #" + id + " not found.";
+        Feature feature = s.getFeature();
+        String owner = s.getOwner() != null ? "@" + s.getOwner().getUsername() : "—";
+        return String.format(
+                "User Story #%d\nTitle:     %s\nFeature:   #%d %s\nPriority:  %s\nStatus:    %s\nPoints:    %s\nOwner:     %s",
+                s.getId(), s.getTitle(),
+                feature.getId(), feature.getName(),
+                nvl(s.getPriority(), "—"), nvl(s.getStatus(), "—"),
+                s.getStoryPoints() != null ? s.getStoryPoints() : "—",
+                owner);
     }
 
     // ── write commands ────────────────────────────────────────────────────────
@@ -760,30 +883,41 @@ public class BotCommandHandler {
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) return "Project #" + projectId + " not found.";
 
-        List<Tasks> tasks     = tasksService.findByProjectId(projectId);
-        List<Sprint> sprints  = sprintService.findByProjectId(projectId);
-        List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+        List<Tasks> tasks            = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints         = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members  = projectMemberService.findByProjectId(projectId);
+        List<UserStory> stories      = userStoryService.findByProjectId(projectId);
 
-        long todo       = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
-        long inProgress = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
-        long review     = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
-        long done       = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
-        long critical   = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
-        long activeSp   = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long todo         = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
+        long inProgress   = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
+        long review       = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
+        long done         = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
+        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
+        long storiesInPrg = stories.stream().filter(s -> "in_progress".equals(s.getStatus())).count();
 
         StringBuilder ctx = new StringBuilder();
         ctx.append("Project: ").append(project.getName())
            .append(" (ID: ").append(projectId).append(", status: ")
            .append(nvl(project.getStatus(), "unknown")).append(")\n");
+        ctx.append("User Stories: ").append(stories.size()).append(" total — ")
+           .append("done=").append(storiesDone).append(", in_progress=").append(storiesInPrg).append("\n");
         ctx.append("Tasks: ").append(tasks.size()).append(" total — ")
            .append("todo=").append(todo).append(", in_progress=").append(inProgress)
            .append(", review=").append(review).append(", done=").append(done).append("\n");
         ctx.append("Critical priority tasks: ").append(critical).append("\n");
         ctx.append("Sprints: ").append(sprints.size()).append(" (").append(activeSp).append(" active)\n");
         ctx.append("Members: ").append(members.size()).append("\n");
+        if (!stories.isEmpty()) {
+            ctx.append("Recent user stories:\n");
+            stories.stream().limit(4).forEach(s ->
+                ctx.append("  [").append(nvl(s.getStatus(), "?")).append("] ")
+                   .append(s.getTitle()).append(" (").append(nvl(s.getPriority(), "?")).append(")\n"));
+        }
         if (!tasks.isEmpty()) {
             ctx.append("Recent tasks:\n");
-            tasks.stream().limit(6).forEach(t ->
+            tasks.stream().limit(4).forEach(t ->
                 ctx.append("  [").append(nvl(t.getStatus(), "?")).append("] ")
                    .append(t.getTitle()).append(" (").append(nvl(t.getPriority(), "?")).append(")\n"));
         }
@@ -811,27 +945,33 @@ public class BotCommandHandler {
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) return "Project #" + projectId + " not found.";
 
-        List<Tasks> tasks    = tasksService.findByProjectId(projectId);
-        List<Sprint> sprints = sprintService.findByProjectId(projectId);
+        List<Tasks> tasks           = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints        = sprintService.findByProjectId(projectId);
         List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+        List<UserStory> stories     = userStoryService.findByProjectId(projectId);
 
-        long notDone     = tasks.stream().filter(t -> !"done".equals(t.getStatus())).count();
+        long notDone      = tasks.stream().filter(t -> !"done".equals(t.getStatus())).count();
         long overdueCount = tasks.stream().filter(t ->
                 t.getDueDate() != null &&
                 t.getDueDate().isBefore(LocalDateTime.now()) &&
                 !"done".equals(t.getStatus())).count();
-        long critical    = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
-        long highPri     = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
-        long activeSp    = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
-        long completedSp = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
+        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long highPri      = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
+        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long completedSp  = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
+        long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
 
-        double completionRate = tasks.isEmpty() ? 0.0
+        double taskCompletion  = tasks.isEmpty()   ? 0.0
                 : (double) tasks.stream().filter(t -> "done".equals(t.getStatus())).count() / tasks.size() * 100.0;
+        double storyCompletion = stories.isEmpty() ? 0.0
+                : (double) storiesDone / stories.size() * 100.0;
 
         StringBuilder ctx = new StringBuilder();
         ctx.append("Project: ").append(project.getName())
            .append(" | Status: ").append(nvl(project.getStatus(), "unknown")).append("\n");
-        ctx.append("Completion rate: ").append(String.format("%.0f%%", completionRate)).append("\n");
+        ctx.append("User Stories: ").append(stories.size())
+           .append(" | Completed: ").append(String.format("%.0f%%", storyCompletion)).append("\n");
+        ctx.append("Task completion rate: ").append(String.format("%.0f%%", taskCompletion)).append("\n");
         ctx.append("Open tasks: ").append(notDone).append(" | Overdue: ").append(overdueCount).append("\n");
         ctx.append("Critical: ").append(critical).append(" | High priority: ").append(highPri).append("\n");
         ctx.append("Sprints: active=").append(activeSp).append(", completed=").append(completedSp).append("\n");
@@ -870,7 +1010,14 @@ public class BotCommandHandler {
         ctx.append("Priority: ").append(nvl(task.getPriority(), "unknown")).append("\n");
         if (task.getDescription() != null && !task.getDescription().isBlank())
             ctx.append("Description: ").append(task.getDescription()).append("\n");
-if (task.getEstimatedHours() != null)
+        if (task.getUserStoryId() != null) {
+            userStoryService.findById(task.getUserStoryId()).ifPresent(us -> {
+                ctx.append("User Story: ").append(us.getTitle()).append("\n");
+                if (us.getAcceptanceCriteria() != null && !us.getAcceptanceCriteria().isBlank())
+                    ctx.append("Acceptance Criteria: ").append(us.getAcceptanceCriteria()).append("\n");
+            });
+        }
+        if (task.getEstimatedHours() != null)
             ctx.append("Estimated: ").append(task.getEstimatedHours()).append("h\n");
         if (task.getDueDate() != null)
             ctx.append("Due: ").append(fmt(task.getDueDate())).append("\n");
