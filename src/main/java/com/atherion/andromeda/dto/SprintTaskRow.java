@@ -12,7 +12,6 @@ public interface SprintTaskRow {
     String     getTitle();
     String     getStatus();
     String     getPriority();
-    Integer    getStoryPoints();
     BigDecimal getEstimatedHours();
     BigDecimal getActualHours();
     String     getAssignees();

@@ -8,18 +8,15 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "SPRINT_TASKS", schema = "ANDROMEDA_DB", indexes = {
-        @Index(name = "IDX_ST_SPRINT_ID",
-                columnList = "SPRINT_ID"),
-        @Index(name = "IDX_ST_TASK_ID",
-                columnList = "TASK_ID")})
-public class SprintTask {
+@Table(name = "SPRINT_RETROSPECTIVES", schema = "ANDROMEDA_DB", uniqueConstraints = {
+        @UniqueConstraint(name = "UQ_RETRO_SPRINT_ID", columnNames = "SPRINT_ID")
+})
+public class SprintRetrospective {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
@@ -31,23 +28,33 @@ public class SprintTask {
     @JoinColumn(name = "SPRINT_ID", nullable = false)
     private Sprint sprint;
 
+    @Lob
+    @Column(name = "SUMMARY")
+    private String summary;
+
+    @Lob
+    @Column(name = "WHAT_WENT_WELL")
+    private String whatWentWell;
+
+    @Lob
+    @Column(name = "WHAT_WENT_WRONG")
+    private String whatWentWrong;
+
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.RESTRICT)
-    @JoinColumn(name = "TASK_ID", nullable = false)
-    private Tasks task;
+    @JoinColumn(name = "CREATED_BY", nullable = false)
+    private User createdBy;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
-    @Column(name = "ADDED_AT")
-    private LocalDateTime addedAt;
-
-    @Column(name = "REMOVED_AT")
-    private LocalDateTime removedAt;
+    @Column(name = "CREATED_AT")
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @OnDelete(action = OnDeleteAction.RESTRICT)
-    @JoinColumn(name = "MOVED_TO")
-    private Sprint movedTo;
+    @JoinColumn(name = "UPDATED_BY")
+    private User updatedBy;
 
-
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
 }

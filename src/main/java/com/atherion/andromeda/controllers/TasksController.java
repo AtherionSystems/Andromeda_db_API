@@ -21,6 +21,8 @@ import com.atherion.andromeda.services.TasksService;
 
 import lombok.RequiredArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks")
 @RequiredArgsConstructor
@@ -82,6 +84,7 @@ public class TasksController {
         if (taskDetails.getPriority() != null) task.setPriority(taskDetails.getPriority());
         if (taskDetails.getStartDate() != null) task.setStartDate(taskDetails.getStartDate());
         if (taskDetails.getDueDate() != null) task.setDueDate(taskDetails.getDueDate());
+        task.setUpdatedAt(LocalDateTime.now());
 
         return ResponseEntity.ok(tasksService.save(task));
     }

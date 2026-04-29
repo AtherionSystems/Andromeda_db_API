@@ -42,7 +42,7 @@ public class BotCommandHandler {
     private final UserService           userService;
     private final ProjectMemberService  projectMemberService;
     private final SprintService         sprintService;
-    private final SprintTaskService     sprintTaskService;
+    private final SprintStoryAssignmentService sprintStoryAssignmentService;
     private final TaskAssignmentService taskAssignmentService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final AiService             aiService;
@@ -119,7 +119,7 @@ public class BotCommandHandler {
                 WRITE  (requires /link)
                 /newproject <name> [| desc] [| status]
                 /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
-                /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
+                /newtask <projectId> | <title> | <estimatedHours> [| priority]
                 /assigntask <sprintId> <taskId>
                 /addsprinttask <sprintId> <taskId>
                 /completetask <taskId> <actualHours>
@@ -226,10 +226,9 @@ public class BotCommandHandler {
         StringBuilder sb = new StringBuilder(
                 "Tasks for project #" + projectId + " (" + tasks.size() + ")\n───────────────────────\n");
         for (Tasks t : tasks)
-            sb.append(String.format("[%d] %s — %s | %s | %s pts | %s h\n",
+            sb.append(String.format("[%d] %s — %s | %s | %s h\n",
                     t.getId(), t.getTitle(),
                     nvl(t.getPriority(), "?"), nvl(t.getStatus(), "?"),
-                    t.getStoryPoints() != null ? t.getStoryPoints() : "—",
                     t.getEstimatedHours() != null ? t.getEstimatedHours() : "—"));
         return sb.toString().trim();
     }
@@ -247,7 +246,6 @@ public class BotCommandHandler {
                 "Project:     #%d %s\n" +
                 "Priority:    %s\n" +
                 "Status:      %s\n" +
-                "Story pts:   %s\n" +
                 "Est. hours:  %s\n" +
                 "Act. hours:  %s\n" +
                 "Start:       %s\n" +
@@ -255,7 +253,6 @@ public class BotCommandHandler {
                 t.getId(), t.getTitle(),
                 proj.getId(), proj.getName(),
                 nvl(t.getPriority(), "—"), nvl(t.getStatus(), "—"),
-                t.getStoryPoints() != null ? t.getStoryPoints() : "—",
                 t.getEstimatedHours() != null ? t.getEstimatedHours() : "—",
                 t.getActualHours() != null ? t.getActualHours() : "—",
                 fmt(t.getStartDate()), fmt(t.getDueDate()));
@@ -291,15 +288,14 @@ public class BotCommandHandler {
 
     /**
      * /sprinttasks <projectId>
-     * Displays the task board for the last 2 sprints, grouped by sprint,
-     * joined with assignee usernames via a native SQL subquery.
+     * Displays the task board for the last 2 sprints, grouped by sprint.
      */
     private String handleSprintTasks(String args) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprinttasks <projectId>";
         if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
 
-        List<SprintTaskRow> rows = sprintTaskService.findSprintBoard(projectId);
+        List<SprintTaskRow> rows = sprintStoryAssignmentService.findSprintBoard(projectId);
         if (rows.isEmpty()) return "No tasks found in recent sprints for project #" + projectId + ".";
 
         StringBuilder sb = new StringBuilder();
@@ -328,15 +324,14 @@ public class BotCommandHandler {
                     ? "@" + r.getAssignees().replace(", ", ", @")
                     : "—";
 
-            String pts = r.getStoryPoints() != null ? r.getStoryPoints() + " pts" : "— pts";
             String est = r.getEstimatedHours() != null ? r.getEstimatedHours() + "h est" : "";
             String act = r.getActualHours()    != null ? " / " + r.getActualHours() + "h act" : "";
 
             sb.append(String.format("[%d] %s\n", r.getId(), r.getTitle()));
-            sb.append(String.format("    %s | %s | %s | %s%s | %s\n",
+            sb.append(String.format("    %s | %s | %s%s | %s\n",
                     badge,
                     nvl(r.getPriority(), "—"),
-                    pts, est, act,
+                    est, act,
                     assignees));
         }
 
@@ -453,7 +448,7 @@ public class BotCommandHandler {
     }
 
     /**
-     * /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority]
+     * /newtask <projectId> | <title> | <estimatedHours> [| priority]
      *
      * estimatedHours must be > 0 and <= 4.0. If > 4, the bot rejects and
      * suggests how many subtasks to split into.
@@ -462,15 +457,15 @@ public class BotCommandHandler {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
         if (args.isBlank())
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]";
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
-        String[] pipes = splitPipes(args, 6);
-        if (pipes.length < 4)
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria] [| acceptanceCriteria]";
+        String[] pipes = splitPipes(args, 4);
+        if (pipes.length < 3)
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
         Long projectId = parseLong(pipes[0]);
         if (projectId == null)
-            return "Usage: /newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria] [| acceptanceCriteria]";
+            return "Usage: /newtask <projectId> | <title> | <estimatedHours> [| priority]";
 
         String title = pipes[1];
         if (title.isEmpty()) return "Task title cannot be empty.";
@@ -488,12 +483,7 @@ public class BotCommandHandler {
                     estimatedHours, subtasks);
         }
 
-        Integer storyPoints = parseInteger(pipes[3]);
-        if (storyPoints == null || storyPoints <= 0)
-            return "storyPoints must be a positive integer (e.g. 3).";
-
-        String priority = pipes.length > 4 && !pipes[4].isEmpty() ? pipes[4] : "medium";
-        String acceptance = pipes.length > 5 ? pipes[5] : null;
+        String priority = pipes.length > 3 && !pipes[3].isEmpty() ? pipes[3] : "medium";
 
         if (!VALID_TASK_PRIORITIES.contains(priority))
             return "Invalid priority '" + priority + "'. Valid: low, medium, high, critical";
@@ -507,16 +497,14 @@ public class BotCommandHandler {
         task.setPriority(priority);
         task.setStatus("todo");
         task.setEstimatedHours(estimatedHours);
-        task.setStoryPoints(storyPoints);
-        task.setAcceptanceCriteria(acceptance);
         Tasks saved = tasksService.save(task);
 
         return String.format(
                 "Task created!\nID:          %d\nTitle:       %s\nProject:     #%d %s\n" +
-                "Priority:    %s\nEst. hours:  %s h\nStory pts:   %d",
+                "Priority:    %s\nEst. hours:  %s h",
                 saved.getId(), saved.getTitle(),
                 project.getId(), project.getName(),
-                saved.getPriority(), saved.getEstimatedHours(), saved.getStoryPoints());
+                saved.getPriority(), saved.getEstimatedHours());
     }
 
     /**
@@ -545,15 +533,19 @@ public class BotCommandHandler {
         if (!sprint.getProject().getId().equals(task.getProject().getId()))
             return "Sprint #" + sprintId + " and task #" + taskId + " belong to different projects.";
 
-        if (sprintTaskService.isTaskActiveInSprint(sprintId, taskId))
+        if (task.getUserStoryId() == null)
+            return "Task #" + taskId + " is not linked to any user story.";
+
+        if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, task.getUserStoryId()))
             return "Task #" + taskId + " is already in sprint #" + sprintId + ".";
 
         // link task → sprint
-        SprintTask st = new SprintTask();
+        SprintStoryAssignment st = new SprintStoryAssignment();
         st.setSprint(sprint);
-        st.setTask(task);
+        st.setUserStoryId(task.getUserStoryId());
         st.setAddedAt(LocalDateTime.now());
-        sprintTaskService.save(st);
+        st.setIsActive(1);
+        sprintStoryAssignmentService.save(st);
 
         // mark task as started
         task.setStatus("in_progress");

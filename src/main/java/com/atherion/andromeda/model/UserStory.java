@@ -9,15 +9,15 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "TASKS", schema = "ANDROMEDA_DB", indexes = {@Index(name = "IDX_TASKS_PROJECT_ID",
-        columnList = "PROJECT_ID")})
-public class Tasks {
+@Table(name = "USER_STORIES", schema = "ANDROMEDA_DB", indexes = {
+        @Index(name = "IDX_US_FEATURE_ID", columnList = "FEATURE_ID")
+})
+public class UserStory {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID", nullable = false)
@@ -26,17 +26,21 @@ public class Tasks {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @OnDelete(action = OnDeleteAction.RESTRICT)
-    @JoinColumn(name = "PROJECT_ID", nullable = false)
-    private Project project;
+    @JoinColumn(name = "FEATURE_ID", nullable = false)
+    private Feature feature;
 
-    @Size(max = 255)
     @NotNull
+    @Size(max = 255)
     @Column(name = "TITLE", nullable = false)
     private String title;
 
     @Lob
     @Column(name = "DESCRIPTION")
     private String description;
+
+    @Lob
+    @Column(name = "ACCEPTANCE_CRITERIA")
+    private String acceptanceCriteria;
 
     @Size(max = 10)
     @ColumnDefault("'medium'")
@@ -48,36 +52,29 @@ public class Tasks {
     @Column(name = "STATUS", length = 20)
     private String status;
 
-    @Column(name = "START_DATE")
-    private LocalDateTime startDate;
+    @Column(name = "STORY_POINTS")
+    private Integer storyPoints;
 
-    @Column(name = "DUE_DATE")
-    private LocalDateTime dueDate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "OWNER_ID")
+    private User owner;
 
-    @Column(name = "ACTUAL_END")
-    private LocalDateTime actualEnd;
-
-    @Column(name = "ESTIMATED_HOURS", precision = 4, scale = 1)
-    private BigDecimal estimatedHours;
-
-    @Column(name = "ACTUAL_HOURS", precision = 4, scale = 1)
-    private BigDecimal actualHours;
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "CREATED_BY", nullable = false)
+    private User createdBy;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
 
-    @Column(name = "CREATED_BY")
-    private Long createdBy;
-
-    @Column(name = "UPDATED_BY")
-    private Long updatedBy;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @JoinColumn(name = "UPDATED_BY")
+    private User updatedBy;
 
     @Column(name = "UPDATED_AT")
     private LocalDateTime updatedAt;
-
-    @Column(name = "USER_STORY_ID")
-    private Long userStoryId;
-
-
 }

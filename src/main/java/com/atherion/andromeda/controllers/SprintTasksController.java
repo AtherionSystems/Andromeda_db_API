@@ -1,10 +1,10 @@
 package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.model.Sprint;
-import com.atherion.andromeda.model.SprintTask;
+import com.atherion.andromeda.model.SprintStoryAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.services.SprintService;
-import com.atherion.andromeda.services.SprintTaskService;
+import com.atherion.andromeda.services.SprintStoryAssignmentService;
 import com.atherion.andromeda.services.TasksService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -22,7 +22,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class SprintTasksController {
 
-    private final SprintTaskService sprintTaskService;
+    private final SprintStoryAssignmentService sprintStoryAssignmentService;
     private final SprintService sprintService;
     private final TasksService tasksService;
 
@@ -33,7 +33,7 @@ public class SprintTasksController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Sprint not found"));
         }
-        return ResponseEntity.ok(sprintTaskService.findBySprintId(sprintId));
+        return ResponseEntity.ok(sprintStoryAssignmentService.findBySprintId(sprintId));
     }
 
     @GetMapping("/{sprintTaskId}")
@@ -46,7 +46,7 @@ public class SprintTasksController {
                     .body(Map.of("error", "Sprint not found"));
         }
 
-        return sprintTaskService.findById(sprintTaskId)
+        return sprintStoryAssignmentService.findById(sprintTaskId)
                 .filter(st -> st.getSprint().getId().equals(sprintId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -74,17 +74,23 @@ public class SprintTasksController {
                     .body(Map.of("error", "Task not found"));
         }
 
-        if (sprintTaskService.isTaskActiveInSprint(sprintId, taskId)) {
+        if (task.getUserStoryId() == null) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("error", "Task is not linked to a user story"));
+        }
+
+        if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, task.getUserStoryId())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", "Task is already active in this sprint"));
         }
 
-        SprintTask sprintTask = new SprintTask();
+        SprintStoryAssignment sprintTask = new SprintStoryAssignment();
         sprintTask.setSprint(sprint);
-        sprintTask.setTask(task);
+        sprintTask.setUserStoryId(task.getUserStoryId());
         sprintTask.setAddedAt(LocalDateTime.now());
+        sprintTask.setIsActive(1);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(sprintTaskService.save(sprintTask));
+        return ResponseEntity.status(HttpStatus.CREATED).body(sprintStoryAssignmentService.save(sprintTask));
     }
 
     @PatchMapping("/{sprintTaskId}")
@@ -98,7 +104,7 @@ public class SprintTasksController {
                     .body(Map.of("error", "Sprint not found"));
         }
 
-        SprintTask sprintTask = sprintTaskService.findById(sprintTaskId)
+        SprintStoryAssignment sprintTask = sprintStoryAssignmentService.findById(sprintTaskId)
                 .filter(existing -> existing.getSprint().getId().equals(sprintId))
                 .orElse(null);
 
@@ -110,6 +116,7 @@ public class SprintTasksController {
         if (payload.containsKey("removedAt") && payload.get("removedAt") != null) {
             try {
                 sprintTask.setRemovedAt(LocalDateTime.parse(payload.get("removedAt").toString()));
+                sprintTask.setIsActive(0);
             } catch (Exception e) {
                 return ResponseEntity.badRequest().body(Map.of("error", "removedAt must be ISO-8601 LocalDateTime"));
             }
@@ -128,7 +135,7 @@ public class SprintTasksController {
             sprintTask.setMovedTo(movedTo);
         }
 
-        return ResponseEntity.ok(sprintTaskService.save(sprintTask));
+        return ResponseEntity.ok(sprintStoryAssignmentService.save(sprintTask));
     }
 
     @DeleteMapping("/{sprintTaskId}")
@@ -141,7 +148,7 @@ public class SprintTasksController {
                     .body(Map.of("error", "Sprint not found"));
         }
 
-        SprintTask sprintTask = sprintTaskService.findById(sprintTaskId)
+        SprintStoryAssignment sprintTask = sprintStoryAssignmentService.findById(sprintTaskId)
                 .filter(existing -> existing.getSprint().getId().equals(sprintId))
                 .orElse(null);
 
@@ -150,7 +157,7 @@ public class SprintTasksController {
                     .body(Map.of("error", "Sprint task not found"));
         }
 
-        sprintTaskService.deleteById(sprintTaskId);
+        sprintStoryAssignmentService.deleteById(sprintTaskId);
         return ResponseEntity.noContent().build();
     }
 

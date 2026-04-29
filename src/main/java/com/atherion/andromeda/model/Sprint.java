@@ -9,7 +9,6 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Getter
@@ -55,6 +54,15 @@ public class Sprint {
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")
     private LocalDateTime createdAt;
+
+    @Column(name = "CREATED_BY")
+    private Long createdBy;
+
+    @Column(name = "UPDATED_BY")
+    private Long updatedBy;
+
+    @Column(name = "UPDATED_AT")
+    private LocalDateTime updatedAt;
 
 
 }
