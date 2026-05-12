@@ -9,7 +9,8 @@
       "Bash(./mvnw test-compile:*)",
       "Bash(Get-ChildItem -Recurse -Directory)",
       "Bash(Select-Object -First 20 FullName)",
-      "Bash(mvn test *)"
+      "Bash(mvn test *)",
+      "Bash(grep -v \":0$\")"
     ]
   }
 }
