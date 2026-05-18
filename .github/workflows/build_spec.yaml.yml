@@ -1,0 +1,31 @@
+version: 0.1
+component: build
+timeoutInSeconds: 3600
+runAs: root
+
+env:
+  variables:
+    REGION: "mx-queretaro-1"
+    OCIR_SERVER: "mx-queretaro-1.ocir.io"
+    TENANCY_NAMESPACE: "axieboiigznv"
+    REPO_NAME: "andromeda-backend"
+    IMAGE_TAG: "latest"
+
+steps:
+  - type: Command
+    name: "Build Docker Image"
+    command: |
+      docker build -t ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG} .
+
+  - type: Command
+    name: "Push to OCIR"
+    command: |
+      docker login ${OCIR_SERVER} \
+        --username "${TENANCY_NAMESPACE}/oracleidentitycloudservice/${OCI_BUILD_RUNNER_USER}" \
+        --password "${AUTH_TOKEN}"
+      docker push ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
+
+outputArtifacts:
+  - name: andromeda_image
+    type: DOCKER_IMAGE
+    location: ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
