@@ -9,6 +9,7 @@ import com.atherion.andromeda.services.TasksService;
 import com.atherion.andromeda.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,8 +40,7 @@ public class TaskAssignmentsController {
         User user = userService.findById(request.userId()).orElse(null);
 
         if (task == null || user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Task or User not found"));
+            return notFound("Task or User not found");
         }
 
         TaskAssignment assignment = new TaskAssignment();
@@ -56,8 +56,7 @@ public class TaskAssignmentsController {
         Optional<TaskAssignment> assignment = taskAssignmentService.findByTaskIdAndUserId(taskId, userId);
 
         if (assignment.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Assignment not found for this user and task"));
+            return notFound("Assignment not found for this user and task");
         }
 
         taskAssignmentService.deleteById(assignment.get().getId());

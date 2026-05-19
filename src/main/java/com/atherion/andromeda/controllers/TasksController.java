@@ -20,6 +20,7 @@ import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.TasksService;
 
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 
 import java.time.LocalDateTime;
 
@@ -42,22 +43,20 @@ public class TasksController {
     public ResponseEntity<?> getTaskById(@PathVariable Long projectId, @PathVariable Long taskId) {
         return tasksService.findById(taskId)
                 .<ResponseEntity<?>>map(task -> ResponseEntity.ok(task))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Task not found")));
+                .orElse(notFound("Task not found"));
     }
 
     // POST /api/projects/{projectId}/tasks
     @PostMapping
     public ResponseEntity<?> createTask(@PathVariable Long projectId, @RequestBody Tasks task) {
         if (task.getTitle() == null || task.getTitle().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "title is required"));
+            return badRequest("title is required");
         }
 
         Project project = projectService.findById(projectId).orElse(null);
 
         if (project == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
 
         task.setProject(project);
@@ -74,8 +73,7 @@ public class TasksController {
         Tasks task = tasksService.findById(taskId).orElse(null);
 
         if (task == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Task not found"));
+            return notFound("Task not found");
         }
 
         if (taskDetails.getTitle() != null) task.setTitle(taskDetails.getTitle());
@@ -93,8 +91,7 @@ public class TasksController {
     @DeleteMapping("/{taskId}")
     public ResponseEntity<?> deleteTask(@PathVariable Long taskId) {
         if (tasksService.findById(taskId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Task not found"));
+            return notFound("Task not found");
         }
         tasksService.deleteById(taskId);
         return ResponseEntity.noContent().build();

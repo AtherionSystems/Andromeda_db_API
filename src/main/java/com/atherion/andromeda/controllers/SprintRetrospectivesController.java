@@ -10,6 +10,7 @@ import com.atherion.andromeda.services.SprintService;
 import com.atherion.andromeda.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,11 +31,11 @@ public class SprintRetrospectivesController {
     public ResponseEntity<?> getBySprint(@PathVariable Long projectId, @PathVariable Long sprintId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         return sprintRetrospectiveService.findBySprintId(sprintId)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint retrospective not found")));
+                .orElse(notFound("Sprint retrospective not found"));
     }
 
     @PostMapping
@@ -43,15 +44,15 @@ public class SprintRetrospectivesController {
                                     @Valid @RequestBody CreateSprintRetrospectiveRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         if (sprintRetrospectiveService.findBySprintId(sprintId).isPresent()) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Sprint already has a retrospective"));
+            return conflict("Sprint already has a retrospective");
         }
 
         User createdBy = userService.findById(request.createdById()).orElse(null);
         if (createdBy == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "createdBy user not found"));
+            return notFound("createdBy user not found");
         }
 
         SprintRetrospective retrospective = new SprintRetrospective();
@@ -69,11 +70,11 @@ public class SprintRetrospectivesController {
                                    @RequestBody UpdateSprintRetrospectiveRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         SprintRetrospective retrospective = sprintRetrospectiveService.findBySprintId(sprintId).orElse(null);
         if (retrospective == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint retrospective not found"));
+            return notFound("Sprint retrospective not found");
         }
 
         if (request.summary() != null) retrospective.setSummary(request.summary());
@@ -82,7 +83,7 @@ public class SprintRetrospectivesController {
         if (request.updatedById() != null) {
             User updatedBy = userService.findById(request.updatedById()).orElse(null);
             if (updatedBy == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
+                return notFound("updatedBy user not found");
             }
             retrospective.setUpdatedBy(updatedBy);
             retrospective.setUpdatedAt(LocalDateTime.now());
@@ -94,11 +95,11 @@ public class SprintRetrospectivesController {
     public ResponseEntity<?> delete(@PathVariable Long projectId, @PathVariable Long sprintId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         SprintRetrospective retrospective = sprintRetrospectiveService.findBySprintId(sprintId).orElse(null);
         if (retrospective == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint retrospective not found"));
+            return notFound("Sprint retrospective not found");
         }
         sprintRetrospectiveService.deleteById(retrospective.getId());
         return ResponseEntity.noContent().build();

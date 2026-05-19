@@ -8,6 +8,7 @@ import com.atherion.andromeda.services.UserService;
 import com.atherion.andromeda.services.UserTypeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -39,8 +40,7 @@ public class UserController {
     public ResponseEntity<?> getById(@PathVariable Long id) {
         return userService.findById(id)
                 .<ResponseEntity<?>>map(u -> ResponseEntity.ok(UserResponse.from(u)))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "User not found")));
+                .orElse(notFound("User not found"));
     }
 
     // PUT /api/users/{id}
@@ -49,8 +49,7 @@ public class UserController {
                                     @Valid @RequestBody UpdateUserRequest req) {
         User user = userService.findById(id).orElse(null);
         if (user == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "User not found"));
+            return notFound("User not found");
         }
 
         if (req.name() != null)     user.setName(req.name());
@@ -59,8 +58,7 @@ public class UserController {
 
         if (req.username() != null && !req.username().equals(user.getUsername())) {
             if (userService.usernameExists(req.username())) {
-                return ResponseEntity.status(HttpStatus.CONFLICT)
-                        .body(Map.of("error", "Username already taken"));
+                return conflict("Username already taken");
             }
             user.setUsername(req.username());
         }
@@ -82,8 +80,7 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (userService.findById(id).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "User not found"));
+            return notFound("User not found");
         }
         userService.deleteById(id);
         return ResponseEntity.noContent().build();

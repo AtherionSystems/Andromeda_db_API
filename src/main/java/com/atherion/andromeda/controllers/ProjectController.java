@@ -7,6 +7,7 @@ import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.services.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -34,8 +35,7 @@ public class ProjectController {
     public ResponseEntity<?> getById(@PathVariable Long id) {
         return projectService.findById(id)
                 .<ResponseEntity<?>>map(project -> ResponseEntity.ok(ProjectResponse.from(project)))
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Project not found")));
+                .orElse(notFound("Project not found"));
     }
 
     @PostMapping
@@ -55,8 +55,7 @@ public class ProjectController {
                                    @Valid @RequestBody UpdateProjectRequest request) {
         Optional<Project> projectOpt = projectService.findById(id);
         if (projectOpt.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
 
         Project project = projectOpt.get();
@@ -67,8 +66,7 @@ public class ProjectController {
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (projectService.findById(id).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
         projectService.deleteById(id);
         return ResponseEntity.noContent().build();

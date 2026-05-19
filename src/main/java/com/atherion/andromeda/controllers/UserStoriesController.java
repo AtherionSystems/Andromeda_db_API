@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.Map;
 
-import static com.atherion.andromeda.util.ControllerUtils.defaulted;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories")
@@ -34,7 +34,7 @@ public class UserStoriesController {
                                           @PathVariable Long featureId) {
         Feature feature = findFeature(projectId, capabilityId, featureId);
         if (feature == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Feature not found"));
+            return notFound("Feature not found");
         }
         return ResponseEntity.ok(userStoryService.findByFeatureId(featureId));
     }
@@ -49,7 +49,7 @@ public class UserStoriesController {
                         && s.getFeature().getCapability().getId().equals(capabilityId)
                         && s.getFeature().getCapability().getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found")));
+                .orElse(notFound("User story not found"));
     }
 
     @PostMapping
@@ -59,12 +59,12 @@ public class UserStoriesController {
                                     @Valid @RequestBody CreateUserStoryRequest request) {
         Feature feature = findFeature(projectId, capabilityId, featureId);
         if (feature == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Feature not found"));
+            return notFound("Feature not found");
         }
 
         User createdBy = userService.findById(request.createdById()).orElse(null);
         if (createdBy == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "createdBy user not found"));
+            return notFound("createdBy user not found");
         }
 
         UserStory story = new UserStory();
@@ -80,7 +80,7 @@ public class UserStoriesController {
         if (request.ownerId() != null) {
             User owner = userService.findById(request.ownerId()).orElse(null);
             if (owner == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "owner user not found"));
+                return notFound("owner user not found");
             }
             story.setOwner(owner);
         }
@@ -99,7 +99,7 @@ public class UserStoriesController {
                         && s.getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (story == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found"));
+            return notFound("User story not found");
         }
 
         if (request.title() != null) story.setTitle(request.title());
@@ -111,14 +111,14 @@ public class UserStoriesController {
         if (request.ownerId() != null) {
             User owner = userService.findById(request.ownerId()).orElse(null);
             if (owner == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "owner user not found"));
+                return notFound("owner user not found");
             }
             story.setOwner(owner);
         }
         if (request.updatedById() != null) {
             User updatedBy = userService.findById(request.updatedById()).orElse(null);
             if (updatedBy == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
+                return notFound("updatedBy user not found");
             }
             story.setUpdatedBy(updatedBy);
             story.setUpdatedAt(LocalDateTime.now());
@@ -137,7 +137,7 @@ public class UserStoriesController {
                         && s.getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (story == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found"));
+            return notFound("User story not found");
         }
         userStoryService.deleteById(storyId);
         return ResponseEntity.noContent().build();

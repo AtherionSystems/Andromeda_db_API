@@ -6,6 +6,7 @@ import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -51,7 +52,7 @@ public class StorySpilloversController {
         return spilloverService.findById(spilloverId)
                 .filter(s -> s.getOriginSprint().getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Story spillover not found")));
+                .orElse(notFound("Story spillover not found"));
     }
 
     @PostMapping
@@ -64,11 +65,11 @@ public class StorySpilloversController {
         User createdBy = userService.findById(request.createdById()).orElse(null);
 
         if (sprintStory == null || userStory == null || origin == null || destination == null || createdBy == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Related entity not found"));
+            return notFound("Related entity not found");
         }
         if (!origin.getProject().getId().equals(projectId) || !destination.getProject().getId().equals(projectId)
                 || !userStory.getFeature().getCapability().getProject().getId().equals(projectId)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("error", "Entity does not belong to project"));
+            return badRequest("Entity does not belong to project");
         }
 
         StorySpillover spillover = new StorySpillover();
@@ -90,7 +91,7 @@ public class StorySpilloversController {
                 .filter(s -> s.getOriginSprint().getProject().getId().equals(projectId))
                 .orElse(null);
         if (spillover == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Story spillover not found"));
+            return notFound("Story spillover not found");
         }
 
         if (request.reason() != null) spillover.setReason(request.reason());
@@ -98,7 +99,7 @@ public class StorySpilloversController {
         if (request.updatedById() != null) {
             User updatedBy = userService.findById(request.updatedById()).orElse(null);
             if (updatedBy == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
+                return notFound("updatedBy user not found");
             }
             spillover.setUpdatedBy(updatedBy);
             spillover.setUpdatedAt(LocalDateTime.now());
@@ -112,7 +113,7 @@ public class StorySpilloversController {
                 .filter(s -> s.getOriginSprint().getProject().getId().equals(projectId))
                 .orElse(null);
         if (spillover == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Story spillover not found"));
+            return notFound("Story spillover not found");
         }
         spilloverService.deleteById(spilloverId);
         return ResponseEntity.noContent().build();

@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
-import static com.atherion.andromeda.util.ControllerUtils.defaulted;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/technical-debt")
@@ -32,7 +32,7 @@ public class TechnicalDebtController {
                                           @RequestParam(required = false) String status,
                                           @RequestParam(required = false) Long assignedToId) {
         if (projectService.findById(projectId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
         List<TechnicalDebt> debts;
         if (status != null && !status.isBlank()) {
@@ -54,7 +54,7 @@ public class TechnicalDebtController {
         return technicalDebtService.findById(debtId)
                 .filter(d -> d.getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Technical debt not found")));
+                .orElse(notFound("Technical debt not found"));
     }
 
     @PostMapping
@@ -62,13 +62,13 @@ public class TechnicalDebtController {
                                     @Valid @RequestBody CreateTechnicalDebtRequest request) {
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
 
         User assignedTo = userService.findById(request.assignedToId()).orElse(null);
         User createdBy = userService.findById(request.createdById()).orElse(null);
         if (assignedTo == null || createdBy == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Assigned or createdBy user not found"));
+            return notFound("Assigned or createdBy user not found");
         }
 
         TechnicalDebt debt = new TechnicalDebt();
@@ -84,14 +84,14 @@ public class TechnicalDebtController {
         if (request.userStoryId() != null) {
             UserStory story = userStoryService.findById(request.userStoryId()).orElse(null);
             if (story == null || !story.getFeature().getCapability().getProject().getId().equals(projectId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found in project"));
+                return notFound("User story not found in project");
             }
             debt.setUserStory(story);
         }
         if (request.taskId() != null) {
             Tasks task = tasksService.findById(request.taskId()).orElse(null);
             if (task == null || !task.getProject().getId().equals(projectId)) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Task not found in project"));
+                return notFound("Task not found in project");
             }
             debt.setTask(task);
         }
@@ -106,7 +106,7 @@ public class TechnicalDebtController {
                 .filter(d -> d.getProject().getId().equals(projectId))
                 .orElse(null);
         if (debt == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Technical debt not found"));
+            return notFound("Technical debt not found");
         }
 
         if (request.title() != null) debt.setTitle(request.title());
@@ -120,14 +120,14 @@ public class TechnicalDebtController {
         if (request.assignedToId() != null) {
             User assignedTo = userService.findById(request.assignedToId()).orElse(null);
             if (assignedTo == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Assigned user not found"));
+                return notFound("Assigned user not found");
             }
             debt.setAssignedTo(assignedTo);
         }
         if (request.updatedById() != null) {
             User updatedBy = userService.findById(request.updatedById()).orElse(null);
             if (updatedBy == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
+                return notFound("updatedBy user not found");
             }
             debt.setUpdatedBy(updatedBy);
             debt.setUpdatedAt(LocalDateTime.now());
@@ -141,7 +141,7 @@ public class TechnicalDebtController {
                 .filter(d -> d.getProject().getId().equals(projectId))
                 .orElse(null);
         if (debt == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Technical debt not found"));
+            return notFound("Technical debt not found");
         }
         technicalDebtService.deleteById(debtId);
         return ResponseEntity.noContent().build();

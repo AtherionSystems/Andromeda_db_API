@@ -1,7 +1,6 @@
 package com.atherion.andromeda.services;
 
 import com.atherion.andromeda.dto.dashboard.*;
-import com.atherion.andromeda.projections.CompletionRateProjection;
 import com.atherion.andromeda.projections.TaskDistributionProjection;
 import com.atherion.andromeda.repositories.SprintStoryAssignmentRepository;
 import com.atherion.andromeda.repositories.TasksRepository;
@@ -20,22 +19,43 @@ public class KpiService {
     private final TasksRepository                 tasksRepository;
 
     @Async
-    public CompletableFuture<List<CompletionRateKPI>> getCompletionRate(Long projectId) {
+    public CompletableFuture<List<BurndownKPI>> getBurndown(Long projectId) {
         return CompletableFuture.completedFuture(
-                sprintStoryRepo.getCompletionRateByProject(projectId).stream()
+                sprintStoryRepo.getBurndownByProject(projectId).stream()
                         .map(p -> {
-                            long total     = p.getTotalStories()     != null ? p.getTotalStories()     : 0L;
-                            long completed = p.getCompletedStories() != null ? p.getCompletedStories() : 0L;
-                            double rate    = total > 0
-                                    ? Math.round(completed * 100.0 / total * 100.0) / 100.0
-                                    : 0.0;
-                            return CompletionRateKPI.builder()
+                            long totalStories    = p.getTotalStories()    != null ? p.getTotalStories()    : 0L;
+                            long completedStories = p.getCompletedStories() != null ? p.getCompletedStories() : 0L;
+                            long totalTasks      = p.getTotalTasks()      != null ? p.getTotalTasks()      : 0L;
+                            long completedTasks  = p.getCompletedTasks()  != null ? p.getCompletedTasks()  : 0L;
+                            long totalPoints     = p.getTotalPoints()     != null ? p.getTotalPoints()     : 0L;
+                            long completedPoints = p.getCompletedPoints() != null ? p.getCompletedPoints() : 0L;
+                            return BurndownKPI.builder()
                                     .sprintName(p.getSprintName())
-                                    .totalStories(total)
-                                    .completedStories(completed)
-                                    .completionRate(rate)
+                                    .totalStories(totalStories)
+                                    .completedStories(completedStories)
+                                    .remainingStories(totalStories - completedStories)
+                                    .totalTasks(totalTasks)
+                                    .completedTasks(completedTasks)
+                                    .remainingTasks(totalTasks - completedTasks)
+                                    .totalPoints(totalPoints)
+                                    .completedPoints(completedPoints)
+                                    .remainingPoints(totalPoints - completedPoints)
                                     .build();
                         })
+                        .toList()
+        );
+    }
+
+    @Async
+    public CompletableFuture<List<HoursPerUserKPI>> getHoursPerUser(Long projectId) {
+        return CompletableFuture.completedFuture(
+                sprintStoryRepo.getHoursPerUserByProject(projectId).stream()
+                        .map(p -> HoursPerUserKPI.builder()
+                                .sprintName(p.getSprintName())
+                                .userName(p.getUserName())
+                                .actualHours(p.getActualHours())
+                                .estimatedHours(p.getEstimatedHours())
+                                .build())
                         .toList()
         );
     }

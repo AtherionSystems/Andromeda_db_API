@@ -1,8 +1,25 @@
 package com.atherion.andromeda.util;
 
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+
+import java.util.Map;
+
 public final class ControllerUtils {
 
     private ControllerUtils() {}
+
+    public static ResponseEntity<Map<String, String>> notFound(String message) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", message));
+    }
+
+    public static ResponseEntity<Map<String, String>> badRequest(String message) {
+        return ResponseEntity.badRequest().body(Map.of("error", message));
+    }
+
+    public static ResponseEntity<Map<String, String>> conflict(String message) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
+    }
 
     public static Long asLong(Object value) {
         if (value == null) return null;

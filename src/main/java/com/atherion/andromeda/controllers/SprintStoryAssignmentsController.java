@@ -10,6 +10,7 @@ import com.atherion.andromeda.services.SprintStoryAssignmentService;
 import com.atherion.andromeda.services.UserStoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class SprintStoryAssignmentsController {
                                                        @PathVariable Long sprintId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         return ResponseEntity.ok(sprintStoryAssignmentService.findBySprintId(sprintId));
     }
@@ -42,14 +43,13 @@ public class SprintStoryAssignmentsController {
                                                           @PathVariable Long sprintStoryAssignmentId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         return sprintStoryAssignmentService.findById(sprintStoryAssignmentId)
                 .filter(assignment -> assignment.getSprint().getId().equals(sprintId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Sprint story assignment not found")));
+                .orElse(notFound("Sprint story assignment not found"));
     }
 
     @PostMapping
@@ -58,17 +58,16 @@ public class SprintStoryAssignmentsController {
                                                          @Valid @RequestBody CreateSprintStoryAssignmentRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         UserStory userStory = findUserStoryInProject(projectId, request.userStoryId());
         if (userStory == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found"));
+            return notFound("User story not found");
         }
 
         if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, request.userStoryId())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "User story is already active in this sprint"));
+            return conflict("User story is already active in this sprint");
         }
 
         SprintStoryAssignment assignment = new SprintStoryAssignment();
@@ -87,7 +86,7 @@ public class SprintStoryAssignmentsController {
                                                          @RequestBody UpdateSprintStoryAssignmentRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         SprintStoryAssignment assignment = sprintStoryAssignmentService.findById(sprintStoryAssignmentId)
@@ -95,8 +94,7 @@ public class SprintStoryAssignmentsController {
                 .orElse(null);
 
         if (assignment == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint story assignment not found"));
+            return notFound("Sprint story assignment not found");
         }
 
         if (request.removedAt() != null) {
@@ -104,15 +102,14 @@ public class SprintStoryAssignmentsController {
                 assignment.setRemovedAt(LocalDateTime.parse(request.removedAt()));
                 assignment.setIsActive(0);
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body(Map.of("error", "removedAt must be ISO-8601 LocalDateTime"));
+                return badRequest("removedAt must be ISO-8601 LocalDateTime");
             }
         }
 
         if (request.movedToId() != null) {
             Sprint movedTo = findSprintInProject(projectId, request.movedToId());
             if (movedTo == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Target sprint not found"));
+                return notFound("Target sprint not found");
             }
             assignment.setMovedTo(movedTo);
         }
@@ -126,7 +123,7 @@ public class SprintStoryAssignmentsController {
                                                          @PathVariable Long sprintStoryAssignmentId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         SprintStoryAssignment assignment = sprintStoryAssignmentService.findById(sprintStoryAssignmentId)
@@ -134,8 +131,7 @@ public class SprintStoryAssignmentsController {
                 .orElse(null);
 
         if (assignment == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint story assignment not found"));
+            return notFound("Sprint story assignment not found");
         }
 
         sprintStoryAssignmentService.deleteById(sprintStoryAssignmentId);

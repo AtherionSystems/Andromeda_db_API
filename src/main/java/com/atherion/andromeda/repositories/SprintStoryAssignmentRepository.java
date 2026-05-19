@@ -1,7 +1,8 @@
 package com.atherion.andromeda.repositories;
 
 import com.atherion.andromeda.model.SprintStoryAssignment;
-import com.atherion.andromeda.projections.CompletionRateProjection;
+import com.atherion.andromeda.projections.BurndownProjection;
+import com.atherion.andromeda.projections.HoursPerUserProjection;
 import com.atherion.andromeda.projections.TeamVelocityProjection;
 import com.atherion.andromeda.projections.UserTasksPerSprintProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -24,7 +25,17 @@ public interface SprintStoryAssignmentRepository extends JpaRepository<SprintSto
     @Query(value = """
     SELECT s.name AS sprintName,
            COUNT(ssa.id) AS totalStories,
-           SUM(CASE WHEN us.status = 'done' THEN 1 ELSE 0 END) AS completedStories
+           SUM(CASE WHEN us.status = 'done' THEN 1 ELSE 0 END) AS completedStories,
+           COALESCE(SUM(us.story_points), 0) AS totalPoints,
+           COALESCE(SUM(CASE WHEN us.status = 'done' THEN us.story_points ELSE 0 END), 0) AS completedPoints,
+           (SELECT COUNT(t.id) FROM tasks t
+            WHERE t.user_story_id IN (
+                SELECT ssa2.user_story_id FROM sprint_stories_assignments ssa2 WHERE ssa2.sprint_id = s.id
+            )) AS totalTasks,
+           (SELECT COUNT(t.id) FROM tasks t
+            WHERE t.user_story_id IN (
+                SELECT ssa2.user_story_id FROM sprint_stories_assignments ssa2 WHERE ssa2.sprint_id = s.id
+            ) AND t.status = 'done') AS completedTasks
     FROM sprint_stories_assignments ssa
     JOIN sprints s       ON ssa.sprint_id     = s.id
     JOIN user_stories us ON ssa.user_story_id = us.id
@@ -32,7 +43,24 @@ public interface SprintStoryAssignmentRepository extends JpaRepository<SprintSto
     GROUP BY s.id, s.name, s.start_date
     ORDER BY s.start_date
     """, nativeQuery = true)
-    List<CompletionRateProjection> getCompletionRateByProject(@Param("projectId") Long projectId);
+    List<BurndownProjection> getBurndownByProject(@Param("projectId") Long projectId);
+
+    @Query(value = """
+    SELECT s.name AS sprintName,
+           u.name AS userName,
+           COALESCE(SUM(t.actual_hours), 0) AS actualHours,
+           COALESCE(SUM(t.estimated_hours), 0) AS estimatedHours
+    FROM sprint_stories_assignments ssa
+    JOIN sprints s       ON ssa.sprint_id      = s.id
+    JOIN user_stories us ON ssa.user_story_id  = us.id
+    JOIN tasks t         ON t.user_story_id    = us.id
+    JOIN task_assignments ta ON ta.task_id     = t.id
+    JOIN users u         ON ta.user_id         = u.id
+    WHERE s.project_id = :projectId
+    GROUP BY s.id, s.name, u.id, u.name, s.start_date
+    ORDER BY s.start_date, u.name
+    """, nativeQuery = true)
+    List<HoursPerUserProjection> getHoursPerUserByProject(@Param("projectId") Long projectId);
 
     @Query(value = """
     SELECT s.name AS sprintName,

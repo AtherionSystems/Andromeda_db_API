@@ -8,6 +8,7 @@ import com.atherion.andromeda.services.LogService;
 import com.atherion.andromeda.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,8 +53,7 @@ public class LogController {
         if (request.userId() != null) {
             user = userService.findById(request.userId()).orElse(null);
             if (user == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "User not found"));
+                return notFound("User not found");
             }
         }
 

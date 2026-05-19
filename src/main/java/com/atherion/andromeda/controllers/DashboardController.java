@@ -3,6 +3,7 @@ package com.atherion.andromeda.controllers;
 import com.atherion.andromeda.dto.dashboard.*;
 import com.atherion.andromeda.services.KpiService;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,23 +22,25 @@ public class DashboardController {
     public ResponseEntity<DashboardResponse> getDashboard(
             @RequestParam Long projectId) throws Exception {
 
-        CompletableFuture<List<CompletionRateKPI>>     completionFuture = kpiService.getCompletionRate(projectId);
+        CompletableFuture<List<BurndownKPI>>           burndownFuture   = kpiService.getBurndown(projectId);
         CompletableFuture<List<TeamVelocityKPI>>       velocityFuture   = kpiService.getTeamVelocity(projectId);
         CompletableFuture<List<TaskDistributionKPI>>   distFuture       = kpiService.getTaskDistribution(projectId);
         CompletableFuture<List<UserTasksPerSprintKPI>> userFuture       = kpiService.getUserTasksPerSprint(projectId);
+        CompletableFuture<List<HoursPerUserKPI>>       hoursFuture      = kpiService.getHoursPerUser(projectId);
 
         CompletableFuture.allOf(
-                completionFuture, velocityFuture, distFuture, userFuture
+                burndownFuture, velocityFuture, distFuture, userFuture, hoursFuture
         ).join();
 
         return ResponseEntity.ok(
                 DashboardResponse.builder()
                         .projectId(projectId)
                         .generatedAt(LocalDateTime.now())
-                        .completionRateBySprint(completionFuture.get())
+                        .burndownBySprint(burndownFuture.get())
                         .teamVelocity(velocityFuture.get())
                         .taskDistribution(distFuture.get())
                         .userTasksPerSprint(userFuture.get())
+                        .hoursPerUserBySprint(hoursFuture.get())
                         .build()
         );
     }
