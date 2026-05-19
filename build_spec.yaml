@@ -21,7 +21,7 @@ steps:
     name: "Push to OCIR"
     command: |
       docker login ${OCIR_SERVER} \
-        --username "${TENANCY_NAMESPACE}/oracleidentitycloudservice/${OCI_BUILD_RUNNER_USER}" \
+        --username "axieboiigznv/a01571222@tec.mx" \
         --password "${AUTH_TOKEN}"
       docker push ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
 
