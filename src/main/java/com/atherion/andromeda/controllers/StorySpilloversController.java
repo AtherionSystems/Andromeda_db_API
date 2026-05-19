@@ -1,7 +1,10 @@
 package com.atherion.andromeda.controllers;
 
+import com.atherion.andromeda.dto.CreateStorySpilloverRequest;
+import com.atherion.andromeda.dto.UpdateStorySpilloverRequest;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -52,23 +55,13 @@ public class StorySpilloversController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@PathVariable Long projectId, @RequestBody Map<String, Object> payload) {
-        Long sprintStoryId = asLong(payload.get("sprintStoryId"));
-        Long userStoryId = asLong(payload.get("userStoryId"));
-        Long originSprintId = asLong(payload.get("originSprintId"));
-        Long destinationSprintId = asLong(payload.get("destinationSprintId"));
-        Long createdById = asLong(payload.get("createdById"));
-        String reason = asString(payload.get("reason"));
-
-        if (sprintStoryId == null || userStoryId == null || originSprintId == null || destinationSprintId == null || createdById == null || reason == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "sprintStoryId, userStoryId, originSprintId, destinationSprintId, createdById and reason are required"));
-        }
-
-        SprintStoryAssignment sprintStory = sprintStoryAssignmentService.findById(sprintStoryId).orElse(null);
-        UserStory userStory = userStoryService.findById(userStoryId).orElse(null);
-        Sprint origin = sprintService.findById(originSprintId).orElse(null);
-        Sprint destination = sprintService.findById(destinationSprintId).orElse(null);
-        User createdBy = userService.findById(createdById).orElse(null);
+    public ResponseEntity<?> create(@PathVariable Long projectId,
+                                    @Valid @RequestBody CreateStorySpilloverRequest request) {
+        SprintStoryAssignment sprintStory = sprintStoryAssignmentService.findById(request.sprintStoryId()).orElse(null);
+        UserStory userStory = userStoryService.findById(request.userStoryId()).orElse(null);
+        Sprint origin = sprintService.findById(request.originSprintId()).orElse(null);
+        Sprint destination = sprintService.findById(request.destinationSprintId()).orElse(null);
+        User createdBy = userService.findById(request.createdById()).orElse(null);
 
         if (sprintStory == null || userStory == null || origin == null || destination == null || createdBy == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Related entity not found"));
@@ -83,8 +76,8 @@ public class StorySpilloversController {
         spillover.setUserStory(userStory);
         spillover.setOriginSprint(origin);
         spillover.setDestinationSprint(destination);
-        spillover.setReason(reason);
-        spillover.setDetail(asString(payload.get("detail")));
+        spillover.setReason(request.reason());
+        spillover.setDetail(request.detail());
         spillover.setCreatedBy(createdBy);
         return ResponseEntity.status(HttpStatus.CREATED).body(spilloverService.save(spillover));
     }
@@ -92,7 +85,7 @@ public class StorySpilloversController {
     @PatchMapping("/{spilloverId}")
     public ResponseEntity<?> patch(@PathVariable Long projectId,
                                    @PathVariable Long spilloverId,
-                                   @RequestBody Map<String, Object> payload) {
+                                   @RequestBody UpdateStorySpilloverRequest request) {
         StorySpillover spillover = spilloverService.findById(spilloverId)
                 .filter(s -> s.getOriginSprint().getProject().getId().equals(projectId))
                 .orElse(null);
@@ -100,17 +93,14 @@ public class StorySpilloversController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Story spillover not found"));
         }
 
-        if (payload.containsKey("reason")) spillover.setReason(asString(payload.get("reason")));
-        if (payload.containsKey("detail")) spillover.setDetail(asString(payload.get("detail")));
-        if (payload.containsKey("updatedById")) {
-            Long updatedById = asLong(payload.get("updatedById"));
-            if (updatedById != null) {
-                User updatedBy = userService.findById(updatedById).orElse(null);
-                if (updatedBy == null) {
-                    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
-                }
-                spillover.setUpdatedBy(updatedBy);
+        if (request.reason() != null) spillover.setReason(request.reason());
+        if (request.detail() != null) spillover.setDetail(request.detail());
+        if (request.updatedById() != null) {
+            User updatedBy = userService.findById(request.updatedById()).orElse(null);
+            if (updatedBy == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "updatedBy user not found"));
             }
+            spillover.setUpdatedBy(updatedBy);
             spillover.setUpdatedAt(LocalDateTime.now());
         }
         return ResponseEntity.ok(spilloverService.save(spillover));
@@ -126,19 +116,5 @@ public class StorySpilloversController {
         }
         spilloverService.deleteById(spilloverId);
         return ResponseEntity.noContent().build();
-    }
-
-    private Long asLong(Object value) {
-        if (value == null) return null;
-        if (value instanceof Number number) return number.longValue();
-        try {
-            return Long.parseLong(value.toString());
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private String asString(Object value) {
-        return value == null ? null : value.toString();
     }
 }

@@ -1,29 +1,22 @@
 package com.atherion.andromeda.controllers;
 
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity; // Asumo que existe para validar al usuario
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import com.atherion.andromeda.dto.AssignUserToTaskRequest;
 import com.atherion.andromeda.model.TaskAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.model.User;
 import com.atherion.andromeda.services.TaskAssignmentService;
 import com.atherion.andromeda.services.TasksService;
 import com.atherion.andromeda.services.UserService;
-
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/tasks/{taskId}/assignments")
@@ -34,25 +27,16 @@ public class TaskAssignmentsController {
     private final TasksService tasksService;
     private final UserService userService;
 
-    // GET /api/projects/{projectId}/tasks/{taskId}/assignments
     @GetMapping
     public ResponseEntity<List<TaskAssignment>> getAssignmentsByTask(@PathVariable Long taskId) {
         return ResponseEntity.ok(taskAssignmentService.findByTaskId(taskId));
     }
 
-    // POST /api/projects/{projectId}/tasks/{taskId}/assignments
     @PostMapping
-    public ResponseEntity<?> assignUserToTask(
-            @PathVariable Long taskId,
-            @RequestBody Map<String, Long> payload) {
-
-        Long userId = payload.get("userId");
-        if (userId == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "userId is required"));
-        }
-
+    public ResponseEntity<?> assignUserToTask(@PathVariable Long taskId,
+                                              @Valid @RequestBody AssignUserToTaskRequest request) {
         Tasks task = tasksService.findById(taskId).orElse(null);
-        User user = userService.findById(userId).orElse(null);
+        User user = userService.findById(request.userId()).orElse(null);
 
         if (task == null || user == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -67,7 +51,6 @@ public class TaskAssignmentsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskAssignmentService.save(assignment));
     }
 
-    // DELETE /api/projects/{projectId}/tasks/{taskId}/assignments/{userId}
     @DeleteMapping("/{userId}")
     public ResponseEntity<?> removeAssignment(@PathVariable Long taskId, @PathVariable Long userId) {
         Optional<TaskAssignment> assignment = taskAssignmentService.findByTaskIdAndUserId(taskId, userId);

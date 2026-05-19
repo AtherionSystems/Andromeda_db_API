@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @RestController
 @RequestMapping({"/api/projects", "/projects"})
@@ -21,7 +22,6 @@ public class ProjectController {
 
     private final ProjectService projectService;
 
-    // GET /api/projects
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAll() {
         List<ProjectResponse> projects = projectService.findAll().stream()
@@ -30,7 +30,6 @@ public class ProjectController {
         return ResponseEntity.ok(projects);
     }
 
-    // GET /api/projects/{id}
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         return projectService.findById(id)
@@ -39,51 +38,32 @@ public class ProjectController {
                         .body(Map.of("error", "Project not found")));
     }
 
-    // POST /api/projects
     @PostMapping
     public ResponseEntity<ProjectResponse> create(@Valid @RequestBody CreateProjectRequest request) {
         Project project = new Project();
         project.setName(request.name());
         project.setDescription(request.description());
-        project.setStatus(request.status() == null ? "active" : request.status());
+        project.setStatus(Optional.ofNullable(request.status()).orElse("active"));
         project.setStartDate(request.startDate());
         project.setEndDate(request.endDate());
 
-        Project saved = projectService.save(project);
-        return ResponseEntity.status(HttpStatus.CREATED).body(ProjectResponse.from(saved));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ProjectResponse.from(projectService.save(project)));
     }
 
-    // PATCH /api/projects/{id}
     @PatchMapping("/{id}")
     public ResponseEntity<?> patch(@PathVariable Long id,
                                    @Valid @RequestBody UpdateProjectRequest request) {
-        Project project = projectService.findById(id).orElse(null);
-        if (project == null) {
+        Optional<Project> projectOpt = projectService.findById(id);
+        if (projectOpt.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "Project not found"));
         }
 
-        if (request.name() != null) {
-            project.setName(request.name());
-        }
-        if (request.description() != null) {
-            project.setDescription(request.description());
-        }
-        if (request.status() != null) {
-            project.setStatus(request.status());
-        }
-        if (request.startDate() != null) {
-            project.setStartDate(request.startDate());
-        }
-        if (request.endDate() != null) {
-            project.setEndDate(request.endDate());
-        }
-        project.setUpdatedAt(LocalDateTime.now());
-
+        Project project = projectOpt.get();
+        applyPatch(project, request);
         return ResponseEntity.ok(ProjectResponse.from(projectService.save(project)));
     }
 
-    // DELETE api/projects/{id}
     @DeleteMapping("/{id}")
     public ResponseEntity<?> delete(@PathVariable Long id) {
         if (projectService.findById(id).isEmpty()) {
@@ -92,5 +72,14 @@ public class ProjectController {
         }
         projectService.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private void applyPatch(Project project, UpdateProjectRequest request) {
+        Optional.ofNullable(request.name()).ifPresent(project::setName);
+        Optional.ofNullable(request.description()).ifPresent(project::setDescription);
+        Optional.ofNullable(request.status()).ifPresent(project::setStatus);
+        Optional.ofNullable(request.startDate()).ifPresent(project::setStartDate);
+        Optional.ofNullable(request.endDate()).ifPresent(project::setEndDate);
+        project.setUpdatedAt(LocalDateTime.now());
     }
 }
