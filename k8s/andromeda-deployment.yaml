@@ -15,9 +15,11 @@ spec:
       labels:
         app: andromeda
     spec:
+      imagePullSecrets:
+        - name: ocir-secret
       containers:
         - name: andromeda
-          image: mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:0.1
+          image: mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:latest
           ports:
             - containerPort: 8080
           env:
