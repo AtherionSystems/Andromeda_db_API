@@ -19,7 +19,8 @@ public class CorsConfig {
                             "http://localhost:3000",
                             "http://159.54.154.149",
                             "http://140.84.181.23/",
-                            "http://163.192.143.43/"
+                            "http://163.192.143.43/",
+                            "http://160.34.209.27/"
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
                         .allowedHeaders("*")
