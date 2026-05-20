@@ -1,6 +1,6 @@
 package com.atherion.andromeda;
 
-import com.atherion.andromeda.controllers.SprintStoryAssignments;
+import com.atherion.andromeda.controllers.SprintStoryAssignmentsController;
 import com.atherion.andromeda.model.Capability;
 import com.atherion.andromeda.model.Feature;
 import com.atherion.andromeda.model.Project;
@@ -39,13 +39,15 @@ class SprintStoryAssignmentsControllerTest {
     @Mock private SprintStoryAssignmentService sprintStoryAssignmentService;
     @Mock private SprintService sprintService;
     @Mock private UserStoryService userStoryService;
-    @InjectMocks private SprintStoryAssignments controller;
+    @InjectMocks private SprintStoryAssignmentsController controller;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     private Project buildProject(Long id) {
@@ -110,11 +112,14 @@ class SprintStoryAssignmentsControllerTest {
 
     @Test
     void createSprintStoryAssignment_missingUserStoryId_returns400() throws Exception {
+        Project project = buildProject(1L);
+        Sprint sprint = buildSprint(2L, project);
+
         mockMvc.perform(post("/api/projects/1/sprints/2/user_stories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("userStoryId is required"));
+                .andExpect(jsonPath("$.detail").value("userStoryId is required"));
     }
 
     @Test

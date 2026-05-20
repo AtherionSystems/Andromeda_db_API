@@ -3,5 +3,5 @@ package com.atherion.andromeda.dto;
 import jakarta.validation.constraints.NotNull;
 
 public record CreateSprintStoryAssignmentRequest(
-        @NotNull Long userStoryId
+        @NotNull(message = "is required") Long userStoryId
 ) {}
