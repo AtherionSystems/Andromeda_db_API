@@ -35,7 +35,9 @@ class SprintRetrospectivesControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     @Test
@@ -49,19 +51,10 @@ class SprintRetrospectivesControllerTest {
 
     @Test
     void create_missingCreatedById_returns400() throws Exception {
-        Project project = new Project();
-        project.setId(1L);
-        Sprint sprint = new Sprint();
-        sprint.setId(2L);
-        sprint.setProject(project);
-
-        when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
-        when(sprintRetrospectiveService.findBySprintId(2L)).thenReturn(Optional.empty());
-
         mockMvc.perform(post("/api/projects/1/sprints/2/retrospective")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"summary\":\"ok\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("createdById is required"));
+                .andExpect(jsonPath("$.detail").value("createdById is required"));
     }
 }

@@ -37,7 +37,9 @@ class UserStoriesControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     @Test
@@ -51,21 +53,10 @@ class UserStoriesControllerTest {
 
     @Test
     void create_missingCreatedById_returns400() throws Exception {
-        Project project = new Project();
-        project.setId(1L);
-        Capability capability = new Capability();
-        capability.setId(2L);
-        capability.setProject(project);
-        Feature feature = new Feature();
-        feature.setId(3L);
-        feature.setCapability(capability);
-
-        when(featureService.findById(3L)).thenReturn(Optional.of(feature));
-
         mockMvc.perform(post("/api/projects/1/capabilities/2/features/3/stories")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"US-1\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("createdById is required"));
+                .andExpect(jsonPath("$.detail").value("createdById is required"));
     }
 }

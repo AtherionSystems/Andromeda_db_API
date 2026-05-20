@@ -6,8 +6,8 @@ import jakarta.validation.constraints.NotNull;
 public record CreateTechnicalDebtRequest(
         @NotBlank String title,
         @NotBlank String debtType,
-        @NotNull Long assignedToId,
-        @NotNull Long createdById,
+        @NotNull(message = "is required") Long assignedToId,
+        @NotNull(message = "is required") Long createdById,
         String description,
         String priority,
         String status,

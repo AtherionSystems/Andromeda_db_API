@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 
 public record CreateUserStoryRequest(
         @NotBlank String title,
-        @NotNull Long createdById,
+        @NotNull(message = "is required") Long createdById,
         String description,
         String acceptanceCriteria,
         String priority,
