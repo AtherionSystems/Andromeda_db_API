@@ -9,6 +9,7 @@ import com.atherion.andromeda.services.UserService;
 import com.atherion.andromeda.services.UserTypeService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -28,12 +29,10 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
         if (userService.usernameExists(req.username())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Username already taken"));
+            return conflict("Username already taken");
         }
         if (userService.emailExists(req.email())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Email already registered"));
+            return conflict("Email already registered");
         }
 
         UserType userType = userTypeService.findById(req.userTypeId())

@@ -3,6 +3,7 @@ package com.atherion.andromeda.controllers;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,7 +32,7 @@ public class ProjectWorkItemsController {
     public ResponseEntity<?> getProjectWorkItems(@PathVariable Long projectId) {
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
 
         List<Capability> capabilities = capabilityService.findByProjectId(projectId);

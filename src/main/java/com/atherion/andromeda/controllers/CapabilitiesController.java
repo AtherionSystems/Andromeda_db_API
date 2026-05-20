@@ -5,6 +5,7 @@ import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.services.CapabilityService;
 import com.atherion.andromeda.services.ProjectService;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class CapabilitiesController {
     @GetMapping
     public ResponseEntity<?> getByProject(@PathVariable Long projectId) {
         if (projectService.findById(projectId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
         return ResponseEntity.ok(capabilityService.findByProjectId(projectId));
     }
@@ -33,17 +34,17 @@ public class CapabilitiesController {
         return capabilityService.findById(capabilityId)
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Capability not found")));
+                .orElse(notFound("Capability not found"));
     }
 
     @PostMapping
     public ResponseEntity<?> create(@PathVariable Long projectId, @RequestBody Capability capability) {
         if (capability.getName() == null || capability.getName().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+            return badRequest("name is required");
         }
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
         capability.setProject(project);
         if (capability.getStatus() == null) {
@@ -60,7 +61,7 @@ public class CapabilitiesController {
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .orElse(null);
         if (capability == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Capability not found"));
+            return notFound("Capability not found");
         }
         if (changes.getName() != null) capability.setName(changes.getName());
         if (changes.getDescription() != null) capability.setDescription(changes.getDescription());
@@ -75,7 +76,7 @@ public class CapabilitiesController {
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .orElse(null);
         if (capability == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Capability not found"));
+            return notFound("Capability not found");
         }
         capabilityService.deleteById(capabilityId);
         return ResponseEntity.noContent().build();

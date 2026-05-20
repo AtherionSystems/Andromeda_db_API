@@ -43,7 +43,9 @@ class SprintTasksControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     private Project buildProject(Long id) {
@@ -102,7 +104,7 @@ class SprintTasksControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("taskId is required"));
+                .andExpect(jsonPath("$.detail").value("taskId is required"));
     }
 
     @Test

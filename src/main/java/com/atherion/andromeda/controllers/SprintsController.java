@@ -5,6 +5,7 @@ import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.SprintService;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,8 +25,7 @@ public class SprintsController {
     @GetMapping
     public ResponseEntity<?> getSprintsByProject(@PathVariable Long projectId) {
         if (projectService.findById(projectId).isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
         return ResponseEntity.ok(sprintService.findByProjectId(projectId));
     }
@@ -36,21 +36,19 @@ public class SprintsController {
         return sprintService.findById(sprintId)
                 .filter(sprint -> sprint.getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Sprint not found")));
+                .orElse(notFound("Sprint not found"));
     }
 
     // POST /api/projects/{projectId}/sprints
     @PostMapping
     public ResponseEntity<?> createSprint(@PathVariable Long projectId, @RequestBody Sprint sprint) {
         if (sprint.getName() == null || sprint.getName().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+            return badRequest("name is required");
         }
 
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Project not found"));
+            return notFound("Project not found");
         }
 
         sprint.setProject(project);
@@ -72,8 +70,7 @@ public class SprintsController {
                 .orElse(null);
 
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         if (sprintDetails.getName() != null) sprint.setName(sprintDetails.getName());
@@ -95,8 +92,7 @@ public class SprintsController {
                 .orElse(null);
 
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         sprintService.deleteById(sprintId);
