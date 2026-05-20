@@ -11,6 +11,7 @@ import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -50,8 +51,7 @@ public class ProjectMembersController {
 	public ResponseEntity<?> getById(@PathVariable Long id) {
 		return projectMemberService.findById(id)
 				.<ResponseEntity<?>>map(member -> ResponseEntity.ok(ProjectMemberResponse.from(member)))
-				.orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("error", "Project member not found")));
+				.orElse(notFound("Project member not found"));
 	}
 
 	// POST /api/project-members
@@ -59,19 +59,16 @@ public class ProjectMembersController {
 	public ResponseEntity<?> create(@Valid @RequestBody CreateProjectMemberRequest req) {
 		Project project = projectService.findById(req.projectId()).orElse(null);
 		if (project == null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("error", "Project not found"));
+			return notFound("Project not found");
 		}
 
 		User user = userService.findById(req.userId()).orElse(null);
 		if (user == null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("error", "User not found"));
+			return notFound("User not found");
 		}
 
 		if (projectMemberService.existsByProjectIdAndUserId(project.getId(), user.getId())) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(Map.of("error", "User is already a member of this project"));
+			return conflict("User is already a member of this project");
 		}
 
 		ProjectMember member = new ProjectMember();
@@ -91,8 +88,7 @@ public class ProjectMembersController {
 									@Valid @RequestBody UpdateProjectMemberRequest req) {
 		ProjectMember member = projectMemberService.findById(id).orElse(null);
 		if (member == null) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("error", "Project member not found"));
+			return notFound("Project member not found");
 		}
 
 		Long currentProjectId = member.getProject().getId();
@@ -103,15 +99,13 @@ public class ProjectMembersController {
 		boolean changedRelation = !targetProjectId.equals(currentProjectId)
 				|| !targetUserId.equals(currentUserId);
 		if (changedRelation && projectMemberService.existsByProjectIdAndUserId(targetProjectId, targetUserId)) {
-			return ResponseEntity.status(HttpStatus.CONFLICT)
-					.body(Map.of("error", "User is already a member of this project"));
+			return conflict("User is already a member of this project");
 		}
 
 		if (req.projectId() != null) {
 			Project project = projectService.findById(req.projectId()).orElse(null);
 			if (project == null) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("error", "Project not found"));
+				return notFound("Project not found");
 			}
 			member.setProject(project);
 		}
@@ -119,8 +113,7 @@ public class ProjectMembersController {
 		if (req.userId() != null) {
 			User user = userService.findById(req.userId()).orElse(null);
 			if (user == null) {
-				return ResponseEntity.status(HttpStatus.NOT_FOUND)
-						.body(Map.of("error", "User not found"));
+				return notFound("User not found");
 			}
 			member.setUser(user);
 		}
@@ -136,8 +129,7 @@ public class ProjectMembersController {
 	@DeleteMapping("/{id}")
 	public ResponseEntity<?> delete(@PathVariable Long id) {
 		if (projectMemberService.findById(id).isEmpty()) {
-			return ResponseEntity.status(HttpStatus.NOT_FOUND)
-					.body(Map.of("error", "Project member not found"));
+			return notFound("Project member not found");
 		}
 		projectMemberService.deleteById(id);
 		return ResponseEntity.noContent().build();

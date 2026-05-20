@@ -4,6 +4,7 @@ import com.atherion.andromeda.dto.NotifyRequest;
 import com.atherion.andromeda.services.AiService;
 import com.atherion.andromeda.telegram.AndromedaBot;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

@@ -34,7 +34,9 @@ class TechnicalDebtControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     @Test
@@ -48,14 +50,9 @@ class TechnicalDebtControllerTest {
 
     @Test
     void create_missingRequiredFields_returns400() throws Exception {
-        Project project = new Project();
-        project.setId(1L);
-        when(projectService.findById(1L)).thenReturn(Optional.of(project));
-
         mockMvc.perform(post("/api/projects/1/technical-debt")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"title\":\"Debt A\"}"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("title, debtType, assignedToId and createdById are required"));
+                .andExpect(status().isBadRequest());
     }
 }

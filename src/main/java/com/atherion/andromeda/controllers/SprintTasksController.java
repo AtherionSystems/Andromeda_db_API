@@ -1,12 +1,16 @@
 package com.atherion.andromeda.controllers;
 
+import com.atherion.andromeda.dto.CreateSprintTaskRequest;
+import com.atherion.andromeda.dto.UpdateSprintTaskRequest;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.model.SprintStoryAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.services.SprintService;
 import com.atherion.andromeda.services.SprintStoryAssignmentService;
 import com.atherion.andromeda.services.TasksService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +34,7 @@ public class SprintTasksController {
     public ResponseEntity<?> getSprintTasks(@PathVariable Long projectId, @PathVariable Long sprintId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
         return ResponseEntity.ok(sprintStoryAssignmentService.findBySprintId(sprintId));
     }
@@ -42,46 +45,35 @@ public class SprintTasksController {
                                                @PathVariable Long sprintTaskId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         return sprintStoryAssignmentService.findById(sprintTaskId)
                 .filter(st -> st.getSprint().getId().equals(sprintId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Sprint task not found")));
+                .orElse(notFound("Sprint task not found"));
     }
 
     @PostMapping
     public ResponseEntity<?> createSprintTask(@PathVariable Long projectId,
                                               @PathVariable Long sprintId,
-                                              @RequestBody Map<String, Long> payload) {
-        Long taskId = payload.get("taskId");
-        if (taskId == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "taskId is required"));
-        }
-
+                                              @Valid @RequestBody CreateSprintTaskRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
-        Tasks task = tasksService.findById(taskId).orElse(null);
+        Tasks task = tasksService.findById(request.taskId()).orElse(null);
         if (task == null || !task.getProject().getId().equals(projectId)) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Task not found"));
+            return notFound("Task not found");
         }
 
         if (task.getUserStoryId() == null) {
-            return ResponseEntity.badRequest()
-                    .body(Map.of("error", "Task is not linked to a user story"));
+            return badRequest("Task is not linked to a user story");
         }
 
         if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, task.getUserStoryId())) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body(Map.of("error", "Task is already active in this sprint"));
+            return conflict("Task is already active in this sprint");
         }
 
         SprintStoryAssignment sprintTask = new SprintStoryAssignment();
@@ -97,11 +89,10 @@ public class SprintTasksController {
     public ResponseEntity<?> updateSprintTask(@PathVariable Long projectId,
                                               @PathVariable Long sprintId,
                                               @PathVariable Long sprintTaskId,
-                                              @RequestBody Map<String, Object> payload) {
+                                              @RequestBody UpdateSprintTaskRequest request) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         SprintStoryAssignment sprintTask = sprintStoryAssignmentService.findById(sprintTaskId)
@@ -109,28 +100,22 @@ public class SprintTasksController {
                 .orElse(null);
 
         if (sprintTask == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint task not found"));
+            return notFound("Sprint task not found");
         }
 
-        if (payload.containsKey("removedAt") && payload.get("removedAt") != null) {
+        if (request.removedAt() != null) {
             try {
-                sprintTask.setRemovedAt(LocalDateTime.parse(payload.get("removedAt").toString()));
+                sprintTask.setRemovedAt(LocalDateTime.parse(request.removedAt()));
                 sprintTask.setIsActive(0);
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body(Map.of("error", "removedAt must be ISO-8601 LocalDateTime"));
+                return badRequest("removedAt must be ISO-8601 LocalDateTime");
             }
         }
 
-        if (payload.containsKey("movedToId") && payload.get("movedToId") != null) {
-            Long movedToId = asLong(payload.get("movedToId"));
-            if (movedToId == null) {
-                return ResponseEntity.badRequest().body(Map.of("error", "movedToId must be numeric"));
-            }
-            Sprint movedTo = findSprintInProject(projectId, movedToId);
+        if (request.movedToId() != null) {
+            Sprint movedTo = findSprintInProject(projectId, request.movedToId());
             if (movedTo == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Target sprint not found"));
+                return notFound("Target sprint not found");
             }
             sprintTask.setMovedTo(movedTo);
         }
@@ -144,8 +129,7 @@ public class SprintTasksController {
                                               @PathVariable Long sprintTaskId) {
         Sprint sprint = findSprintInProject(projectId, sprintId);
         if (sprint == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint not found"));
+            return notFound("Sprint not found");
         }
 
         SprintStoryAssignment sprintTask = sprintStoryAssignmentService.findById(sprintTaskId)
@@ -153,8 +137,7 @@ public class SprintTasksController {
                 .orElse(null);
 
         if (sprintTask == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Sprint task not found"));
+            return notFound("Sprint task not found");
         }
 
         sprintStoryAssignmentService.deleteById(sprintTaskId);
@@ -165,16 +148,5 @@ public class SprintTasksController {
         return sprintService.findById(sprintId)
                 .filter(s -> s.getProject().getId().equals(projectId))
                 .orElse(null);
-    }
-
-    private Long asLong(Object value) {
-        if (value instanceof Number number) {
-            return number.longValue();
-        }
-        try {
-            return Long.parseLong(value.toString());
-        } catch (Exception e) {
-            return null;
-        }
     }
 }

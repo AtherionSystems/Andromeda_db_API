@@ -1,10 +1,14 @@
 package com.atherion.andromeda.controllers;
 
+import com.atherion.andromeda.dto.CreateUserStoryDependencyRequest;
+import com.atherion.andromeda.dto.UpdateUserStoryDependencyRequest;
 import com.atherion.andromeda.model.UserStory;
 import com.atherion.andromeda.model.UserStoryDependency;
 import com.atherion.andromeda.services.UserStoryDependencyService;
 import com.atherion.andromeda.services.UserStoryService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +27,7 @@ public class UserStoryDependenciesController {
     public ResponseEntity<?> getByStory(@PathVariable Long projectId, @PathVariable Long storyId) {
         UserStory story = findStoryInProject(projectId, storyId);
         if (story == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found"));
+            return notFound("User story not found");
         }
         return ResponseEntity.ok(dependencyService.findByStoryId(storyId));
     }
@@ -36,31 +40,27 @@ public class UserStoryDependenciesController {
                 .filter(d -> d.getStory().getId().equals(storyId)
                         && d.getStory().getFeature().getCapability().getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Dependency not found")));
+                .orElse(notFound("Dependency not found"));
     }
 
     @PostMapping
     public ResponseEntity<?> create(@PathVariable Long projectId,
                                     @PathVariable Long storyId,
-                                    @RequestBody Map<String, Object> payload) {
+                                    @Valid @RequestBody CreateUserStoryDependencyRequest request) {
         UserStory story = findStoryInProject(projectId, storyId);
         if (story == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "User story not found"));
+            return notFound("User story not found");
         }
 
-        Long blockedById = asLong(payload.get("blockedById"));
-        if (blockedById == null) {
-            return ResponseEntity.badRequest().body(Map.of("error", "blockedById is required"));
-        }
-        UserStory blockedBy = findStoryInProject(projectId, blockedById);
+        UserStory blockedBy = findStoryInProject(projectId, request.blockedById());
         if (blockedBy == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "blockedBy story not found"));
+            return notFound("blockedBy story not found");
         }
 
         UserStoryDependency dependency = new UserStoryDependency();
         dependency.setStory(story);
         dependency.setBlockedBy(blockedBy);
-        dependency.setDependencyType(payload.get("dependencyType") == null ? "blocks" : payload.get("dependencyType").toString());
+        dependency.setDependencyType(request.dependencyType() != null ? request.dependencyType() : "blocks");
         return ResponseEntity.status(HttpStatus.CREATED).body(dependencyService.save(dependency));
     }
 
@@ -68,16 +68,16 @@ public class UserStoryDependenciesController {
     public ResponseEntity<?> patch(@PathVariable Long projectId,
                                    @PathVariable Long storyId,
                                    @PathVariable Long dependencyId,
-                                   @RequestBody Map<String, Object> payload) {
+                                   @RequestBody UpdateUserStoryDependencyRequest request) {
         UserStoryDependency dependency = dependencyService.findById(dependencyId)
                 .filter(d -> d.getStory().getId().equals(storyId)
                         && d.getStory().getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (dependency == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Dependency not found"));
+            return notFound("Dependency not found");
         }
-        if (payload.containsKey("dependencyType")) {
-            dependency.setDependencyType(payload.get("dependencyType").toString());
+        if (request.dependencyType() != null) {
+            dependency.setDependencyType(request.dependencyType());
         }
         return ResponseEntity.ok(dependencyService.save(dependency));
     }
@@ -91,7 +91,7 @@ public class UserStoryDependenciesController {
                         && d.getStory().getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (dependency == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Dependency not found"));
+            return notFound("Dependency not found");
         }
         dependencyService.deleteById(dependencyId);
         return ResponseEntity.noContent().build();
@@ -101,15 +101,5 @@ public class UserStoryDependenciesController {
         return userStoryService.findById(storyId)
                 .filter(s -> s.getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
-    }
-
-    private Long asLong(Object value) {
-        if (value == null) return null;
-        if (value instanceof Number number) return number.longValue();
-        try {
-            return Long.parseLong(value.toString());
-        } catch (Exception e) {
-            return null;
-        }
     }
 }

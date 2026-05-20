@@ -35,7 +35,9 @@ class UserStoryDependenciesControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     @Test
@@ -49,22 +51,10 @@ class UserStoryDependenciesControllerTest {
 
     @Test
     void create_missingBlockedById_returns400() throws Exception {
-        Project project = new Project();
-        project.setId(1L);
-        Capability capability = new Capability();
-        capability.setProject(project);
-        Feature feature = new Feature();
-        feature.setCapability(capability);
-        UserStory story = new UserStory();
-        story.setId(10L);
-        story.setFeature(feature);
-
-        when(userStoryService.findById(10L)).thenReturn(Optional.of(story));
-
         mockMvc.perform(post("/api/projects/1/stories/10/dependencies")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("blockedById is required"));
+                .andExpect(jsonPath("$.detail").value("blockedById is required"));
     }
 }

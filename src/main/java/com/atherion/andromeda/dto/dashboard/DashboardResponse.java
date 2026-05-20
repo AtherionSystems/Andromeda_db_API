@@ -10,8 +10,9 @@ import java.util.List;
 public class DashboardResponse {
     private Long                       projectId;
     private LocalDateTime              generatedAt;
-    private List<CompletionRateKPI>    completionRateBySprint;
-    private List<TeamVelocityKPI>      teamVelocity;
-    private List<TaskDistributionKPI>  taskDistribution;
+    private List<BurndownKPI>           burndownBySprint;
+    private List<TeamVelocityKPI>       teamVelocity;
+    private List<TaskDistributionKPI>   taskDistribution;
     private List<UserTasksPerSprintKPI> userTasksPerSprint;
+    private List<HoursPerUserKPI>       hoursPerUserBySprint;
 }

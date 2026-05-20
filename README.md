@@ -2,6 +2,7 @@
 
 Spring Boot REST API for project and task management, backed by Oracle Cloud Database, with an integrated Telegram bot for quick interactions.
 
+This is for a trigger test and deployment validation in OCI.
 ---
 
 ## Table of Contents

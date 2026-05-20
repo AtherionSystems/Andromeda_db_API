@@ -17,10 +17,14 @@ Dates use ISO-8601 format (`2025-06-15T00:00:00Z` for `Instant`, `2025-06-15T10:
 - [Task Assignments](#task-assignments)
 - [Sprints](#sprints)
 - [Sprint Tasks](#sprint-tasks)
+- [Sprint Story Assignments](#sprint-story-assignments)
 - [Project Members](#project-members)
 - [Logs](#logs)
+- [Dashboard](#dashboard)
+- [AI Notifications](#ai-notifications)
 - [Error Responses](#error-responses)
 - [Enum Values](#enum-values)
+- [V5 Product Backlog Endpoints](#v5-product-backlog-endpoints)
 
 ---
 
@@ -196,6 +200,8 @@ Delete a user.
 ---
 
 ## Projects
+
+Alias supported for all project routes in this section: `/projects`.
 
 ### `GET /api/projects`
 List all projects.
@@ -606,6 +612,84 @@ Delete a sprint-task link.
 
 ---
 
+## Sprint Story Assignments
+
+Sprint story assignment endpoints are nested under a project sprint:
+`/api/projects/{projectId}/sprints/{sprintId}/user_stories`.
+
+### `GET /api/projects/{projectId}/sprints/{sprintId}/user_stories`
+List all sprint-story links in a sprint.
+
+**Response `200`** — array of sprint-story assignment objects.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+
+---
+
+### `GET /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
+Get one sprint-story link by ID.
+
+**Response `200`** — single sprint-story assignment object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint story assignment not found |
+
+---
+
+### `POST /api/projects/{projectId}/sprints/{sprintId}/user_stories`
+Add a user story to a sprint.
+
+**Request body**
+```json
+{
+  "userStoryId": 15
+}
+```
+
+**Response `201`** — created sprint-story assignment object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `400` | Missing userStoryId |
+| `404` | Sprint not found |
+| `404` | User story not found |
+| `409` | User story is already active in this sprint |
+
+---
+
+### `PATCH /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
+Partially update a sprint-story link. Supported fields: `removedAt`, `movedToId`.
+
+**Response `200`** — updated sprint-story assignment object.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint story assignment not found |
+
+---
+
+### `DELETE /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
+Delete a sprint-story link.
+
+**Response `204`** — no body.
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `404` | Sprint not found |
+| `404` | Sprint story assignment not found |
+
+---
+
 ## Project Members
 
 ### `GET /api/project-members`
@@ -702,6 +786,10 @@ Remove a member from a project.
 
 ## Logs
 
+Legacy aliases also supported:
+- `/logs` (same as `/api/logs`)
+- `/projects/{projectId}/logs` (same as `/api/projects/{projectId}/logs`)
+
 ### `GET /api/logs`
 Search the audit log. All query parameters are optional and combinable.
 
@@ -770,6 +858,77 @@ Create a log entry manually.
 | logDate | LocalDateTime | no | Defaults to current time |
 
 **Response `201`** — created log object.
+
+---
+
+## Dashboard
+
+### `GET /api/dashboard?projectId={projectId}`
+Returns aggregated KPIs for a project in a single response.
+
+**Response `200`**
+```json
+{
+  "projectId": 1,
+  "generatedAt": "2026-05-11T09:00:00",
+  "completionRateBySprint": [],
+  "teamVelocity": [],
+  "taskDistribution": [],
+  "userTasksPerSprint": []
+}
+```
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `400` | Missing `projectId` query param |
+| `500` | KPI aggregation error |
+
+---
+
+## AI Notifications
+
+### `POST /api/ai/notify`
+Generate and send an AI-assisted Telegram notification.
+
+**Request body**
+```json
+{
+  "chatId": "123456789",
+  "context": "Build failed on main branch"
+}
+```
+
+**Response `200`**
+```text
+Notification sent.
+```
+
+**Errors**
+| Status | Reason |
+|---|---|
+| `400` | Missing `chatId` or `context` |
+| `500` | AI did not respond |
+
+---
+
+### `GET /api/ai/status`
+Returns AI backend status.
+
+**Response `200`**
+```text
+AI online | model: <model-name> | latency: <ms> ms
+```
+
+Alternative response when disabled:
+```text
+AI disabled (agent.ai.enabled=false).
+```
+
+Possible unavailable response:
+```text
+AI backend unreachable.
+```
 
 ---
 

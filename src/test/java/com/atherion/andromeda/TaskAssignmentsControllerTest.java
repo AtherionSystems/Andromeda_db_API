@@ -42,7 +42,9 @@ class TaskAssignmentsControllerTest {
 
     @BeforeEach
     void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new GlobalErrorController())
+                .build();
     }
 
     private Project buildProject(Long id) {
@@ -134,7 +136,7 @@ class TaskAssignmentsControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.error").value("userId is required"));
+                .andExpect(jsonPath("$.detail").value("userId is required"));
     }
 
     @Test

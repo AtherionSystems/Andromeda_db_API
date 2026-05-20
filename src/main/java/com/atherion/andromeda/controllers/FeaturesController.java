@@ -5,6 +5,7 @@ import com.atherion.andromeda.model.Feature;
 import com.atherion.andromeda.services.CapabilityService;
 import com.atherion.andromeda.services.FeatureService;
 import lombok.RequiredArgsConstructor;
+import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -26,7 +27,7 @@ public class FeaturesController {
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .orElse(null);
         if (capability == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Capability not found"));
+            return notFound("Capability not found");
         }
         return ResponseEntity.ok(featureService.findByCapabilityId(capabilityId));
     }
@@ -39,7 +40,7 @@ public class FeaturesController {
                 .filter(f -> f.getCapability().getId().equals(capabilityId)
                         && f.getCapability().getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElse(ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Feature not found")));
+                .orElse(notFound("Feature not found"));
     }
 
     @PostMapping
@@ -47,13 +48,13 @@ public class FeaturesController {
                                     @PathVariable Long capabilityId,
                                     @RequestBody Feature feature) {
         if (feature.getName() == null || feature.getName().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "name is required"));
+            return badRequest("name is required");
         }
         Capability capability = capabilityService.findById(capabilityId)
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .orElse(null);
         if (capability == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Capability not found"));
+            return notFound("Capability not found");
         }
         feature.setCapability(capability);
         if (feature.getStatus() == null) {
@@ -72,7 +73,7 @@ public class FeaturesController {
                         && f.getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (feature == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Feature not found"));
+            return notFound("Feature not found");
         }
         if (changes.getName() != null) feature.setName(changes.getName());
         if (changes.getDescription() != null) feature.setDescription(changes.getDescription());
@@ -90,7 +91,7 @@ public class FeaturesController {
                         && f.getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
         if (feature == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Feature not found"));
+            return notFound("Feature not found");
         }
         featureService.deleteById(featureId);
         return ResponseEntity.noContent().build();
