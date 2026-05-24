@@ -82,15 +82,41 @@ public class AndromedaBot extends TelegramLongPollingBot {
     }
 
     public void sendText(String chatId, String text) {
-        SendMessage message = SendMessage.builder()
-                .chatId(chatId)
-                .text(text)
-                .build();
-        try {
-            execute(message);
-        } catch (TelegramApiException e) {
-            log.error("Failed to send Telegram message to {}: {}", chatId, e.getMessage());
-            throw new RuntimeException("Failed to send Telegram message", e);
+        for (String chunk : splitMessage(text)) {
+            SendMessage message = SendMessage.builder()
+                    .chatId(chatId)
+                    .text(chunk)
+                    .build();
+            try {
+                execute(message);
+            } catch (TelegramApiException e) {
+                log.error("Failed to send Telegram message to {}: {}", chatId, e.getMessage());
+                throw new RuntimeException("Failed to send Telegram message", e);
+            }
         }
+    }
+
+    private static final int MAX_MESSAGE_LENGTH = 4000;
+
+    /**
+     * Splits text into chunks ≤ MAX_MESSAGE_LENGTH characters, breaking only
+     * at newline boundaries to avoid cutting in the middle of a line.
+     */
+    private static java.util.List<String> splitMessage(String text) {
+        if (text.length() <= MAX_MESSAGE_LENGTH) {
+            return java.util.List.of(text);
+        }
+        java.util.List<String> chunks = new java.util.ArrayList<>();
+        int start = 0;
+        while (start < text.length()) {
+            int end = Math.min(start + MAX_MESSAGE_LENGTH, text.length());
+            if (end < text.length()) {
+                int lastNewline = text.lastIndexOf('\n', end);
+                if (lastNewline > start) end = lastNewline + 1;
+            }
+            chunks.add(text.substring(start, end).stripTrailing());
+            start = end;
+        }
+        return chunks;
     }
 }
