@@ -97,10 +97,22 @@ class JwtUtilTest {
     @Test
     void isTokenValid_tamperedSignature_returnsFalse() {
         String token = jwtUtil.generateToken(buildUser());
-        // Flip the last character of the signature to break it
-        String tampered = token.substring(0, token.length() - 1)
-                + (token.endsWith("a") ? "b" : "a");
-        assertFalse(jwtUtil.isTokenValid(tampered));
+
+        // Split out the signature (third dot-separated part).
+        // We MUST NOT touch the last character of the signature: HMAC-SHA256 produces
+        // 32 bytes → 43 Base64URL chars.  The final character encodes only 4 real bits
+        // (the trailing 2 bits are zero-padding) so flipping just that character does not
+        // change the decoded bytes and validation still passes.
+        // Instead, corrupt a character in the middle where every bit is significant.
+        int lastDot = token.lastIndexOf('.');
+        String headerPayload = token.substring(0, lastDot);
+        String sig            = token.substring(lastDot + 1);
+
+        int  mid         = sig.length() / 2;
+        char replacement = (sig.charAt(mid) != 'X') ? 'X' : 'Y'; // 'X' differs by ≥3 bits from any typical char
+        String tamperedSig = sig.substring(0, mid) + replacement + sig.substring(mid + 1);
+
+        assertFalse(jwtUtil.isTokenValid(headerPayload + "." + tamperedSig));
     }
 
     @Test
