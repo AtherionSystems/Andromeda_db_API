@@ -1,0 +1,215 @@
+================================================================================
+  ANDROMEDA BACKEND — JWT SECURITY LAYER GUIDE
+  Branch: featSecurityLayer
+================================================================================
+
+OVERVIEW
+--------
+Before this implementation, all API endpoints were fully public — anyone could
+open a URL in a browser and see the data. This guide documents every change made
+to secure the backend using JWT (JSON Web Tokens) without any database changes.
+
+The auth flow is:
+  1. Client POSTs credentials to /api/auth/login
+  2. Backend validates credentials against the DB (BCrypt hash comparison)
+  3. On success, backend returns user data + a signed JWT token
+  4. Client stores the token and sends it in every subsequent request:
+       Authorization: Bearer <token>
+  5. Spring Security validates the token on each request before reaching any controller
+
+
+================================================================================
+BACKEND CHANGES
+================================================================================
+
+1. pom.xml
+----------
+REMOVED:
+  spring-security-crypto
+  (was used only for BCrypt — no HTTP security)
+
+ADDED:
+  spring-boot-starter-security
+  (full Spring Security HTTP filter chain)
+
+  io.jsonwebtoken:jjwt-api:0.12.6
+  io.jsonwebtoken:jjwt-impl:0.12.6        (runtime)
+  io.jsonwebtoken:jjwt-jackson:0.12.6     (runtime)
+  (JJWT library for generating and validating JWT tokens)
+
+
+2. application.properties
+--------------------------
+ADDED:
+  jwt.secret=${JWT_SECRET}
+  jwt.expiration.ms=86400000
+
+  JWT_SECRET must be set as an environment variable.
+  It must be a Base64-encoded string that decodes to at least 32 bytes (256 bits).
+
+  To generate a valid secret in PowerShell:
+    $bytes = New-Object byte[] 32
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    [Convert]::ToBase64String($bytes)
+
+  Token expiration is set to 86400000 ms = 24 hours.
+
+
+3. NEW FILE: src/main/java/com/atherion/andromeda/security/JwtUtil.java
+------------------------------------------------------------------------
+Responsible for:
+  - generateToken(User user)
+      Builds a signed JWT with claims: subject (username), userId, userType.
+      Signs with HMAC-SHA256 using the JWT_SECRET key.
+
+  - extractUsername(String token)
+      Parses the token and returns the subject (username).
+
+  - isTokenValid(String token)
+      Returns true if the token is well-formed, correctly signed, and not expired.
+
+
+4. NEW FILE: src/main/java/com/atherion/andromeda/security/JwtAuthFilter.java
+------------------------------------------------------------------------------
+A Spring OncePerRequestFilter that runs on every incoming HTTP request.
+
+Logic:
+  - Reads the Authorization header.
+  - If the header is missing or does not start with "Bearer ", the request
+    continues without authentication (will be blocked by Security config
+    if the endpoint requires auth).
+  - If the token is present and valid, sets the authenticated user in the
+    Spring SecurityContext so the request is allowed through.
+
+
+5. MODIFIED: src/main/java/com/atherion/andromeda/config/SecurityConfig.java
+-----------------------------------------------------------------------------
+Before: only declared a BCryptPasswordEncoder bean. No HTTP security at all.
+
+After: full SecurityFilterChain configuration:
+  - CSRF disabled (not needed for stateless REST APIs)
+  - CORS wired through Spring Security (picks up existing CorsConfig.java)
+  - Session management set to STATELESS (no server-side sessions, JWT only)
+  - Public endpoints (no token required):
+      /api/auth/**        (login, register)
+      /actuator/health    (health check for OCI)
+  - All other endpoints require a valid JWT token
+  - JwtAuthFilter is inserted before Spring's default auth filter
+
+
+6. NEW FILE: src/main/java/com/atherion/andromeda/dto/LoginResponse.java
+------------------------------------------------------------------------
+A new response DTO for the login endpoint.
+
+Fields (flat, not nested):
+  token        — the signed JWT string
+  id
+  name
+  username
+  email
+  phone
+  userTypeId
+  userType
+  createdAt
+
+This replaced returning UserResponse from login, which had no token field.
+
+
+7. MODIFIED: src/main/java/com/atherion/andromeda/controllers/AuthController.java
+----------------------------------------------------------------------------------
+- Added JwtUtil as a dependency.
+- Login endpoint now returns LoginResponse.from(user, jwtUtil.generateToken(user))
+  instead of UserResponse.from(user).
+- Register endpoint is unchanged (still returns UserResponse, no token).
+
+
+================================================================================
+FRONTEND CHANGES REQUIRED
+================================================================================
+
+1. types/api.ts
+   Add token field to ApiUser:
+     token: string
+
+2. After login, store the token:
+     localStorage.setItem("token", user.token)
+
+3. apiFetch client (client.ts or equivalent)
+   Attach the token on every request:
+     const token = localStorage.getItem("token")
+     if (token) headers["Authorization"] = `Bearer ${token}`
+
+
+================================================================================
+ENVIRONMENT VARIABLES
+================================================================================
+
+Variable          Where needed       Notes
+--------------    ---------------    ------------------------------------------
+JWT_SECRET        Backend (.env)     Base64 string, decodes to >= 32 bytes.
+                                     Different values are fine per environment
+                                     but tokens from one env won't work in another.
+
+TELEGRAM_BOT_TOKEN     .env          Use dev bot token for local development.
+TELEGRAM_BOT_USERNAME  .env          Use dev bot username for local development.
+
+
+================================================================================
+LOCAL DEV vs OCI PRODUCTION
+================================================================================
+
+To avoid the Telegram 409 conflict (only one long-poll session per token allowed),
+use a separate bot for local development:
+
+Local .env:
+  TELEGRAM_BOT_TOKEN=<andromedadevbot token>
+  TELEGRAM_BOT_USERNAME=andromedadevbot
+
+OCI environment variables:
+  TELEGRAM_BOT_TOKEN=<production bot token>
+  TELEGRAM_BOT_USERNAME=<production bot username>
+
+Both environments can run simultaneously with no conflicts.
+
+
+================================================================================
+TESTING
+================================================================================
+
+1. Verify endpoint is protected (should return 403):
+   Open any data URL in Chrome, e.g.: http://localhost:8080/api/projects
+
+2. Login and get token (PowerShell):
+   $body = '{"username":"youruser","password":"yourpass"}'
+   $response = Invoke-RestMethod -Uri "http://localhost:8080/api/auth/login" `
+               -Method POST -Body $body -ContentType "application/json"
+   $token = $response.token
+   echo $token
+
+3. Access protected endpoint with token:
+   $headers = @{ Authorization = "Bearer $token" }
+   Invoke-RestMethod -Uri "http://localhost:8080/api/projects" `
+                     -Method GET -Headers $headers
+
+   Expected: data returned normally.
+
+4. Fix tests (context load test will fail without JWT_SECRET):
+   Add to src/test/resources/application.properties:
+     jwt.secret=dGVzdHNlY3JldGtleWZvcnVuaXR0ZXN0aW5nb25seQ==
+
+
+================================================================================
+NOTES
+================================================================================
+
+- No database changes were made. JWT is fully stateless.
+- Passwords were already stored as BCrypt hashes in the DB from before.
+- The 403 response (instead of 401) for missing tokens is default Spring Security
+  behavior when no AuthenticationEntryPoint is configured. Functionally it still
+  blocks access. Can be changed by adding:
+    .exceptionHandling(ex -> ex
+        .authenticationEntryPoint((req, res, e) ->
+            res.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized")))
+  to the SecurityFilterChain in SecurityConfig.java.
+
+================================================================================
