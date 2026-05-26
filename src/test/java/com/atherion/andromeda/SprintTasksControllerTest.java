@@ -1,6 +1,7 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.controllers.SprintTasksController;
+import com.atherion.andromeda.dto.SprintStoryAssignmentResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.model.SprintStoryAssignment;
@@ -91,7 +92,7 @@ class SprintTasksControllerTest {
         Tasks task = buildTask(3L, project);
         SprintStoryAssignment sprintTask = buildSprintTask(4L, sprint, task);
         when(sprintService.findById(2L)).thenReturn(Optional.of(sprint));
-        when(sprintStoryAssignmentService.findBySprintId(2L)).thenReturn(List.of(sprintTask));
+        when(sprintStoryAssignmentService.findBySprintIdAsResponse(2L)).thenReturn(List.of(SprintStoryAssignmentResponse.from(sprintTask)));
 
         mockMvc.perform(get("/api/projects/1/sprints/2/tasks"))
                 .andExpect(status().isOk())

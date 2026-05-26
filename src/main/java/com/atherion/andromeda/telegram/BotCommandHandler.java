@@ -748,10 +748,11 @@ public class BotCommandHandler {
 
         String estVsAct = "";
         if (task.getEstimatedHours() != null) {
-            double diff = actualHours.doubleValue() - task.getEstimatedHours().doubleValue();
-            String sign = diff >= 0 ? "+" : "";
-            estVsAct = String.format("\nEst. hours:  %s h\nAct. hours:  %s h  (%s%.1f h)",
-                    task.getEstimatedHours(), actualHours, sign, diff);
+            BigDecimal diff = actualHours.subtract(task.getEstimatedHours());
+            String sign = diff.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
+            estVsAct = String.format(java.util.Locale.ROOT,
+                    "\nEst. hours:  %s h\nAct. hours:  %s h  (%s%.1f h)",
+                    task.getEstimatedHours(), actualHours, sign, diff.doubleValue());
         } else {
             estVsAct = "\nAct. hours:  " + actualHours + " h";
         }
