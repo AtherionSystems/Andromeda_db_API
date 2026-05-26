@@ -49,6 +49,7 @@ public class BotCommandHandler {
     private final UserStoryService      userStoryService;
     private final BCryptPasswordEncoder passwordEncoder;
     private final AiService             aiService;
+    private final ConversationSessionManager sessionManager;
 
     // ── entry point ──────────────────────────────────────────────────────────
 
@@ -70,19 +71,19 @@ public class BotCommandHandler {
             case "/link"          -> handleLink(args, telegramUserId);
             // ── read ──────────────────────────────────────────────────────
             case "/projects"        -> handleProjects();
-            case "/project"         -> handleProject(args);
-            case "/capabilities"    -> handleCapabilities(args);
-            case "/capability"      -> handleCapability(args);
-            case "/features"        -> handleFeatures(args);
-            case "/feature"         -> handleFeature(args);
-            case "/projectstories"  -> handleProjectStories(args);
+            case "/project"         -> handleProject(args, telegramUserId);
+            case "/capabilities"    -> handleCapabilities(args, telegramUserId);
+            case "/capability"      -> handleCapability(args, telegramUserId);
+            case "/features"        -> handleFeatures(args, telegramUserId);
+            case "/feature"         -> handleFeature(args, telegramUserId);
+            case "/projectstories"  -> handleProjectStories(args, telegramUserId);
             case "/userstories"     -> handleUserStories(args);
-            case "/userstory"       -> handleUserStory(args);
-            case "/tasks"           -> handleTasks(args);
-            case "/task"            -> handleTask(args);
-            case "/members"         -> handleMembers(args);
-            case "/sprints"         -> handleSprints(args);
-            case "/sprinttasks"     -> handleSprintTasks(args);
+            case "/userstory"       -> handleUserStory(args, telegramUserId);
+            case "/tasks"           -> handleTasks(args, telegramUserId);
+            case "/task"            -> handleTask(args, telegramUserId);
+            case "/members"         -> handleMembers(args, telegramUserId);
+            case "/sprints"         -> handleSprints(args, telegramUserId);
+            case "/sprinttasks"     -> handleSprintTasks(args, telegramUserId);
             case "/users"           -> handleUsers();
             case "/user"            -> handleUser(args);
             // ── write ─────────────────────────────────────────────────────
@@ -220,7 +221,7 @@ public class BotCommandHandler {
         return sb.toString().trim();
     }
 
-    private String handleProject(String args) {
+    private String handleProject(String args, Long telegramUserId) {
         Long id = parseLong(args);
         if (id == null) return "Usage: /project <id>";
         Optional<Project> opt = projectService.findById(id);
@@ -228,16 +229,18 @@ public class BotCommandHandler {
         Project p = opt.get();
         int memberCount = projectMemberService.findByProjectId(id).size();
         int taskCount   = tasksService.findByProjectId(id).size();
+        sessionManager.setActiveProject(telegramUserId, p.getId(), p.getName());
         return String.format(
                 "Project #%d\nName:    %s\nStatus:  %s\nStart:   %s\nEnd:     %s\nMembers: %d\nTasks:   %d",
                 p.getId(), p.getName(), nvl(p.getStatus(), "—"),
                 fmt(p.getStartDate()), fmt(p.getEndDate()), memberCount, taskCount);
     }
 
-    private String handleTasks(String args) {
+    private String handleTasks(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /tasks <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
         List<Tasks> tasks = tasksService.findByProjectId(projectId);
         if (tasks.isEmpty()) return "No tasks found for project #" + projectId + ".";
         StringBuilder sb = new StringBuilder(
@@ -247,16 +250,19 @@ public class BotCommandHandler {
                     t.getId(), t.getTitle(),
                     nvl(t.getPriority(), "?"), nvl(t.getStatus(), "?"),
                     t.getEstimatedHours() != null ? t.getEstimatedHours() : "—"));
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         return sb.toString().trim();
     }
 
-    private String handleTask(String args) {
+    private String handleTask(String args, Long telegramUserId) {
         Long id = parseLong(args);
         if (id == null) return "Usage: /task <id>";
         Optional<Tasks> opt = tasksService.findById(id);
         if (opt.isEmpty()) return "Task #" + id + " not found.";
         Tasks t = opt.get();
         Project proj = t.getProject();
+        sessionManager.setActiveProject(telegramUserId, proj.getId(), proj.getName());
+        sessionManager.setActiveTask(telegramUserId, t.getId(), t.getTitle());
         return String.format(
                 "Task #%d\n" +
                 "Title:       %s\n" +
@@ -275,23 +281,26 @@ public class BotCommandHandler {
                 fmt(t.getStartDate()), fmt(t.getDueDate()));
     }
 
-    private String handleMembers(String args) {
+    private String handleMembers(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /members <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
         List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
         if (members.isEmpty()) return "No members found for project #" + projectId + ".";
         StringBuilder sb = new StringBuilder(
                 "Members of project #" + projectId + " (" + members.size() + ")\n───────────────────────\n");
         for (ProjectMember m : members)
             sb.append(String.format("@%s — %s\n", m.getUser().getUsername(), nvl(m.getRole(), "member")));
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         return sb.toString().trim();
     }
 
-    private String handleSprints(String args) {
+    private String handleSprints(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprints <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
         List<Sprint> sprints = sprintService.findByProjectId(projectId);
         if (sprints.isEmpty()) return "No sprints found for project #" + projectId + ".";
         StringBuilder sb = new StringBuilder(
@@ -300,6 +309,7 @@ public class BotCommandHandler {
             sb.append(String.format("[%d] %s — %s | %s → %s\n",
                     s.getId(), s.getName(), nvl(s.getStatus(), "?"),
                     fmt(s.getStartDate()), fmt(s.getDueDate())));
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         return sb.toString().trim();
     }
 
@@ -307,11 +317,13 @@ public class BotCommandHandler {
      * /sprinttasks <projectId>
      * Displays the task board for the last 2 sprints, grouped by sprint.
      */
-    private String handleSprintTasks(String args) {
+    private String handleSprintTasks(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprinttasks <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
 
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         List<SprintTaskRow> rows = sprintStoryAssignmentService.findSprintBoard(projectId);
         if (rows.isEmpty()) return "No tasks found in recent sprints for project #" + projectId + ".";
 
@@ -375,25 +387,29 @@ public class BotCommandHandler {
                 u.getId(), u.getName(), u.getUsername(), u.getEmail(), nvl(u.getPhone(), "—"));
     }
 
-    private String handleCapabilities(String args) {
+    private String handleCapabilities(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /capabilities <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
         List<Capability> caps = capabilityService.findByProjectId(projectId);
         if (caps.isEmpty()) return "No capabilities found for project #" + projectId + ".";
         StringBuilder sb = new StringBuilder(
                 "Capabilities for project #" + projectId + " (" + caps.size() + ")\n───────────────────────\n");
         for (Capability c : caps)
             sb.append(String.format("[%d] %s — %s\n", c.getId(), c.getName(), nvl(c.getStatus(), "?")));
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         return sb.toString().trim();
     }
 
-    private String handleCapability(String args) {
+    private String handleCapability(String args, Long telegramUserId) {
         Long id = parseLong(args);
         if (id == null) return "Usage: /capability <id>";
         Capability cap = capabilityService.findById(id).orElse(null);
         if (cap == null) return "Capability #" + id + " not found.";
         int featureCount = featureService.findByCapabilityId(id).size();
+        sessionManager.setActiveProject(telegramUserId, cap.getProject().getId(), cap.getProject().getName());
+        sessionManager.setActiveCapability(telegramUserId, cap.getId(), cap.getName());
         return String.format(
                 "Capability #%d\nName:     %s\nProject:  #%d %s\nStatus:   %s\nFeatures: %d",
                 cap.getId(), cap.getName(),
@@ -401,7 +417,7 @@ public class BotCommandHandler {
                 nvl(cap.getStatus(), "—"), featureCount);
     }
 
-    private String handleFeatures(String args) {
+    private String handleFeatures(String args, Long telegramUserId) {
         Long capabilityId = parseLong(args);
         if (capabilityId == null) return "Usage: /features <capabilityId>";
         Capability cap = capabilityService.findById(capabilityId).orElse(null);
@@ -413,16 +429,21 @@ public class BotCommandHandler {
                 " (" + features.size() + ")\n───────────────────────\n");
         for (Feature f : features)
             sb.append(String.format("[%d] %s — %s\n", f.getId(), f.getName(), nvl(f.getStatus(), "?")));
+        sessionManager.setActiveProject(telegramUserId, cap.getProject().getId(), cap.getProject().getName());
+        sessionManager.setActiveCapability(telegramUserId, cap.getId(), cap.getName());
         return sb.toString().trim();
     }
 
-    private String handleFeature(String args) {
+    private String handleFeature(String args, Long telegramUserId) {
         Long id = parseLong(args);
         if (id == null) return "Usage: /feature <id>";
         Feature feature = featureService.findById(id).orElse(null);
         if (feature == null) return "Feature #" + id + " not found.";
         int storyCount = userStoryService.findByFeatureId(id).size();
         Capability cap = feature.getCapability();
+        sessionManager.setActiveProject(telegramUserId, cap.getProject().getId(), cap.getProject().getName());
+        sessionManager.setActiveCapability(telegramUserId, cap.getId(), cap.getName());
+        sessionManager.setActiveFeature(telegramUserId, feature.getId(), feature.getName());
         return String.format(
                 "Feature #%d\nName:         %s\nCapability:   #%d %s\nProject:      #%d %s\nStatus:       %s\nUser Stories: %d",
                 feature.getId(), feature.getName(),
@@ -431,10 +452,11 @@ public class BotCommandHandler {
                 nvl(feature.getStatus(), "—"), storyCount);
     }
 
-    private String handleProjectStories(String args) {
+    private String handleProjectStories(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /projectstories <projectId>";
-        if (projectService.findById(projectId).isEmpty()) return "Project #" + projectId + " not found.";
+        Project project = projectService.findById(projectId).orElse(null);
+        if (project == null) return "Project #" + projectId + " not found.";
         List<UserStory> stories = userStoryService.findByProjectId(projectId);
         if (stories.isEmpty()) return "No user stories found for project #" + projectId + ".";
         StringBuilder sb = new StringBuilder(
@@ -444,6 +466,7 @@ public class BotCommandHandler {
                     s.getId(), s.getTitle(),
                     nvl(s.getPriority(), "?"), nvl(s.getStatus(), "?"),
                     s.getStoryPoints() != null ? s.getStoryPoints() : "—"));
+        sessionManager.setActiveProject(telegramUserId, project.getId(), project.getName());
         return sb.toString().trim();
     }
 
@@ -465,13 +488,18 @@ public class BotCommandHandler {
         return sb.toString().trim();
     }
 
-    private String handleUserStory(String args) {
+    private String handleUserStory(String args, Long telegramUserId) {
         Long id = parseLong(args);
         if (id == null) return "Usage: /userstory <id>";
         UserStory s = userStoryService.findById(id).orElse(null);
         if (s == null) return "User story #" + id + " not found.";
         Feature feature = s.getFeature();
+        Capability cap = feature.getCapability();
         String owner = s.getOwner() != null ? "@" + s.getOwner().getUsername() : "—";
+        sessionManager.setActiveProject(telegramUserId, cap.getProject().getId(), cap.getProject().getName());
+        sessionManager.setActiveCapability(telegramUserId, cap.getId(), cap.getName());
+        sessionManager.setActiveFeature(telegramUserId, feature.getId(), feature.getName());
+        sessionManager.setActiveUserStory(telegramUserId, s.getId(), s.getTitle());
         return String.format(
                 "User Story #%d\nTitle:     %s\nFeature:   #%d %s\nPriority:  %s\nStatus:    %s\nPoints:    %s\nOwner:     %s",
                 s.getId(), s.getTitle(),
@@ -720,10 +748,11 @@ public class BotCommandHandler {
 
         String estVsAct = "";
         if (task.getEstimatedHours() != null) {
-            double diff = actualHours.doubleValue() - task.getEstimatedHours().doubleValue();
-            String sign = diff >= 0 ? "+" : "";
-            estVsAct = String.format("\nEst. hours:  %s h\nAct. hours:  %s h  (%s%.1f h)",
-                    task.getEstimatedHours(), actualHours, sign, diff);
+            BigDecimal diff = actualHours.subtract(task.getEstimatedHours());
+            String sign = diff.compareTo(BigDecimal.ZERO) >= 0 ? "+" : "";
+            estVsAct = String.format(java.util.Locale.ROOT,
+                    "\nEst. hours:  %s h\nAct. hours:  %s h  (%s%.1f h)",
+                    task.getEstimatedHours(), actualHours, sign, diff.doubleValue());
         } else {
             estVsAct = "\nAct. hours:  " + actualHours + " h";
         }

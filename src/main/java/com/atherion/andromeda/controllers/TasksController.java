@@ -1,7 +1,7 @@
 package com.atherion.andromeda.controllers;
 
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -12,8 +12,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.atherion.andromeda.dto.TaskResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.services.ProjectService;
@@ -33,14 +35,31 @@ public class TasksController {
     private final ProjectService projectService;
 
     // GET /api/projects/{projectId}/tasks
+    // GET /api/projects/{projectId}/tasks?userStoryId={id}
+    // GET /api/projects/{projectId}/tasks?status={status}
+    // GET /api/projects/{projectId}/tasks?assignedTo={userId}
     @GetMapping
-    public ResponseEntity<List<Tasks>> getTasksByProject(@PathVariable Long projectId) {
-        return ResponseEntity.ok(tasksService.findByProjectId(projectId));
+    public ResponseEntity<List<TaskResponse>> getTasksByProject(
+            @PathVariable Long projectId,
+            @RequestParam Optional<Long> userStoryId,
+            @RequestParam Optional<String> status,
+            @RequestParam Optional<Long> assignedTo) {
+        List<TaskResponse> tasks;
+        if (userStoryId.isPresent()) {
+            tasks = tasksService.findByProjectIdAndUserStoryIdAsResponse(projectId, userStoryId.get());
+        } else if (status.isPresent()) {
+            tasks = tasksService.findByProjectIdAndStatusAsResponse(projectId, status.get());
+        } else if (assignedTo.isPresent()) {
+            tasks = tasksService.findByProjectIdAndAssignedUserIdAsResponse(projectId, assignedTo.get());
+        } else {
+            tasks = tasksService.findByProjectIdAsResponse(projectId);
+        }
+        return ResponseEntity.ok(tasks);
     }
 
     // GET /api/projects/{projectId}/tasks/{taskId}
     @GetMapping("/{taskId}")
-    public ResponseEntity<?> getTaskById(@PathVariable Long projectId, @PathVariable Long taskId) {
+    public ResponseEntity<?> getTaskById(@PathVariable Long taskId) {
         return tasksService.findById(taskId)
                 .<ResponseEntity<?>>map(task -> ResponseEntity.ok(task))
                 .orElse(notFound("Task not found"));

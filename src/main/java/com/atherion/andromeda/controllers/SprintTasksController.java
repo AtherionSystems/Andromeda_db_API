@@ -1,6 +1,7 @@
 package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.dto.CreateSprintTaskRequest;
+import com.atherion.andromeda.dto.SprintStoryAssignmentResponse;
 import com.atherion.andromeda.dto.UpdateSprintTaskRequest;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.model.SprintStoryAssignment;
@@ -16,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @RestController
 @RequestMapping({
@@ -32,24 +32,21 @@ public class SprintTasksController {
 
     @GetMapping
     public ResponseEntity<?> getSprintTasks(@PathVariable Long projectId, @PathVariable Long sprintId) {
-        Sprint sprint = findSprintInProject(projectId, sprintId);
-        if (sprint == null) {
+        if (findSprintInProject(projectId, sprintId) == null) {
             return notFound("Sprint not found");
         }
-        return ResponseEntity.ok(sprintStoryAssignmentService.findBySprintId(sprintId));
+        return ResponseEntity.ok(sprintStoryAssignmentService.findBySprintIdAsResponse(sprintId));
     }
 
     @GetMapping("/{sprintTaskId}")
     public ResponseEntity<?> getSprintTaskById(@PathVariable Long projectId,
                                                @PathVariable Long sprintId,
                                                @PathVariable Long sprintTaskId) {
-        Sprint sprint = findSprintInProject(projectId, sprintId);
-        if (sprint == null) {
+        if (findSprintInProject(projectId, sprintId) == null) {
             return notFound("Sprint not found");
         }
-
-        return sprintStoryAssignmentService.findById(sprintTaskId)
-                .filter(st -> st.getSprint().getId().equals(sprintId))
+        return sprintStoryAssignmentService.findByIdAsResponse(sprintTaskId)
+                .filter(st -> st.sprintId().equals(sprintId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(notFound("Sprint task not found"));
     }
@@ -82,7 +79,8 @@ public class SprintTasksController {
         sprintTask.setAddedAt(LocalDateTime.now());
         sprintTask.setIsActive(1);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(sprintStoryAssignmentService.save(sprintTask));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(SprintStoryAssignmentResponse.from(sprintStoryAssignmentService.save(sprintTask)));
     }
 
     @PatchMapping("/{sprintTaskId}")
@@ -120,15 +118,14 @@ public class SprintTasksController {
             sprintTask.setMovedTo(movedTo);
         }
 
-        return ResponseEntity.ok(sprintStoryAssignmentService.save(sprintTask));
+        return ResponseEntity.ok(SprintStoryAssignmentResponse.from(sprintStoryAssignmentService.save(sprintTask)));
     }
 
     @DeleteMapping("/{sprintTaskId}")
     public ResponseEntity<?> deleteSprintTask(@PathVariable Long projectId,
                                               @PathVariable Long sprintId,
                                               @PathVariable Long sprintTaskId) {
-        Sprint sprint = findSprintInProject(projectId, sprintId);
-        if (sprint == null) {
+        if (findSprintInProject(projectId, sprintId) == null) {
             return notFound("Sprint not found");
         }
 
