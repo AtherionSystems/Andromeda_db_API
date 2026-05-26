@@ -25,4 +25,20 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
             WHERE t.project.id = :projectId
             """)
     List<TaskAssignment> findAllByProjectIdWithDetails(@Param("projectId") Long projectId);
+
+    @Query("""
+            SELECT ta FROM TaskAssignment ta
+            JOIN FETCH ta.task t
+            JOIN FETCH ta.user u
+            WHERE t.project.id = :projectId AND u.id = :userId
+            """)
+    List<TaskAssignment> findAllByProjectIdAndUserIdWithDetails(@Param("projectId") Long projectId, @Param("userId") Long userId);
+
+    @Query("""
+            SELECT ta FROM TaskAssignment ta
+            JOIN FETCH ta.task t
+            JOIN FETCH ta.user u
+            WHERE t.id = :taskId
+            """)
+    List<TaskAssignment> findByTaskIdWithDetails(@Param("taskId") Long taskId);
 }

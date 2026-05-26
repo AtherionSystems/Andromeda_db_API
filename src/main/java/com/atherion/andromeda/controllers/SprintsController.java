@@ -1,5 +1,6 @@
 package com.atherion.andromeda.controllers;
 
+import com.atherion.andromeda.dto.SprintResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.services.ProjectService;
@@ -11,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/sprints")
@@ -27,14 +27,14 @@ public class SprintsController {
         if (projectService.findById(projectId).isEmpty()) {
             return notFound("Project not found");
         }
-        return ResponseEntity.ok(sprintService.findByProjectId(projectId));
+        return ResponseEntity.ok(sprintService.findByProjectIdAsResponse(projectId));
     }
 
     // GET /api/projects/{projectId}/sprints/{sprintId}
     @GetMapping("/{sprintId}")
     public ResponseEntity<?> getSprintById(@PathVariable Long projectId, @PathVariable Long sprintId) {
-        return sprintService.findById(sprintId)
-                .filter(sprint -> sprint.getProject().getId().equals(projectId))
+        return sprintService.findByIdAsResponse(sprintId)
+                .filter(s -> s.projectId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(notFound("Sprint not found"));
     }
@@ -56,8 +56,7 @@ public class SprintsController {
             sprint.setStatus("planned");
         }
 
-        Sprint saved = sprintService.save(sprint);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(SprintResponse.from(sprintService.save(sprint)));
     }
 
     // PATCH /api/projects/{projectId}/sprints/{sprintId}
@@ -81,7 +80,7 @@ public class SprintsController {
         if (sprintDetails.getActualEnd() != null) sprint.setActualEnd(sprintDetails.getActualEnd());
         sprint.setUpdatedAt(LocalDateTime.now());
 
-        return ResponseEntity.ok(sprintService.save(sprint));
+        return ResponseEntity.ok(SprintResponse.from(sprintService.save(sprint)));
     }
 
     // DELETE /api/projects/{projectId}/sprints/{sprintId}

@@ -3,8 +3,10 @@ package com.atherion.andromeda.controllers;
 import com.atherion.andromeda.dto.CreateProjectRequest;
 import com.atherion.andromeda.dto.ProjectResponse;
 import com.atherion.andromeda.dto.UpdateProjectRequest;
+import com.atherion.andromeda.dto.UserStoryResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.services.ProjectService;
+import com.atherion.andromeda.services.UserStoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import static com.atherion.andromeda.util.ControllerUtils.*;
@@ -13,7 +15,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -22,6 +23,7 @@ import java.util.Optional;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final UserStoryService userStoryService;
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAll() {
@@ -29,6 +31,11 @@ public class ProjectController {
                 .map(ProjectResponse::from)
                 .toList();
         return ResponseEntity.ok(projects);
+    }
+
+    @GetMapping("/{id}/stories")
+    public ResponseEntity<List<UserStoryResponse>> getStoriesByProject(@PathVariable Long id) {
+        return ResponseEntity.ok(userStoryService.findByProjectIdAsResponse(id));
     }
 
     @GetMapping("/{id}")

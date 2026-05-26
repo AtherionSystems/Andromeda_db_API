@@ -28,20 +28,26 @@ public class TaskAssignmentsController {
     private final TasksService tasksService;
     private final UserService userService;
 
+    // GET /api/projects/{projectId}/task-assignments
+    // GET /api/projects/{projectId}/task-assignments?userId={id}
     @GetMapping("/task-assignments")
     public ResponseEntity<List<TaskAssignmentResponse>> getAllAssignmentsByProject(
-            @PathVariable Long projectId) {
-        List<TaskAssignmentResponse> response = taskAssignmentService
-                .findAllByProjectIdWithDetails(projectId)
-                .stream()
-                .map(TaskAssignmentResponse::from)
-                .toList();
-        return ResponseEntity.ok(response);
+            @PathVariable Long projectId,
+            @RequestParam Optional<Long> userId) {
+        List<TaskAssignment> assignments = userId.isPresent()
+                ? taskAssignmentService.findAllByProjectIdAndUserIdWithDetails(projectId, userId.get())
+                : taskAssignmentService.findAllByProjectIdWithDetails(projectId);
+        return ResponseEntity.ok(assignments.stream().map(TaskAssignmentResponse::from).toList());
     }
 
     @GetMapping("/tasks/{taskId}/assignments")
-    public ResponseEntity<List<TaskAssignment>> findByTaskId(@PathVariable Long taskId) {
-        return ResponseEntity.ok(taskAssignmentService.findByTaskId(taskId));
+    public ResponseEntity<List<TaskAssignmentResponse>> findByTaskId(@PathVariable Long taskId) {
+        return ResponseEntity.ok(
+                taskAssignmentService.findByTaskIdWithDetails(taskId)
+                        .stream()
+                        .map(TaskAssignmentResponse::from)
+                        .toList()
+        );
     }
 
     @PostMapping("/tasks/{taskId}/assignments")

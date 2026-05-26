@@ -17,6 +17,8 @@ public class TaskAssignmentService {
     public List<TaskAssignment> findAll() { return taskAssignmentRepository.findAll(); }
     public List<TaskAssignment> findByTaskId(Long taskId) { return taskAssignmentRepository.findByTask_Id(taskId); }
     public List<TaskAssignment> findAllByProjectIdWithDetails(Long projectId) { return taskAssignmentRepository.findAllByProjectIdWithDetails(projectId); }
+    public List<TaskAssignment> findAllByProjectIdAndUserIdWithDetails(Long projectId, Long userId) { return taskAssignmentRepository.findAllByProjectIdAndUserIdWithDetails(projectId, userId); }
+    public List<TaskAssignment> findByTaskIdWithDetails(Long taskId) { return taskAssignmentRepository.findByTaskIdWithDetails(taskId); }
     public Optional<TaskAssignment> findByTaskIdAndUserId(Long taskId, Long userId) { return taskAssignmentRepository.findByTask_IdAndUser_Id(taskId, userId); }
     public Optional<TaskAssignment> findById(Long id) { return taskAssignmentRepository.findById(id); }
     public TaskAssignment save(TaskAssignment taskAssignment) { return taskAssignmentRepository.save(taskAssignment); }
