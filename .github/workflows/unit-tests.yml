@@ -19,7 +19,7 @@ jobs:
           cache: maven
 
       - name: Run unit tests (no DB required)
-        run: mvn test -Dtest="!*IntegrationTest,!AndromedaBackendApplicationTests" --no-transfer-progress
+        run: mvn test -Dtest="!*IntegrationTest,!AndromedaBackendApplicationTests" -Dspring.profiles.active=local --no-transfer-progress
 
       - name: Upload Surefire reports
         if: always()

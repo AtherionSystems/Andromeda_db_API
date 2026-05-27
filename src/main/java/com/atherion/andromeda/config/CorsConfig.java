@@ -11,11 +11,22 @@ import java.util.List;
 @Configuration
 public class CorsConfig {
 
+    /**
+     * CorsConfigurationSource — NOT CorsFilter.
+     *
+     * SecurityConfig calls .cors(withDefaults()), which instructs Spring Security to
+     * look for a CorsConfigurationSource bean and apply it inside the security filter
+     * chain.  Using a CorsFilter bean instead would register a second, independent CORS
+     * filter and process every request twice.
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
 
-        config.setAllowedOrigins(List.of(
+        // setAllowedOriginPatterns instead of setAllowedOrigins:
+        // identical behaviour for explicit URLs, but also supports wildcard ("*") without
+        // conflicting with allowCredentials if we ever open it up.
+        config.setAllowedOriginPatterns(List.of(
                 "http://localhost:5173",
                 "http://localhost:3000",
                 "http://159.54.154.149",
@@ -23,9 +34,22 @@ public class CorsConfig {
                 "http://163.192.143.43",
                 "http://160.34.209.27"
         ));
-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+
+        // PATCH is required — the API has several @PatchMapping endpoints.
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+
+        // Allow all request headers, including Authorization (Bearer token).
         config.setAllowedHeaders(List.of("*"));
-        config.setAllowCredentials(true);
+
+        // Expose Location so the browser can read the URI returned in 201 Created responses.
+        config.setExposedHeaders(List.of("Location"));
+
+        // JWT Bearer tokens live in the Authorization header, not in cookies.
+        // allowCredentials controls cookie / HTTP-auth propagation — not Bearer tokens —
+        // so false is correct for a stateless JWT API.
+        config.setAllowCredentials(false);
+
+        // Cache the preflight (OPTIONS) result for 1 hour to reduce browser round-trips.
         config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

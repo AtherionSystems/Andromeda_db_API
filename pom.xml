@@ -118,6 +118,12 @@
             <version>6.9.7.1</version>
         </dependency>
 
+        <!-- Spring Boot Starter for OAuth2 Resource Server (for JWT authentication) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>
