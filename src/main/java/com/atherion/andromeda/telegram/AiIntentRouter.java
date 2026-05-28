@@ -1,6 +1,7 @@
 package com.atherion.andromeda.telegram;
 
 import com.atherion.andromeda.services.AiService;
+import com.atherion.andromeda.services.RagService;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ public class AiIntentRouter {
               /analyze <projectId>            — AI health analysis of a project
               /fix <taskId>                   — AI guidance to resolve a task
               /pingai                         — test AI backend connectivity
+              /rag_query                      — open question about the project (stories, tasks, sprints, status, summaries, etc.)
 
             Rules:
             - Respond ONLY with a JSON object; no markdown, no explanation, no extra text.
@@ -49,6 +51,7 @@ public class AiIntentRouter {
             - If args are empty, use: {"cmd": "/command_name", "args": ""}
             - When the user asks about user stories for a project (not a feature), use /projectstories <projectId>.
             - When the user asks about user stories for a feature, use /userstories <featureId>.
+            - When the user asks an open question about the project (e.g. "what tasks are pending?", "summarize the sprint", "which stories are in progress?"), use /rag_query with args "".
             - If you cannot map the message to any command: {"cmd": "none", "args": ""}
             - Always use numeric IDs in args. Use the known entities and active context listed below to resolve names to IDs.
             - If the user refers to "the project", "this project", "it", or omits an entity ID and one is active, use the active entity's ID.
@@ -61,6 +64,7 @@ public class AiIntentRouter {
     );
 
     private final AiService                  aiService;
+    private final RagService                 ragService;
     private final BotCommandHandler          commandHandler;
     private final ConversationSessionManager sessionManager;
     private final EntityResolver             entityResolver;
@@ -91,6 +95,17 @@ public class AiIntentRouter {
 
         if ("none".equals(cmd) || cmd.isBlank()) return null;
 
+        // RAG path: open question answered via vector search + AI
+        if ("rag_query".equals(cmd) || "/rag_query".equals(cmd)) {
+            session.addToHistory("user", naturalText);
+            String ragAnswer = ragService.query(naturalText, session.getActiveProjectId());
+            if (ragAnswer != null) {
+                session.addToHistory("assistant", truncate(ragAnswer));
+                sessionManager.persistHistory(telegramUserId);
+            }
+            return ragAnswer;
+        }
+
         // Resolve empty or named args using session context and entity resolver
         args = resolveArgs(cmd, args, session);
 
@@ -99,7 +114,7 @@ public class AiIntentRouter {
 
         // Save this exchange to history and persist
         session.addToHistory("user", naturalText);
-        session.addToHistory("assistant", fullCommand);
+        session.addToHistory("assistant", truncate(fullCommand));
         sessionManager.persistHistory(telegramUserId);
 
         return commandHandler.handle(fullCommand, telegramUserId);
@@ -208,5 +223,10 @@ public class AiIntentRouter {
 
     private static boolean isNumeric(String s) {
         return s.matches("\\d+");
+    }
+
+    private static String truncate(String text) {
+        if (text == null) return null;
+        return text.length() > 200 ? text.substring(0, 200) + "…" : text;
     }
 }

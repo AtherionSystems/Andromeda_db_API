@@ -3,8 +3,9 @@ package com.atherion.andromeda;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.repositories.ConversationSessionRepository;
 import com.atherion.andromeda.repositories.UserRepository;
-import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.AiService;
+import com.atherion.andromeda.services.ProjectService;
+import com.atherion.andromeda.services.RagService;
 import com.atherion.andromeda.telegram.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -33,6 +34,7 @@ import static org.mockito.Mockito.*;
 class AiIntentRouterMemoryTest {
 
     @Mock private AiService                      aiService;
+    @Mock private RagService                     ragService;
     @Mock private BotCommandHandler              commandHandler;
     @Mock private ProjectService                 projectService;
     @Mock private ConversationSessionRepository  sessionRepo;
@@ -55,7 +57,7 @@ class AiIntentRouterMemoryTest {
                 mock(com.atherion.andromeda.services.TasksService.class),
                 mock(com.atherion.andromeda.services.UserStoryService.class)
         );
-        router = new AiIntentRouter(aiService, commandHandler, sessionManager, entityResolver);
+        router = new AiIntentRouter(aiService, ragService, commandHandler, sessionManager, entityResolver);
         when(aiService.isEnabled()).thenReturn(true);
     }
 
