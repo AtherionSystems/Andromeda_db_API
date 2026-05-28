@@ -1,13 +1,7 @@
 package com.atherion.andromeda.config;
 
 import com.atherion.andromeda.security.JwtAuthFilter;
-import com.nimbusds.jose.JWSAlgorithm;
-import com.nimbusds.jose.jwk.JWKSet;
-import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
-import com.nimbusds.jose.jwk.source.JWKSource;
-import com.nimbusds.jose.proc.JWSVerificationKeySelector;
-import com.nimbusds.jose.proc.SecurityContext;
-import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import com.atherion.andromeda.security.OAuthUserSyncFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
@@ -22,7 +16,21 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.springframework.security.oauth2.core.OAuth2TokenValidator;
+import org.springframework.security.oauth2.core.DelegatingOAuth2TokenValidator;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtTimestampValidator;
 import java.io.InputStream;
 
 import static org.springframework.security.config.Customizer.withDefaults;
@@ -33,6 +41,7 @@ import static org.springframework.security.config.Customizer.withDefaults;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final OAuthUserSyncFilter oAuthUserSyncFilter;
 
     @Bean
     @Profile("prod")
@@ -43,14 +52,15 @@ public class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/", "/health", "/actuator/health", "/.well-known/jwks.json").permitAll()
+                        .requestMatchers("/", "/health", "/actuator/health").permitAll()
                         .anyRequest().authenticated()
                 )
-                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)));
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.decoder(jwtDecoder)))
+                .addFilterAfter(oAuthUserSyncFilter,
+                        org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter.class);
 
         return http.build();
     }
-
     @Bean
     @Profile("prod")
     public FilterRegistrationBean<JwtAuthFilter> disableJwtFilterInProd() {
@@ -68,7 +78,12 @@ public class SecurityConfig {
         ImmutableJWKSet<SecurityContext> jwkSource = new ImmutableJWKSet<>(jwkSet);
         DefaultJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         jwtProcessor.setJWSKeySelector(new JWSVerificationKeySelector<>(JWSAlgorithm.RS256, jwkSource));
-        return new NimbusJwtDecoder(jwtProcessor);
+        NimbusJwtDecoder decoder = new NimbusJwtDecoder(jwtProcessor);
+        OAuth2TokenValidator<Jwt> withoutIssuer = new DelegatingOAuth2TokenValidator<>(
+                new JwtTimestampValidator()
+        );
+        decoder.setJwtValidator(withoutIssuer);
+        return decoder;
     }
 
     @Bean

@@ -50,8 +50,6 @@ public class BotCommandHandler {
     private final BCryptPasswordEncoder passwordEncoder;
     private final AiService             aiService;
 
-    // ── entry point ──────────────────────────────────────────────────────────
-
     @Transactional
     public String handle(String rawText, Long telegramUserId) {
         String text  = rawText.trim();
@@ -62,30 +60,28 @@ public class BotCommandHandler {
         String args = parts.length > 1 ? parts[1].trim() : "";
 
         return switch (cmd.toLowerCase()) {
-            // ── info ──────────────────────────────────────────────────────
             case "/help"          -> handleHelp();
             case "/ping"          -> "Pong! Andromeda API is up and running.";
             case "/health"        -> "Status: OK\nService: Andromeda Backend API\nBot: Connected";
-            // ── auth ──────────────────────────────────────────────────────
+            case "/whoami"        -> handleWhoami(telegramUserId);
             case "/link"          -> handleLink(args, telegramUserId);
-            // ── read ──────────────────────────────────────────────────────
-            case "/projects"        -> handleProjects();
-            case "/project"         -> handleProject(args);
-            case "/capabilities"    -> handleCapabilities(args);
-            case "/capability"      -> handleCapability(args);
-            case "/features"        -> handleFeatures(args);
-            case "/feature"         -> handleFeature(args);
-            case "/projectstories"  -> handleProjectStories(args);
-            case "/userstories"     -> handleUserStories(args);
-            case "/userstory"       -> handleUserStory(args);
-            case "/tasks"           -> handleTasks(args);
-            case "/task"            -> handleTask(args);
-            case "/members"         -> handleMembers(args);
-            case "/sprints"         -> handleSprints(args);
-            case "/sprinttasks"     -> handleSprintTasks(args);
-            case "/users"           -> handleUsers();
-            case "/user"            -> handleUser(args);
-            // ── write ─────────────────────────────────────────────────────
+            case "/linkoci"       -> handleLinkOci(args, telegramUserId);
+            case "/projects"      -> handleProjects();
+            case "/project"       -> handleProject(args);
+            case "/capabilities"  -> handleCapabilities(args);
+            case "/capability"    -> handleCapability(args);
+            case "/features"      -> handleFeatures(args);
+            case "/feature"       -> handleFeature(args);
+            case "/projectstories"-> handleProjectStories(args);
+            case "/userstories"   -> handleUserStories(args);
+            case "/userstory"     -> handleUserStory(args);
+            case "/tasks"         -> handleTasks(args);
+            case "/task"          -> handleTask(args);
+            case "/members"       -> handleMembers(args);
+            case "/sprints"       -> handleSprints(args);
+            case "/sprinttasks"   -> handleSprintTasks(args);
+            case "/users"         -> handleUsers();
+            case "/user"          -> handleUser(args);
             case "/newproject"    -> handleNewProject(args, telegramUserId);
             case "/newsprint"     -> handleNewSprint(args, telegramUserId);
             case "/newtask"       -> handleNewTask(args, telegramUserId);
@@ -96,7 +92,6 @@ public class BotCommandHandler {
             case "/taskpriority"  -> handleTaskPriority(args, telegramUserId);
             case "/projectstatus" -> handleProjectStatus(args, telegramUserId);
             case "/addmember"     -> handleAddMember(args, telegramUserId);
-            // ── AI ────────────────────────────────────────────────────────────
             case "/pingai"        -> handlePingAi();
             case "/suggest"       -> handleSuggest(args);
             case "/analyze"       -> handleAnalyze(args);
@@ -105,15 +100,15 @@ public class BotCommandHandler {
         };
     }
 
-    // ── help ─────────────────────────────────────────────────────────────────
-
     private String handleHelp() {
         return """
                 Andromeda Bot — Commands
                 ════════════════════════
 
                 SETUP
-                /link <username> <password>   Link your account
+                /link <username> <password>     Link account (legacy)
+                /linkoci <oci-email>            Link account via OCI OAuth
+                /whoami                         Check your linked account
 
                 READ  (hierarchy: Project → Capabilities → Features → User Stories → Tasks)
                 /projects                     List all projects
@@ -133,7 +128,7 @@ public class BotCommandHandler {
                 /users                        List all users
                 /user <id>                    User details
 
-                WRITE  (requires /link)
+                WRITE  (requires /link or /linkoci)
                 /newproject <name> [| desc] [| status]
                 /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
                 /newtask <projectId> | <title> | <estimatedHours> [| priority]
@@ -163,12 +158,6 @@ public class BotCommandHandler {
                 Max est. hours : 4.0 h per task""";
     }
 
-    // ── auth ─────────────────────────────────────────────────────────────────
-
-    /**
-     * /link <username> <password>
-     * Authenticates the user with BCrypt and stores their Telegram ID.
-     */
     private String handleLink(String args, Long telegramUserId) {
         if (telegramUserId == null)
             return "Cannot identify your Telegram account. Please try again.";
@@ -184,32 +173,74 @@ public class BotCommandHandler {
         if (user == null || !passwordEncoder.matches(password, user.getPasswordHash()))
             return "Invalid username or password.";
 
-        // already linked to this same account — idempotent
         if (telegramUserId.equals(user.getTelegramId()))
             return "Already linked to @" + user.getUsername() + ". Welcome back, " + user.getName() + "!";
 
-        // Telegram ID claimed by a different account
         if (userService.telegramIdExists(telegramUserId))
             return "This Telegram account is already linked to a different user. " +
-                   "Contact an admin to unlink it.";
+                    "Contact an admin to unlink it.";
 
         user.setTelegramId(telegramUserId);
         userService.save(user);
 
         return "Linked! Welcome, " + user.getName() + " (@" + user.getUsername() + ").\n" +
-               "You can now use all write commands.";
+                "You can now use all write commands.";
     }
 
-    /** Resolves the calling Telegram user to a DB User, or returns null. */
+    private String handleWhoami(Long telegramUserId) {
+        if (telegramUserId == null)
+            return "Cannot identify your Telegram account.";
+
+        User user = userService.findByTelegramId(telegramUserId).orElse(null);
+        if (user == null)
+            return "Not linked.\nUse /linkoci <oci-email> to link your account.";
+
+        String authMethod = user.getIamSub() != null ? "OCI OAuth" : "Legacy password";
+
+        return String.format(
+                "Linked account\n" +
+                        "───────────────\n" +
+                        "Name:   %s\n" +
+                        "Email:  %s\n" +
+                        "Auth:   %s\n" +
+                        "ID:     %d",
+                user.getName(), user.getEmail(), authMethod, user.getId());
+    }
+
+    private String handleLinkOci(String args, Long telegramUserId) {
+        if (telegramUserId == null)
+            return "Cannot identify your Telegram account. Please try again.";
+
+        String email = args.trim().toLowerCase();
+        if (email.isBlank())
+            return "Usage: /linkoci <your-oci-email>\nExample: /linkoci a01234567@tec.mx";
+
+        User user = userService.findByEmail(email).orElse(null);
+        if (user == null)
+            return "No account found for " + email + ".\nMake sure you have logged in to Andromeda via OCI at least once.";
+
+        if (user.getIamSub() == null)
+            return "Account " + email + " has not completed OCI OAuth login yet.\nLog in via the web app first, then try /linkoci again.";
+
+        if (telegramUserId.equals(user.getTelegramId()))
+            return "Already linked to " + user.getEmail() + ". Welcome back, " + user.getName() + "!";
+
+        if (userService.telegramIdExists(telegramUserId))
+            return "This Telegram account is already linked to a different user. Contact an admin to unlink it.";
+
+        user.setTelegramId(telegramUserId);
+        userService.save(user);
+
+        return "Linked! Welcome, " + user.getName() + ".\nYou can now use all write commands.";
+    }
+
     private Optional<User> linkedUser(Long telegramUserId) {
         if (telegramUserId == null) return Optional.empty();
         return userService.findByTelegramId(telegramUserId);
     }
 
     private static final String NOT_LINKED =
-            "You must link your Telegram account first.\nUse: /link <username> <password>";
-
-    // ── read commands ─────────────────────────────────────────────────────────
+            "You must link your Telegram account first.\nUse: /linkoci <oci-email> or /link <username> <password>";
 
     private String handleProjects() {
         List<Project> projects = projectService.findAll();
@@ -258,15 +289,8 @@ public class BotCommandHandler {
         Tasks t = opt.get();
         Project proj = t.getProject();
         return String.format(
-                "Task #%d\n" +
-                "Title:       %s\n" +
-                "Project:     #%d %s\n" +
-                "Priority:    %s\n" +
-                "Status:      %s\n" +
-                "Est. hours:  %s\n" +
-                "Act. hours:  %s\n" +
-                "Start:       %s\n" +
-                "Due:         %s",
+                "Task #%d\nTitle:       %s\nProject:     #%d %s\nPriority:    %s\nStatus:      %s\n" +
+                        "Est. hours:  %s\nAct. hours:  %s\nStart:       %s\nDue:         %s",
                 t.getId(), t.getTitle(),
                 proj.getId(), proj.getName(),
                 nvl(t.getPriority(), "—"), nvl(t.getStatus(), "—"),
@@ -303,10 +327,6 @@ public class BotCommandHandler {
         return sb.toString().trim();
     }
 
-    /**
-     * /sprinttasks <projectId>
-     * Displays the task board for the last 2 sprints, grouped by sprint.
-     */
     private String handleSprintTasks(String args) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprinttasks <projectId>";
@@ -321,7 +341,6 @@ public class BotCommandHandler {
 
         String currentSprint = null;
         for (SprintTaskRow r : rows) {
-            // sprint header whenever sprint changes
             if (!r.getSprintName().equals(currentSprint)) {
                 if (currentSprint != null) sb.append("\n");
                 currentSprint = r.getSprintName();
@@ -329,7 +348,6 @@ public class BotCommandHandler {
                 sb.append("────────────────────────────────\n");
             }
 
-            // status badge
             String badge = switch (nvl(r.getStatus(), "")) {
                 case "in_progress" -> "IN_PROG";
                 case "review"      -> "REVIEW ";
@@ -346,10 +364,7 @@ public class BotCommandHandler {
 
             sb.append(String.format("[%d] %s\n", r.getId(), r.getTitle()));
             sb.append(String.format("    %s | %s | %s%s | %s\n",
-                    badge,
-                    nvl(r.getPriority(), "—"),
-                    est, act,
-                    assignees));
+                    badge, nvl(r.getPriority(), "—"), est, act, assignees));
         }
 
         return sb.toString().trim();
@@ -410,7 +425,7 @@ public class BotCommandHandler {
         if (features.isEmpty()) return "No features found for capability #" + capabilityId + ".";
         StringBuilder sb = new StringBuilder(
                 "Features for capability #" + capabilityId + " — " + cap.getName() +
-                " (" + features.size() + ")\n───────────────────────\n");
+                        " (" + features.size() + ")\n───────────────────────\n");
         for (Feature f : features)
             sb.append(String.format("[%d] %s — %s\n", f.getId(), f.getName(), nvl(f.getStatus(), "?")));
         return sb.toString().trim();
@@ -456,7 +471,7 @@ public class BotCommandHandler {
         if (stories.isEmpty()) return "No user stories found for feature #" + featureId + ".";
         StringBuilder sb = new StringBuilder(
                 "User Stories for feature #" + featureId + " — " + feature.getName() +
-                " (" + stories.size() + ")\n───────────────────────\n");
+                        " (" + stories.size() + ")\n───────────────────────\n");
         for (UserStory s : stories)
             sb.append(String.format("[%d] %s — %s | %s | %s pts\n",
                     s.getId(), s.getTitle(),
@@ -481,11 +496,6 @@ public class BotCommandHandler {
                 owner);
     }
 
-    // ── write commands ────────────────────────────────────────────────────────
-
-    /**
-     * /newproject <name> [| description] [| status]
-     */
     private String handleNewProject(String args, Long telegramUserId) {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
@@ -510,11 +520,6 @@ public class BotCommandHandler {
                 saved.getId(), saved.getName(), saved.getStatus());
     }
 
-    /**
-     * /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
-     *
-     *
-     */
     private String handleNewSprint(String args, Long telegramUserId) {
         if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
         if (args.isBlank())
@@ -570,12 +575,6 @@ public class BotCommandHandler {
                 fmt(saved.getStartDate()), fmt(saved.getDueDate()));
     }
 
-    /**
-     * /newtask <projectId> | <title> | <estimatedHours> [| priority]
-     *
-     * estimatedHours must be > 0 and <= 4.0. If > 4, the bot rejects and
-     * suggests how many subtasks to split into.
-     */
     private String handleNewTask(String args, Long telegramUserId) {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
@@ -597,17 +596,15 @@ public class BotCommandHandler {
         if (estimatedHours == null || estimatedHours.compareTo(BigDecimal.ZERO) <= 0)
             return "estimatedHours must be a positive number (e.g. 2 or 1.5).";
 
-        // 4-hour rule
         if (estimatedHours.compareTo(MAX_TASK_HOURS) > 0) {
             int subtasks = (int) Math.ceil(estimatedHours.doubleValue() / 4.0);
             return String.format(
                     "This task is estimated at %s h, which exceeds the 4 h limit.\n" +
-                    "Please split it into %d subtasks of ≤ 4 h each and add them separately.",
+                            "Please split it into %d subtasks of ≤ 4 h each and add them separately.",
                     estimatedHours, subtasks);
         }
 
         String priority = pipes.length > 3 && !pipes[3].isEmpty() ? pipes[3] : "medium";
-
         if (!VALID_TASK_PRIORITIES.contains(priority))
             return "Invalid priority '" + priority + "'. Valid: low, medium, high, critical";
 
@@ -623,19 +620,12 @@ public class BotCommandHandler {
         Tasks saved = tasksService.save(task);
 
         return String.format(
-                "Task created!\nID:          %d\nTitle:       %s\nProject:     #%d %s\n" +
-                "Priority:    %s\nEst. hours:  %s h",
+                "Task created!\nID:          %d\nTitle:       %s\nProject:     #%d %s\nPriority:    %s\nEst. hours:  %s h",
                 saved.getId(), saved.getTitle(),
                 project.getId(), project.getName(),
                 saved.getPriority(), saved.getEstimatedHours());
     }
 
-    /**
-     * /assigntask <sprintId> <taskId>
-     *
-     * Links the task to the sprint, marks it in_progress, sets start date,
-     * and auto-assigns the calling developer to the task.
-     */
     private String handleAssignTask(String args, Long telegramUserId) {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
@@ -662,7 +652,6 @@ public class BotCommandHandler {
         if (sprintStoryAssignmentService.isStoryActiveInSprint(sprintId, task.getUserStoryId()))
             return "Task #" + taskId + " is already in sprint #" + sprintId + ".";
 
-        // link task → sprint
         SprintStoryAssignment st = new SprintStoryAssignment();
         st.setSprint(sprint);
         st.setUserStoryId(task.getUserStoryId());
@@ -670,12 +659,10 @@ public class BotCommandHandler {
         st.setIsActive(1);
         sprintStoryAssignmentService.save(st);
 
-        // mark task as started
         task.setStatus("in_progress");
         if (task.getStartDate() == null) task.setStartDate(LocalDateTime.now());
         tasksService.save(task);
 
-        // auto-assign developer if not already assigned
         User dev = actor.get();
         if (taskAssignmentService.findByTaskIdAndUserId(taskId, dev.getId()).isEmpty()) {
             TaskAssignment ta = new TaskAssignment();
@@ -691,11 +678,6 @@ public class BotCommandHandler {
                 dev.getUsername());
     }
 
-    /**
-     * /completetask <taskId> <actualHours>
-     *
-     * Marks the task as done, records actual hours, and sets actual_end timestamp.
-     */
     private String handleCompleteTask(String args, Long telegramUserId) {
         Optional<User> actor = linkedUser(telegramUserId);
         if (actor.isEmpty()) return NOT_LINKED;
@@ -718,7 +700,7 @@ public class BotCommandHandler {
         task.setActualHours(actualHours);
         tasksService.save(task);
 
-        String estVsAct = "";
+        String estVsAct;
         if (task.getEstimatedHours() != null) {
             double diff = actualHours.doubleValue() - task.getEstimatedHours().doubleValue();
             String sign = diff >= 0 ? "+" : "";
@@ -732,9 +714,6 @@ public class BotCommandHandler {
                 task.getId(), task.getTitle(), nvl(previousStatus, "?"), estVsAct);
     }
 
-    /**
-     * /taskstatus <taskId> <status>
-     */
     private String handleTaskStatus(String args, Long telegramUserId) {
         if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
 
@@ -758,9 +737,6 @@ public class BotCommandHandler {
                 task.getId(), task.getTitle(), nvl(previous, "?"), status);
     }
 
-    /**
-     * /taskpriority <taskId> <priority>
-     */
     private String handleTaskPriority(String args, Long telegramUserId) {
         if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
 
@@ -784,9 +760,6 @@ public class BotCommandHandler {
                 task.getId(), task.getTitle(), nvl(previous, "?"), priority);
     }
 
-    /**
-     * /projectstatus <projectId> <status>
-     */
     private String handleProjectStatus(String args, Long telegramUserId) {
         if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
 
@@ -810,9 +783,6 @@ public class BotCommandHandler {
                 project.getId(), project.getName(), nvl(previous, "?"), status);
     }
 
-    /**
-     * /addmember <projectId> <userId> [role]
-     */
     private String handleAddMember(String args, Long telegramUserId) {
         if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
 
@@ -846,12 +816,6 @@ public class BotCommandHandler {
                 project.getId(), project.getName(), user.getUsername(), saved.getRole());
     }
 
-    // ── AI commands ───────────────────────────────────────────────────────────
-
-    /**
-     * /pingai
-     * Tests AI backend reachability and reports round-trip latency.
-     */
     private String handlePingAi() {
         if (!aiService.isEnabled())
             return "AI is disabled (agent.ai.enabled=false).";
@@ -862,19 +826,15 @@ public class BotCommandHandler {
 
         return String.format(
                 "AI Backend — Online\nModel:   %s\nLatency: %d ms\n\n" +
-                "Try AI commands:\n" +
-                "/suggest <projectId> — improvement suggestions\n" +
-                "/analyze <projectId> — project health analysis\n" +
-                "/fix <taskId>        — task resolution guidance\n\n" +
-                "Or ask in plain English — I'll figure it out.\n" +
-                "Debug: try mentioning guacamole in any message.",
+                        "Try AI commands:\n" +
+                        "/suggest <projectId> — improvement suggestions\n" +
+                        "/analyze <projectId> — project health analysis\n" +
+                        "/fix <taskId>        — task resolution guidance\n\n" +
+                        "Or ask in plain English — I'll figure it out.\n" +
+                        "Debug: try mentioning guacamole in any message.",
                 aiService.getModel(), ms);
     }
 
-    /**
-     * /suggest <projectId>
-     * Fetches project data and asks the AI for actionable improvement suggestions.
-     */
     private String handleSuggest(String args) {
         if (!aiService.isEnabled()) return "AI is currently disabled.";
         Long projectId = parseLong(args);
@@ -883,49 +843,49 @@ public class BotCommandHandler {
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) return "Project #" + projectId + " not found.";
 
-        List<Tasks> tasks            = tasksService.findByProjectId(projectId);
-        List<Sprint> sprints         = sprintService.findByProjectId(projectId);
-        List<ProjectMember> members  = projectMemberService.findByProjectId(projectId);
-        List<UserStory> stories      = userStoryService.findByProjectId(projectId);
+        List<Tasks> tasks           = tasksService.findByProjectId(projectId);
+        List<Sprint> sprints        = sprintService.findByProjectId(projectId);
+        List<ProjectMember> members = projectMemberService.findByProjectId(projectId);
+        List<UserStory> stories     = userStoryService.findByProjectId(projectId);
 
-        long todo         = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
-        long inProgress   = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
-        long review       = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
-        long done         = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
-        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
-        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long todo       = tasks.stream().filter(t -> "todo".equals(t.getStatus())).count();
+        long inProgress = tasks.stream().filter(t -> "in_progress".equals(t.getStatus())).count();
+        long review     = tasks.stream().filter(t -> "review".equals(t.getStatus())).count();
+        long done       = tasks.stream().filter(t -> "done".equals(t.getStatus())).count();
+        long critical   = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long activeSp   = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
         long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
         long storiesInPrg = stories.stream().filter(s -> "in_progress".equals(s.getStatus())).count();
 
         StringBuilder ctx = new StringBuilder();
         ctx.append("Project: ").append(project.getName())
-           .append(" (ID: ").append(projectId).append(", status: ")
-           .append(nvl(project.getStatus(), "unknown")).append(")\n");
+                .append(" (ID: ").append(projectId).append(", status: ")
+                .append(nvl(project.getStatus(), "unknown")).append(")\n");
         ctx.append("User Stories: ").append(stories.size()).append(" total — ")
-           .append("done=").append(storiesDone).append(", in_progress=").append(storiesInPrg).append("\n");
+                .append("done=").append(storiesDone).append(", in_progress=").append(storiesInPrg).append("\n");
         ctx.append("Tasks: ").append(tasks.size()).append(" total — ")
-           .append("todo=").append(todo).append(", in_progress=").append(inProgress)
-           .append(", review=").append(review).append(", done=").append(done).append("\n");
+                .append("todo=").append(todo).append(", in_progress=").append(inProgress)
+                .append(", review=").append(review).append(", done=").append(done).append("\n");
         ctx.append("Critical priority tasks: ").append(critical).append("\n");
         ctx.append("Sprints: ").append(sprints.size()).append(" (").append(activeSp).append(" active)\n");
         ctx.append("Members: ").append(members.size()).append("\n");
         if (!stories.isEmpty()) {
             ctx.append("Recent user stories:\n");
             stories.stream().limit(4).forEach(s ->
-                ctx.append("  [").append(nvl(s.getStatus(), "?")).append("] ")
-                   .append(s.getTitle()).append(" (").append(nvl(s.getPriority(), "?")).append(")\n"));
+                    ctx.append("  [").append(nvl(s.getStatus(), "?")).append("] ")
+                            .append(s.getTitle()).append(" (").append(nvl(s.getPriority(), "?")).append(")\n"));
         }
         if (!tasks.isEmpty()) {
             ctx.append("Recent tasks:\n");
             tasks.stream().limit(4).forEach(t ->
-                ctx.append("  [").append(nvl(t.getStatus(), "?")).append("] ")
-                   .append(t.getTitle()).append(" (").append(nvl(t.getPriority(), "?")).append(")\n"));
+                    ctx.append("  [").append(nvl(t.getStatus(), "?")).append("] ")
+                            .append(t.getTitle()).append(" (").append(nvl(t.getPriority(), "?")).append(")\n"));
         }
 
         String answer = aiService.chat(
                 "You are a project management expert for the Andromeda system. " +
-                "Analyze the project data and give 3-5 concise, actionable suggestions to improve project health. " +
-                "Format as a numbered list. Be specific and practical.",
+                        "Analyze the project data and give 3-5 concise, actionable suggestions to improve project health. " +
+                        "Format as a numbered list. Be specific and practical.",
                 ctx.toString());
 
         return answer != null
@@ -933,10 +893,6 @@ public class BotCommandHandler {
                 : "AI did not respond. Try again later.";
     }
 
-    /**
-     * /analyze <projectId>
-     * Fetches project data and asks the AI for a health analysis with risk identification.
-     */
     private String handleAnalyze(String args) {
         if (!aiService.isEnabled()) return "AI is currently disabled.";
         Long projectId = parseLong(args);
@@ -953,13 +909,13 @@ public class BotCommandHandler {
         long notDone      = tasks.stream().filter(t -> !"done".equals(t.getStatus())).count();
         long overdueCount = tasks.stream().filter(t ->
                 t.getDueDate() != null &&
-                t.getDueDate().isBefore(LocalDateTime.now()) &&
-                !"done".equals(t.getStatus())).count();
-        long critical     = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
-        long highPri      = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
-        long activeSp     = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
-        long completedSp  = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
-        long storiesDone  = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
+                        t.getDueDate().isBefore(LocalDateTime.now()) &&
+                        !"done".equals(t.getStatus())).count();
+        long critical    = tasks.stream().filter(t -> "critical".equals(t.getPriority())).count();
+        long highPri     = tasks.stream().filter(t -> "high".equals(t.getPriority())).count();
+        long activeSp    = sprints.stream().filter(s -> "active".equals(s.getStatus())).count();
+        long completedSp = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
+        long storiesDone = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
 
         double taskCompletion  = tasks.isEmpty()   ? 0.0
                 : (double) tasks.stream().filter(t -> "done".equals(t.getStatus())).count() / tasks.size() * 100.0;
@@ -968,22 +924,22 @@ public class BotCommandHandler {
 
         StringBuilder ctx = new StringBuilder();
         ctx.append("Project: ").append(project.getName())
-           .append(" | Status: ").append(nvl(project.getStatus(), "unknown")).append("\n");
+                .append(" | Status: ").append(nvl(project.getStatus(), "unknown")).append("\n");
         ctx.append("User Stories: ").append(stories.size())
-           .append(" | Completed: ").append(String.format("%.0f%%", storyCompletion)).append("\n");
+                .append(" | Completed: ").append(String.format("%.0f%%", storyCompletion)).append("\n");
         ctx.append("Task completion rate: ").append(String.format("%.0f%%", taskCompletion)).append("\n");
         ctx.append("Open tasks: ").append(notDone).append(" | Overdue: ").append(overdueCount).append("\n");
         ctx.append("Critical: ").append(critical).append(" | High priority: ").append(highPri).append("\n");
         ctx.append("Sprints: active=").append(activeSp).append(", completed=").append(completedSp).append("\n");
         ctx.append("Team size: ").append(members.size()).append("\n");
         ctx.append("Start: ").append(fmt(project.getStartDate()))
-           .append(" | End: ").append(fmt(project.getEndDate())).append("\n");
+                .append(" | End: ").append(fmt(project.getEndDate())).append("\n");
 
         String answer = aiService.chat(
                 "You are a project health analyst for the Andromeda system. " +
-                "Given the project metrics, provide: 1) an overall health score (0-10), " +
-                "2) top 2-3 risks identified, 3) one key recommendation. " +
-                "Be concise — maximum 200 words.",
+                        "Given the project metrics, provide: 1) an overall health score (0-10), " +
+                        "2) top 2-3 risks identified, 3) one key recommendation. " +
+                        "Be concise — maximum 200 words.",
                 ctx.toString());
 
         return answer != null
@@ -991,10 +947,6 @@ public class BotCommandHandler {
                 : "AI did not respond. Try again later.";
     }
 
-    /**
-     * /fix <taskId>
-     * Fetches task details and asks the AI for practical resolution guidance.
-     */
     private String handleFix(String args) {
         if (!aiService.isEnabled()) return "AI is currently disabled.";
         Long taskId = parseLong(args);
@@ -1024,16 +976,14 @@ public class BotCommandHandler {
 
         String answer = aiService.chat(
                 "You are a technical project management assistant for the Andromeda system. " +
-                "Given a task description, provide practical, step-by-step guidance on how to approach, " +
-                "implement, or resolve it. Be specific and actionable. Maximum 150 words.",
+                        "Given a task description, provide practical, step-by-step guidance on how to approach, " +
+                        "implement, or resolve it. Be specific and actionable. Maximum 150 words.",
                 ctx.toString());
 
         return answer != null
                 ? "AI Guidance — Task #" + task.getId() + " " + task.getTitle() + ":\n\n" + answer
                 : "AI did not respond. Try again later.";
     }
-
-    // ── helpers ───────────────────────────────────────────────────────────────
 
     private String[] splitPipes(String s, int limit) {
         String[] raw = s.split("\\s*\\|\\s*", limit);
@@ -1064,9 +1014,7 @@ public class BotCommandHandler {
         if (s == null || s.isBlank()) return null;
         String value = s.trim();
         try {
-            if (value.length() == 10) {
-                return java.time.LocalDate.parse(value).atStartOfDay();
-            }
+            if (value.length() == 10) return java.time.LocalDate.parse(value).atStartOfDay();
             return LocalDateTime.parse(value);
         } catch (Exception e) {
             return null;
