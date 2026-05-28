@@ -2,16 +2,19 @@ package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.SprintService;
 import lombok.RequiredArgsConstructor;
-import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.Map;
+
+import static com.atherion.andromeda.util.ControllerUtils.*;
 
 @RestController
 @RequestMapping("/api/projects/{projectId}/sprints")
@@ -20,58 +23,54 @@ public class SprintsController {
 
     private final SprintService sprintService;
     private final ProjectService projectService;
+    private final ProjectMemberService projectMemberService;
 
-    // GET /api/projects/{projectId}/sprints
     @GetMapping
     public ResponseEntity<?> getSprintsByProject(@PathVariable Long projectId) {
-        if (projectService.findById(projectId).isEmpty()) {
-            return notFound("Project not found");
-        }
+        if (projectService.findById(projectId).isEmpty()) return notFound("Project not found");
         return ResponseEntity.ok(sprintService.findByProjectId(projectId));
     }
 
-    // GET /api/projects/{projectId}/sprints/{sprintId}
     @GetMapping("/{sprintId}")
     public ResponseEntity<?> getSprintById(@PathVariable Long projectId, @PathVariable Long sprintId) {
         return sprintService.findById(sprintId)
-                .filter(sprint -> sprint.getProject().getId().equals(projectId))
+                .filter(s -> s.getProject().getId().equals(projectId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(notFound("Sprint not found"));
     }
 
-    // POST /api/projects/{projectId}/sprints
     @PostMapping
-    public ResponseEntity<?> createSprint(@PathVariable Long projectId, @RequestBody Sprint sprint) {
-        if (sprint.getName() == null || sprint.getName().isBlank()) {
-            return badRequest("name is required");
-        }
+    public ResponseEntity<?> createSprint(@PathVariable Long projectId,
+                                          @RequestBody Sprint sprint,
+                                          @AuthenticationPrincipal Jwt jwt) {
+        if (sprint.getName() == null || sprint.getName().isBlank()) return badRequest("name is required");
 
         Project project = projectService.findById(projectId).orElse(null);
-        if (project == null) {
-            return notFound("Project not found");
-        }
+        if (project == null) return notFound("Project not found");
+
+        String iamSub = jwt.getSubject();
+        if (!projectMemberService.isManagerOrOwnerByIamSub(projectId, iamSub))
+            return forbidden("Only managers and owners can create sprints");
 
         sprint.setProject(project);
-        if (sprint.getStatus() == null) {
-            sprint.setStatus("planned");
-        }
+        if (sprint.getStatus() == null) sprint.setStatus("planned");
 
-        Sprint saved = sprintService.save(sprint);
-        return ResponseEntity.status(HttpStatus.CREATED).body(saved);
+        return ResponseEntity.status(HttpStatus.CREATED).body(sprintService.save(sprint));
     }
 
-    // PATCH /api/projects/{projectId}/sprints/{sprintId}
     @PatchMapping("/{sprintId}")
     public ResponseEntity<?> updateSprint(@PathVariable Long projectId,
                                           @PathVariable Long sprintId,
-                                          @RequestBody Sprint sprintDetails) {
+                                          @RequestBody Sprint sprintDetails,
+                                          @AuthenticationPrincipal Jwt jwt) {
         Sprint sprint = sprintService.findById(sprintId)
-                .filter(existing -> existing.getProject().getId().equals(projectId))
+                .filter(s -> s.getProject().getId().equals(projectId))
                 .orElse(null);
+        if (sprint == null) return notFound("Sprint not found");
 
-        if (sprint == null) {
-            return notFound("Sprint not found");
-        }
+        String iamSub = jwt.getSubject();
+        if (!projectMemberService.isManagerOrOwnerByIamSub(projectId, iamSub))
+            return forbidden("Only managers and owners can update sprints");
 
         if (sprintDetails.getName() != null) sprint.setName(sprintDetails.getName());
         if (sprintDetails.getGoal() != null) sprint.setGoal(sprintDetails.getGoal());
@@ -84,16 +83,18 @@ public class SprintsController {
         return ResponseEntity.ok(sprintService.save(sprint));
     }
 
-    // DELETE /api/projects/{projectId}/sprints/{sprintId}
     @DeleteMapping("/{sprintId}")
-    public ResponseEntity<?> deleteSprint(@PathVariable Long projectId, @PathVariable Long sprintId) {
+    public ResponseEntity<?> deleteSprint(@PathVariable Long projectId,
+                                          @PathVariable Long sprintId,
+                                          @AuthenticationPrincipal Jwt jwt) {
         Sprint sprint = sprintService.findById(sprintId)
-                .filter(existing -> existing.getProject().getId().equals(projectId))
+                .filter(s -> s.getProject().getId().equals(projectId))
                 .orElse(null);
+        if (sprint == null) return notFound("Sprint not found");
 
-        if (sprint == null) {
-            return notFound("Sprint not found");
-        }
+        String iamSub = jwt.getSubject();
+        if (!projectMemberService.isManagerOrOwnerByIamSub(projectId, iamSub))
+            return forbidden("Only managers and owners can delete sprints");
 
         sprintService.deleteById(sprintId);
         return ResponseEntity.noContent().build();

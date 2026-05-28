@@ -4,17 +4,21 @@ import com.atherion.andromeda.dto.CreateProjectRequest;
 import com.atherion.andromeda.dto.ProjectResponse;
 import com.atherion.andromeda.dto.UpdateProjectRequest;
 import com.atherion.andromeda.model.Project;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.ProjectService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import static com.atherion.andromeda.util.ControllerUtils.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
+
+import static com.atherion.andromeda.util.ControllerUtils.*;
 
 @RestController
 @RequestMapping({"/api/projects", "/projects"})
@@ -22,19 +26,19 @@ import java.util.Optional;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final ProjectMemberService projectMemberService;
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAll() {
-        List<ProjectResponse> projects = projectService.findAll().stream()
+        return ResponseEntity.ok(projectService.findAll().stream()
                 .map(ProjectResponse::from)
-                .toList();
-        return ResponseEntity.ok(projects);
+                .toList());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable Long id) {
         return projectService.findById(id)
-                .<ResponseEntity<?>>map(project -> ResponseEntity.ok(ProjectResponse.from(project)))
+                .<ResponseEntity<?>>map(p -> ResponseEntity.ok(ProjectResponse.from(p)))
                 .orElse(notFound("Project not found"));
     }
 
@@ -46,17 +50,19 @@ public class ProjectController {
         project.setStatus(Optional.ofNullable(request.status()).orElse("active"));
         project.setStartDate(request.startDate());
         project.setEndDate(request.endDate());
-
         return ResponseEntity.status(HttpStatus.CREATED).body(ProjectResponse.from(projectService.save(project)));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<?> patch(@PathVariable Long id,
-                                   @Valid @RequestBody UpdateProjectRequest request) {
+                                   @Valid @RequestBody UpdateProjectRequest request,
+                                   @AuthenticationPrincipal Jwt jwt) {
         Optional<Project> projectOpt = projectService.findById(id);
-        if (projectOpt.isEmpty()) {
-            return notFound("Project not found");
-        }
+        if (projectOpt.isEmpty()) return notFound("Project not found");
+
+        String iamSub = jwt.getSubject();
+        if (!projectMemberService.isManagerOrOwnerByIamSub(id, iamSub))
+            return forbidden("Only managers and owners can update this project");
 
         Project project = projectOpt.get();
         applyPatch(project, request);
@@ -64,10 +70,14 @@ public class ProjectController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable Long id) {
-        if (projectService.findById(id).isEmpty()) {
-            return notFound("Project not found");
-        }
+    public ResponseEntity<?> delete(@PathVariable Long id,
+                                    @AuthenticationPrincipal Jwt jwt) {
+        if (projectService.findById(id).isEmpty()) return notFound("Project not found");
+
+        String iamSub = jwt.getSubject();
+        if (!projectMemberService.isManagerOrOwnerByIamSub(id, iamSub))
+            return forbidden("Only managers and owners can delete this project");
+
         projectService.deleteById(id);
         return ResponseEntity.noContent().build();
     }

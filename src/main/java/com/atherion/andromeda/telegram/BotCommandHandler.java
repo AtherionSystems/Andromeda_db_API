@@ -129,16 +129,16 @@ public class BotCommandHandler {
                 /user <id>                    User details
 
                 WRITE  (requires /link or /linkoci)
-                /newproject <name> [| desc] [| status]
-                /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]
-                /newtask <projectId> | <title> | <estimatedHours> [| priority]
-                /assigntask <sprintId> <taskId>
-                /addsprinttask <sprintId> <taskId>
-                /completetask <taskId> <actualHours>
-                /taskstatus <taskId> <status>
-                /taskpriority <taskId> <priority>
-                /projectstatus <projectId> <status>
-                /addmember <projectId> <userId> [role]
+                /newproject <name> [| desc] [| status]        (any linked user)
+                /newsprint <projectId> | <name> ...           (manager/owner only)
+                /newtask <projectId> | <title> | <hours>      (any linked user)
+                /assigntask <sprintId> <taskId>               (any linked user)
+                /addsprinttask <sprintId> <taskId>            (any linked user)
+                /completetask <taskId> <actualHours>          (any linked user)
+                /taskstatus <taskId> <status>                 (any linked user)
+                /taskpriority <taskId> <priority>             (any linked user)
+                /projectstatus <projectId> <status>           (manager/owner only)
+                /addmember <projectId> <userId> [role]        (manager/owner only)
 
                 AI
                 /pingai                       Test AI backend connectivity
@@ -147,7 +147,6 @@ public class BotCommandHandler {
                 /fix <taskId>                 AI task resolution guidance
 
                 TIP: You can also message me in plain English!
-                e.g. "show me tasks in project 2" or "what's the status of task 5"
 
                 VALUES
                 Project status : active · paused · completed · cancelled
@@ -177,14 +176,12 @@ public class BotCommandHandler {
             return "Already linked to @" + user.getUsername() + ". Welcome back, " + user.getName() + "!";
 
         if (userService.telegramIdExists(telegramUserId))
-            return "This Telegram account is already linked to a different user. " +
-                    "Contact an admin to unlink it.";
+            return "This Telegram account is already linked to a different user. Contact an admin to unlink it.";
 
         user.setTelegramId(telegramUserId);
         userService.save(user);
 
-        return "Linked! Welcome, " + user.getName() + " (@" + user.getUsername() + ").\n" +
-                "You can now use all write commands.";
+        return "Linked! Welcome, " + user.getName() + " (@" + user.getUsername() + ").\nYou can now use all write commands.";
     }
 
     private String handleWhoami(Long telegramUserId) {
@@ -198,12 +195,7 @@ public class BotCommandHandler {
         String authMethod = user.getIamSub() != null ? "OCI OAuth" : "Legacy password";
 
         return String.format(
-                "Linked account\n" +
-                        "───────────────\n" +
-                        "Name:   %s\n" +
-                        "Email:  %s\n" +
-                        "Auth:   %s\n" +
-                        "ID:     %d",
+                "Linked account\n───────────────\nName:   %s\nEmail:  %s\nAuth:   %s\nID:     %d",
                 user.getName(), user.getEmail(), authMethod, user.getId());
     }
 
@@ -239,8 +231,17 @@ public class BotCommandHandler {
         return userService.findByTelegramId(telegramUserId);
     }
 
+    private boolean isManagerOrOwner(Long projectId, Long telegramUserId) {
+        return linkedUser(telegramUserId)
+                .map(u -> projectMemberService.isManagerOrOwner(projectId, u.getId()))
+                .orElse(false);
+    }
+
     private static final String NOT_LINKED =
             "You must link your Telegram account first.\nUse: /linkoci <oci-email> or /link <username> <password>";
+
+    private static final String NOT_MANAGER =
+            "You must be a manager or owner of this project to perform this action.";
 
     private String handleProjects() {
         List<Project> projects = projectService.findAll();
@@ -356,8 +357,7 @@ public class BotCommandHandler {
             };
 
             String assignees = (r.getAssignees() != null && !r.getAssignees().isBlank())
-                    ? "@" + r.getAssignees().replace(", ", ", @")
-                    : "—";
+                    ? "@" + r.getAssignees().replace(", ", ", @") : "—";
 
             String est = r.getEstimatedHours() != null ? r.getEstimatedHours() + "h est" : "";
             String act = r.getActualHours()    != null ? " / " + r.getActualHours() + "h act" : "";
@@ -533,6 +533,8 @@ public class BotCommandHandler {
         if (projectId == null)
             return "Usage: /newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]";
 
+        if (!isManagerOrOwner(projectId, telegramUserId)) return NOT_MANAGER;
+
         String name = pipes[1];
         if (name.isEmpty()) return "Sprint name cannot be empty.";
 
@@ -571,8 +573,7 @@ public class BotCommandHandler {
                 "Sprint created!\nID:      %d\nName:    %s\nProject: #%d %s\nStatus:  %s\nStart:   %s\nDue:     %s",
                 saved.getId(), saved.getName(),
                 project.getId(), project.getName(),
-                saved.getStatus(),
-                fmt(saved.getStartDate()), fmt(saved.getDueDate()));
+                saved.getStatus(), fmt(saved.getStartDate()), fmt(saved.getDueDate()));
     }
 
     private String handleNewTask(String args, Long telegramUserId) {
@@ -772,6 +773,8 @@ public class BotCommandHandler {
         if (!VALID_PROJECT_STATUSES.contains(status))
             return "Invalid status '" + status + "'. Valid: active, paused, completed, cancelled";
 
+        if (!isManagerOrOwner(projectId, telegramUserId)) return NOT_MANAGER;
+
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) return "Project #" + projectId + " not found.";
 
@@ -797,6 +800,8 @@ public class BotCommandHandler {
         if (!VALID_MEMBER_ROLES.contains(role))
             return "Invalid role '" + role + "'. Valid: owner, manager, member";
 
+        if (!isManagerOrOwner(projectId, telegramUserId)) return NOT_MANAGER;
+
         Project project = projectService.findById(projectId).orElse(null);
         if (project == null) return "Project #" + projectId + " not found.";
 
@@ -817,21 +822,14 @@ public class BotCommandHandler {
     }
 
     private String handlePingAi() {
-        if (!aiService.isEnabled())
-            return "AI is disabled (agent.ai.enabled=false).";
+        if (!aiService.isEnabled()) return "AI is disabled (agent.ai.enabled=false).";
 
         long ms = aiService.ping();
-        if (ms < 0)
-            return "AI backend is not responding. Check the API key and base URL configuration.";
+        if (ms < 0) return "AI backend is not responding. Check the API key and base URL configuration.";
 
         return String.format(
                 "AI Backend — Online\nModel:   %s\nLatency: %d ms\n\n" +
-                        "Try AI commands:\n" +
-                        "/suggest <projectId> — improvement suggestions\n" +
-                        "/analyze <projectId> — project health analysis\n" +
-                        "/fix <taskId>        — task resolution guidance\n\n" +
-                        "Or ask in plain English — I'll figure it out.\n" +
-                        "Debug: try mentioning guacamole in any message.",
+                        "Try AI commands:\n/suggest <projectId>\n/analyze <projectId>\n/fix <taskId>",
                 aiService.getModel(), ms);
     }
 
@@ -917,7 +915,7 @@ public class BotCommandHandler {
         long completedSp = sprints.stream().filter(s -> "completed".equals(s.getStatus())).count();
         long storiesDone = stories.stream().filter(s -> "done".equals(s.getStatus())).count();
 
-        double taskCompletion  = tasks.isEmpty()   ? 0.0
+        double taskCompletion  = tasks.isEmpty() ? 0.0
                 : (double) tasks.stream().filter(t -> "done".equals(t.getStatus())).count() / tasks.size() * 100.0;
         double storyCompletion = stories.isEmpty() ? 0.0
                 : (double) storiesDone / stories.size() * 100.0;
@@ -1016,9 +1014,7 @@ public class BotCommandHandler {
         try {
             if (value.length() == 10) return java.time.LocalDate.parse(value).atStartOfDay();
             return LocalDateTime.parse(value);
-        } catch (Exception e) {
-            return null;
-        }
+        } catch (Exception e) { return null; }
     }
 
     private String fmt(LocalDateTime dt) {
