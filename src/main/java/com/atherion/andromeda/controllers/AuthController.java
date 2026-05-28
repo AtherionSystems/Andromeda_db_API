@@ -1,10 +1,12 @@
 package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.dto.LoginRequest;
+import com.atherion.andromeda.dto.LoginResponse;
 import com.atherion.andromeda.dto.RegisterRequest;
 import com.atherion.andromeda.dto.UserResponse;
 import com.atherion.andromeda.model.User;
 import com.atherion.andromeda.model.UserType;
+import com.atherion.andromeda.security.JwtUtil;
 import com.atherion.andromeda.services.UserService;
 import com.atherion.andromeda.services.UserTypeService;
 import jakarta.validation.Valid;
@@ -25,6 +27,7 @@ public class AuthController {
     private final UserService userService;
     private final UserTypeService userTypeService;
     private final BCryptPasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody RegisterRequest req) {
@@ -59,6 +62,6 @@ public class AuthController {
                     .body(Map.of("error", "Invalid username or password"));
         }
 
-        return ResponseEntity.ok(UserResponse.from(user));
+        return ResponseEntity.ok(LoginResponse.from(user, jwtUtil.generateToken(user)));
     }
 }

@@ -2,9 +2,7 @@ name: Unit Tests
 
 on:
   push:
-    branches: [ main, staging ]
   pull_request:
-    branches: [ main, staging ]
 
 jobs:
   unit-tests:
@@ -20,7 +18,7 @@ jobs:
           distribution: 'temurin'
           cache: maven
 
-      - name: Run unit tests (87 tests, no DB required)
+      - name: Run unit tests (no DB required)
         run: mvn test -Dtest="!*IntegrationTest,!AndromedaBackendApplicationTests" --no-transfer-progress
 
       - name: Upload Surefire reports
