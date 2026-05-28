@@ -50,6 +50,12 @@ public class AiService {
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(body)
                     .retrieve()
+                    .onStatus(status -> !status.is2xxSuccessful(), (req, res) -> {
+                        String errorBody = new String(res.getBody().readAllBytes());
+                        log.error("AI API error {} — URL: {}{} — body: {}",
+                                res.getStatusCode(), props.getBaseUrl(), "/chat/completions", errorBody);
+                        throw new RuntimeException("AI API " + res.getStatusCode());
+                    })
                     .body(String.class);
             return extractContent(raw);
         } catch (Exception e) {
@@ -152,20 +158,12 @@ public class AiService {
         return req;
     }
 
-    /**
-     * Parse the OpenAI-compatible response JSON and return the cleaned content text.
-     * Strips <think>...</think> scratchpad sections emitted by Qwen3 thinking mode.
-     */
     private String extractContent(String rawJson) {
         try {
             JsonNode root    = objectMapper.readTree(rawJson);
             JsonNode message = root.path("choices").get(0).path("message");
             String content   = message.path("content").asText("");
-
-            // Remove <think>...</think> blocks (thinking model scratchpad)
-            content = content.replaceAll("(?s)<think>.*?</think>", "").trim();
-
-            return content.isBlank() ? null : content;
+            return content.isBlank() ? null : content.trim();
         } catch (Exception e) {
             log.error("Failed to parse AI API response: {}", e.getMessage());
             return null;
