@@ -457,3 +457,114 @@ El agrupamiento tasks→assignees se hace en Java con `SprintTaskSummaryBuilder`
 3. **Colección anidada con CLOB en la entidad padre** (ej. UserStory→assignedUsers): segunda query con `WHERE id IN (...)` + merge en Java. No usar JOIN porque los CLOBs impiden DISTINCT en Oracle (ORA-22848).
 4. **Múltiples niveles de colecciones** (ej. SprintAssignment→UserStory + Tasks→Assignees): una query por nivel, merge en Java. 3 queries es el máximo razonable.
 5. **Campos `passwordHash`, `createdBy`/`updatedBy` como Long crudo**: nunca exponer en respuestas. Sustituir por nombre (`createdByName`) o eliminar si no aporta valor al cliente.
+
+---
+
+# Refactorización de Controllers — Fase 1: Respuestas de error estandarizadas
+
+## El problema
+
+Cada controller repetía los mismos patrones de respuesta de error con pequeñas variaciones:
+
+```java
+// Distintos controllers, distintos estilos — todos equivalentes pero inconsistentes
+return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+return ResponseEntity.notFound().build();                             // sin body
+return ResponseEntity.status(404).body(Map.of("message", "..."));   // clave incorrecta
+return ResponseEntity.badRequest().body(Map.of("error", "..."));
+return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "..."));
+```
+
+Esto implicaba:
+- 20+ controllers importando `HttpStatus`, `ResponseEntity` y `Map` de forma independiente.
+- Sin garantía de que la clave del body (`"error"` vs `"message"`) fuera consistente entre endpoints.
+- Agregar un nuevo tipo de error requería editar cada controller.
+
+## La solución: factory methods en `ControllerUtils`
+
+Se agregaron tres métodos estáticos a la clase `ControllerUtils` existente:
+
+```java
+public static ResponseEntity<Map<String, String>> notFound(String message) {
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", message));
+}
+
+public static ResponseEntity<Map<String, String>> badRequest(String message) {
+    return ResponseEntity.badRequest().body(Map.of("error", message));
+}
+
+public static ResponseEntity<Map<String, String>> conflict(String message) {
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
+}
+```
+
+Todos los controllers usan `import static com.atherion.andromeda.util.ControllerUtils.*`, por lo que los call sites se leen como llamadas directas sin prefijo.
+
+## Antes / Después
+
+**Antes**
+
+```java
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import java.util.Map;
+
+Optional<Project> opt = projectService.findById(id);
+if (opt.isEmpty())
+    return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Project not found"));
+
+if (projectService.nameExists(name))
+    return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", "Name already in use"));
+
+if (args.isBlank())
+    return ResponseEntity.badRequest().body(Map.of("error", "Name is required"));
+```
+
+**Después**
+
+```java
+import static com.atherion.andromeda.util.ControllerUtils.*;
+
+Optional<Project> opt = projectService.findById(id);
+if (opt.isEmpty())
+    return notFound("Project not found");
+
+if (projectService.nameExists(name))
+    return conflict("Name already in use");
+
+if (args.isBlank())
+    return badRequest("Name is required");
+```
+
+## Alcance
+
+Aplicado a los 20 controllers. Los imports de `HttpStatus`, `ResponseEntity` y `Map` se eliminaron de los controllers donde solo se usaban para respuestas de error.
+
+| Controller | Patrones reemplazados |
+|---|---|
+| `ProjectsController` | `notFound`, `badRequest`, `conflict` |
+| `TasksController` | `notFound`, `badRequest` |
+| `SprintsController` | `notFound`, `badRequest` |
+| `SprintTasksController` | `notFound`, `badRequest`, `conflict` |
+| `SprintStoryAssignmentsController` | `notFound`, `badRequest`, `conflict` |
+| `UserStoriesController` | `notFound`, `badRequest` |
+| `CapabilitiesController` | `notFound`, `badRequest` |
+| `FeaturesController` | `notFound`, `badRequest` |
+| `ProjectMembersController` | `notFound`, `badRequest`, `conflict` |
+| `UserController` | `notFound`, `badRequest` |
+| `SprintRetrospectivesController` | `notFound`, `badRequest` |
+| `StorySpilloversController` | `notFound`, `badRequest` |
+| `TechnicalDebtController` | `notFound`, `badRequest` |
+| `UserStoryDependenciesController` | `notFound`, `badRequest`, `conflict` |
+| `LogController` | `badRequest` |
+| `AuthController` | `badRequest`, `conflict` |
+
+## Contrato de respuesta de error
+
+Todos los errores ahora devuelven un body consistente:
+
+```json
+{ "error": "<mensaje legible>" }
+```
+
+La clave siempre es `"error"`. Los tests que verificaban `$.message` o `$.error` con variaciones fueron corregidos para usar `$.error` de forma uniforme.

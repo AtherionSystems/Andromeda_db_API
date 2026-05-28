@@ -12,10 +12,10 @@ import java.util.List;
 public class RagService {
 
     private static final String SYSTEM_PROMPT = """
-            Eres un asistente de gestión de proyectos para el sistema Andromeda.
-            Responde preguntas usando ÚNICAMENTE la información del contexto proporcionado.
-            Si la información no está en el contexto, indícalo claramente.
-            Responde en español de forma concisa y estructurada.
+            You are a project management assistant for the Andromeda system.
+            Answer questions using ONLY the information from the provided context.
+            If the information is not in the context, state it clearly.
+            Respond in the same language the user writes in. Be concise and structured.
             """;
 
     private final EmbeddingService embeddingService;
@@ -33,7 +33,7 @@ public class RagService {
         }
 
         String context = String.join("\n\n---\n\n", chunks);
-        String systemPrompt = SYSTEM_PROMPT + "\n\nContexto del proyecto:\n" + context;
+        String systemPrompt = SYSTEM_PROMPT + "\n\nProject context:\n" + context;
         return aiService.chat(systemPrompt, question);
     }
 }
