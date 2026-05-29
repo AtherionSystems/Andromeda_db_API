@@ -11,7 +11,8 @@ import org.springframework.stereotype.Component;
 @Setter
 public class AiProperties {
     private boolean enabled = true;
-    private String baseUrl = "https://api.groq.com/openai/v1";
+    private String baseUrl = "https://generativelanguage.googleapis.com/v1beta/openai";
     private String apiKey;
-    private String model = "qwen/qwen3-32b";
+    private String model = "gemini-flash-latest";
+    private String embeddingModel = "gemini-embedding-2";
 }

@@ -4,6 +4,7 @@ import com.atherion.andromeda.dto.SprintTaskRow;
 import com.atherion.andromeda.model.*;
 import com.atherion.andromeda.services.*;
 import com.atherion.andromeda.telegram.BotCommandHandler;
+import com.atherion.andromeda.telegram.ConversationSessionManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -50,6 +51,7 @@ class TaskLifecycleBotTest {
     @Mock private UserStoryService               userStoryService;
     @Mock private BCryptPasswordEncoder          passwordEncoder;
     @Mock private AiService                      aiService;
+    @Mock private ConversationSessionManager     sessionManager;
 
     private BotCommandHandler handler;
 
@@ -70,7 +72,7 @@ class TaskLifecycleBotTest {
                 projectMemberService, sprintService,
                 sprintStoryAssignmentService, taskAssignmentService,
                 capabilityService, featureService, userStoryService,
-                passwordEncoder, aiService
+                passwordEncoder, aiService, sessionManager
         );
 
         manager = new User();

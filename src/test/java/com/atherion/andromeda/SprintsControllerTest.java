@@ -1,6 +1,7 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.controllers.SprintsController;
+import com.atherion.andromeda.dto.SprintResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.services.ProjectMemberService;
@@ -86,7 +87,7 @@ class SprintsControllerTest {
         Project p = buildProject(1L);
         Sprint s = buildSprint(10L, p);
         when(projectService.findById(1L)).thenReturn(Optional.of(p));
-        when(sprintService.findByProjectId(1L)).thenReturn(List.of(s));
+        when(sprintService.findByProjectIdAsResponse(1L)).thenReturn(List.of(SprintResponse.from(s)));
 
         mockMvc.perform(get("/api/projects/1/sprints"))
                 .andExpect(status().isOk())
@@ -96,7 +97,7 @@ class SprintsControllerTest {
 
     @Test
     void getSprintById_notFound_returns404() throws Exception {
-        when(sprintService.findById(999L)).thenReturn(Optional.empty());
+        when(sprintService.findByIdAsResponse(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/projects/1/sprints/999"))
                 .andExpect(status().isNotFound())

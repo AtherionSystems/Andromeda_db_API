@@ -1,5 +1,6 @@
 package com.atherion.andromeda.controllers;
 
+import com.atherion.andromeda.dto.SprintResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.services.ProjectMemberService;
@@ -80,7 +81,7 @@ public class SprintsController {
         if (sprintDetails.getActualEnd() != null) sprint.setActualEnd(sprintDetails.getActualEnd());
         sprint.setUpdatedAt(LocalDateTime.now());
 
-        return ResponseEntity.ok(sprintService.save(sprint));
+        return ResponseEntity.ok(SprintResponse.from(sprintService.save(sprint)));
     }
 
     @DeleteMapping("/{sprintId}")

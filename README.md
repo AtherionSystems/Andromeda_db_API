@@ -175,3 +175,4 @@ Full command reference with response examples: [`docs/TELEGRAM_COMMANDS.md`](doc
 |---|---|
 | [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) | All REST endpoints with request/response shapes |
 | [`docs/TELEGRAM_COMMANDS.md`](docs/TELEGRAM_COMMANDS.md) | All bot commands with expected responses |
+| [`docs/DTO_REFACTORING.md`](docs/DTO_REFACTORING.md) | DTO response refactoring — before/after for Tasks, User Stories, Sprints and Sprint Assignments |

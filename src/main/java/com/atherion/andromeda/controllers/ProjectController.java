@@ -3,9 +3,11 @@ package com.atherion.andromeda.controllers;
 import com.atherion.andromeda.dto.CreateProjectRequest;
 import com.atherion.andromeda.dto.ProjectResponse;
 import com.atherion.andromeda.dto.UpdateProjectRequest;
+import com.atherion.andromeda.dto.UserStoryResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.ProjectService;
+import com.atherion.andromeda.services.UserStoryService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -33,6 +35,11 @@ public class ProjectController {
         return ResponseEntity.ok(projectService.findAll().stream()
                 .map(ProjectResponse::from)
                 .toList());
+    }
+
+    @GetMapping("/{id}/stories")
+    public ResponseEntity<List<UserStoryResponse>> getStoriesByProject(@PathVariable Long id) {
+        return ResponseEntity.ok(userStoryService.findByProjectIdAsResponse(id));
     }
 
     @GetMapping("/{id}")

@@ -89,7 +89,7 @@ class TaskAssignmentsControllerTest {
         Tasks task = buildTask(1L);
         User user = buildUser(1L);
         TaskAssignment assignment = buildAssignment(10L, task, user);
-        when(taskAssignmentService.findByTaskId(1L)).thenReturn(List.of(assignment));
+        when(taskAssignmentService.findByTaskIdWithDetails(1L)).thenReturn(List.of(assignment));
 
         mockMvc.perform(get("/api/projects/1/tasks/1/assignments"))
                 .andExpect(status().isOk())
@@ -98,7 +98,7 @@ class TaskAssignmentsControllerTest {
 
     @Test
     void getAssignmentsByTask_emptyList_returns200() throws Exception {
-        when(taskAssignmentService.findByTaskId(1L)).thenReturn(List.of());
+        when(taskAssignmentService.findByTaskIdWithDetails(1L)).thenReturn(List.of());
 
         mockMvc.perform(get("/api/projects/1/tasks/1/assignments"))
                 .andExpect(status().isOk())
