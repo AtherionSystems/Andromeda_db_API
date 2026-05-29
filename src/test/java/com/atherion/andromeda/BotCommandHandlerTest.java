@@ -76,6 +76,7 @@ class BotCommandHandlerTest {
 
         when(userService.findByTelegramId(123L)).thenReturn(Optional.of(user));
         when(projectService.findById(1L)).thenReturn(Optional.of(project));
+        when(projectMemberService.isManagerOrOwner(1L, 10L)).thenReturn(true);
         when(sprintService.save(any(Sprint.class))).thenReturn(saved);
 
         String response = handler.handle(
