@@ -29,6 +29,7 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final ProjectMemberService projectMemberService;
+    private final UserStoryService userStoryService;
 
     @GetMapping
     public ResponseEntity<List<ProjectResponse>> getAll() {

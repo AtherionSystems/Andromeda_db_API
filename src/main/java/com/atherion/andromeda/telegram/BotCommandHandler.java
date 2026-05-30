@@ -68,19 +68,19 @@ public class BotCommandHandler {
             case "/link"          -> handleLink(args, telegramUserId);
             case "/linkoci"       -> handleLinkOci(args, telegramUserId);
             case "/projects"      -> handleProjects();
-            case "/project"       -> handleProject(args);
-            case "/capabilities"  -> handleCapabilities(args);
-            case "/capability"    -> handleCapability(args);
-            case "/features"      -> handleFeatures(args);
-            case "/feature"       -> handleFeature(args);
-            case "/projectstories"-> handleProjectStories(args);
+            case "/project"       -> handleProject(args, telegramUserId);
+            case "/capabilities"  -> handleCapabilities(args, telegramUserId);
+            case "/capability"    -> handleCapability(args, telegramUserId);
+            case "/features"      -> handleFeatures(args, telegramUserId);
+            case "/feature"       -> handleFeature(args, telegramUserId);
+            case "/projectstories"-> handleProjectStories(args, telegramUserId);
             case "/userstories"   -> handleUserStories(args);
-            case "/userstory"     -> handleUserStory(args);
-            case "/tasks"         -> handleTasks(args);
-            case "/task"          -> handleTask(args);
-            case "/members"       -> handleMembers(args);
-            case "/sprints"       -> handleSprints(args);
-            case "/sprinttasks"   -> handleSprintTasks(args);
+            case "/userstory"     -> handleUserStory(args, telegramUserId);
+            case "/tasks"         -> handleTasks(args, telegramUserId);
+            case "/task"          -> handleTask(args, telegramUserId);
+            case "/members"       -> handleMembers(args, telegramUserId);
+            case "/sprints"       -> handleSprints(args, telegramUserId);
+            case "/sprinttasks"   -> handleSprintTasks(args, telegramUserId);
             case "/users"         -> handleUsers();
             case "/user"          -> handleUser(args);
             case "/newproject"    -> handleNewProject(args, telegramUserId);
@@ -338,7 +338,7 @@ public class BotCommandHandler {
         return sb.toString().trim();
     }
 
-    private String handleSprintTasks(String args) {
+    private String handleSprintTasks(String args, Long telegramUserId) {
         Long projectId = parseLong(args);
         if (projectId == null) return "Usage: /sprinttasks <projectId>";
         Project project = projectService.findById(projectId).orElse(null);
