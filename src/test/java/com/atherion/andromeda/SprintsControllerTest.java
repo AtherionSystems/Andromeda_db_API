@@ -1,11 +1,12 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.controllers.SprintsController;
-import com.atherion.andromeda.dto.SprintResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Sprint;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.SprintService;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,6 +14,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -20,6 +25,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -34,13 +41,27 @@ class SprintsControllerTest {
 
     @Mock private SprintService sprintService;
     @Mock private ProjectService projectService;
+    @Mock private ProjectMemberService projectMemberService;
     @InjectMocks private SprintsController controller;
 
     private MockMvc mockMvc;
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
+                .build();
+
+        Jwt jwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .subject("test-sub")
+                .build();
+        SecurityContextHolder.getContext().setAuthentication(new JwtAuthenticationToken(jwt));
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     private Project buildProject(Long id) {
@@ -65,7 +86,7 @@ class SprintsControllerTest {
         Project p = buildProject(1L);
         Sprint s = buildSprint(10L, p);
         when(projectService.findById(1L)).thenReturn(Optional.of(p));
-        when(sprintService.findByProjectIdAsResponse(1L)).thenReturn(List.of(SprintResponse.from(s)));
+        when(sprintService.findByProjectId(1L)).thenReturn(List.of(s));
 
         mockMvc.perform(get("/api/projects/1/sprints"))
                 .andExpect(status().isOk())
@@ -75,7 +96,7 @@ class SprintsControllerTest {
 
     @Test
     void getSprintById_notFound_returns404() throws Exception {
-        when(sprintService.findByIdAsResponse(999L)).thenReturn(Optional.empty());
+        when(sprintService.findById(999L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/projects/1/sprints/999"))
                 .andExpect(status().isNotFound())
@@ -87,6 +108,7 @@ class SprintsControllerTest {
         Project p = buildProject(1L);
         Sprint saved = buildSprint(21L, p);
         when(projectService.findById(1L)).thenReturn(Optional.of(p));
+        when(projectMemberService.isManagerOrOwnerByIamSub(anyLong(), anyString())).thenReturn(true);
         when(sprintService.save(any(Sprint.class))).thenReturn(saved);
 
         mockMvc.perform(post("/api/projects/1/sprints")
@@ -113,6 +135,7 @@ class SprintsControllerTest {
         Sprint updated = buildSprint(10L, p);
         updated.setName("Sprint Updated");
         when(sprintService.findById(10L)).thenReturn(Optional.of(existing));
+        when(projectMemberService.isManagerOrOwnerByIamSub(anyLong(), anyString())).thenReturn(true);
         when(sprintService.save(any(Sprint.class))).thenReturn(updated);
 
         mockMvc.perform(patch("/api/projects/1/sprints/10")
@@ -127,6 +150,7 @@ class SprintsControllerTest {
         Project p = buildProject(1L);
         Sprint existing = buildSprint(10L, p);
         when(sprintService.findById(10L)).thenReturn(Optional.of(existing));
+        when(projectMemberService.isManagerOrOwnerByIamSub(anyLong(), anyString())).thenReturn(true);
         doNothing().when(sprintService).deleteById(10L);
 
         mockMvc.perform(delete("/api/projects/1/sprints/10"))
