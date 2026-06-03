@@ -1,6 +1,7 @@
 package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.dto.AssignUserToTaskRequest;
+import com.atherion.andromeda.dto.TaskAssignmentResponse;
 import com.atherion.andromeda.model.TaskAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.model.User;
@@ -16,11 +17,10 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/projects/{projectId}/tasks/{taskId}/assignments")
+@RequestMapping("/api/projects/{projectId}")
 @RequiredArgsConstructor
 public class TaskAssignmentsController {
 
@@ -28,12 +28,29 @@ public class TaskAssignmentsController {
     private final TasksService tasksService;
     private final UserService userService;
 
-    @GetMapping
-    public ResponseEntity<List<TaskAssignment>> getAssignmentsByTask(@PathVariable Long taskId) {
-        return ResponseEntity.ok(taskAssignmentService.findByTaskId(taskId));
+    // GET /api/projects/{projectId}/task-assignments
+    // GET /api/projects/{projectId}/task-assignments?userId={id}
+    @GetMapping("/task-assignments")
+    public ResponseEntity<List<TaskAssignmentResponse>> getAllAssignmentsByProject(
+            @PathVariable Long projectId,
+            @RequestParam Optional<Long> userId) {
+        List<TaskAssignment> assignments = userId.isPresent()
+                ? taskAssignmentService.findAllByProjectIdAndUserIdWithDetails(projectId, userId.get())
+                : taskAssignmentService.findAllByProjectIdWithDetails(projectId);
+        return ResponseEntity.ok(assignments.stream().map(TaskAssignmentResponse::from).toList());
     }
 
-    @PostMapping
+    @GetMapping("/tasks/{taskId}/assignments")
+    public ResponseEntity<List<TaskAssignmentResponse>> findByTaskId(@PathVariable Long taskId) {
+        return ResponseEntity.ok(
+                taskAssignmentService.findByTaskIdWithDetails(taskId)
+                        .stream()
+                        .map(TaskAssignmentResponse::from)
+                        .toList()
+        );
+    }
+
+    @PostMapping("/tasks/{taskId}/assignments")
     public ResponseEntity<?> assignUserToTask(@PathVariable Long taskId,
                                               @Valid @RequestBody AssignUserToTaskRequest request) {
         Tasks task = tasksService.findById(taskId).orElse(null);
@@ -51,7 +68,7 @@ public class TaskAssignmentsController {
         return ResponseEntity.status(HttpStatus.CREATED).body(taskAssignmentService.save(assignment));
     }
 
-    @DeleteMapping("/{userId}")
+    @DeleteMapping("/tasks/{taskId}/assignments/{userId}")
     public ResponseEntity<?> removeAssignment(@PathVariable Long taskId, @PathVariable Long userId) {
         Optional<TaskAssignment> assignment = taskAssignmentService.findByTaskIdAndUserId(taskId, userId);
 

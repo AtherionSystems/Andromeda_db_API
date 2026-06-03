@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Andromeda (local)" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="andromeda-backend" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.atherion.andromeda.AndromedaBackendApplication" />
+    <option name="ACTIVE_PROFILES" value="local" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

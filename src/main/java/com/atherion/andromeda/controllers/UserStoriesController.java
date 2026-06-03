@@ -2,6 +2,7 @@ package com.atherion.andromeda.controllers;
 
 import com.atherion.andromeda.dto.CreateUserStoryRequest;
 import com.atherion.andromeda.dto.UpdateUserStoryRequest;
+import com.atherion.andromeda.dto.UserStoryResponse;
 import com.atherion.andromeda.model.Feature;
 import com.atherion.andromeda.model.User;
 import com.atherion.andromeda.model.UserStory;
@@ -36,7 +37,7 @@ public class UserStoriesController {
         if (feature == null) {
             return notFound("Feature not found");
         }
-        return ResponseEntity.ok(userStoryService.findByFeatureId(featureId));
+        return ResponseEntity.ok(userStoryService.findByFeatureIdAsResponse(featureId));
     }
 
     @GetMapping("/{storyId}")
@@ -44,10 +45,8 @@ public class UserStoriesController {
                                      @PathVariable Long capabilityId,
                                      @PathVariable Long featureId,
                                      @PathVariable Long storyId) {
-        return userStoryService.findById(storyId)
-                .filter(s -> s.getFeature().getId().equals(featureId)
-                        && s.getFeature().getCapability().getId().equals(capabilityId)
-                        && s.getFeature().getCapability().getProject().getId().equals(projectId))
+        return userStoryService.findByIdAsResponse(storyId)
+                .filter(s -> s.featureId().equals(featureId))
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElse(notFound("User story not found"));
     }

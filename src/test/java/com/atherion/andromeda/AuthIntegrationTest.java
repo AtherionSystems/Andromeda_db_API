@@ -145,12 +145,14 @@ class AuthIntegrationTest {
 
     @Test
     @Order(6)
-    void login_correctCredentials_returns200AndUserResponse() throws Exception {
+    void login_correctCredentials_returns200AndLoginResponse() throws Exception {
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson("auth_user", "secret123")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.username").value("auth_user"))
+                .andExpect(jsonPath("$.token").isNotEmpty())     // JWT must be present
+                .andExpect(jsonPath("$.token").isString())
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
     }
 

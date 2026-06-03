@@ -2,7 +2,8 @@
 
 Spring Boot REST API for project and task management, backed by Oracle Cloud Database, with an integrated Telegram bot for quick interactions.
 
-This is for a trigger test and deployment validation in OCI.
+> 📘 **Onboarding (ES):** para una visión completa del proyecto en español, empieza por [`docs/OVERVIEW.md`](docs/OVERVIEW.md).
+
 ---
 
 ## Table of Contents
@@ -174,5 +175,13 @@ Full command reference with response examples: [`docs/TELEGRAM_COMMANDS.md`](doc
 
 | File | Contents |
 |---|---|
+| [`docs/OVERVIEW.md`](docs/OVERVIEW.md) | **Onboarding (ES)** — project overview and entry point |
+| [`docs/MODELO_DE_DATOS.md`](docs/MODELO_DE_DATOS.md) | **(ES)** Tables, agile hierarchy, enums, relations and migrations V1–V7 |
+| [`docs/SEGURIDAD_Y_AUTENTICACION.md`](docs/SEGURIDAD_Y_AUTENTICACION.md) | **(ES)** dev/prod profiles, JWT, OAuth2/OCI IAM, JWKS, CORS |
+| [`docs/IA_Y_RAG.md`](docs/IA_Y_RAG.md) | **(ES)** AI layer, AI commands, RAG and conversational memory |
+| [`docs/BOT_TELEGRAM.md`](docs/BOT_TELEGRAM.md) | **(ES)** Bot architecture, intent router and command catalog |
+| [`docs/DESPLIEGUE_E_INFRAESTRUCTURA.md`](docs/DESPLIEGUE_E_INFRAESTRUCTURA.md) | **(ES)** Docker, OCIR, OKE/k8s, OCI DevOps, GitHub Actions |
+| [`docs/GUIA_DE_DESARROLLO.md`](docs/GUIA_DE_DESARROLLO.md) | **(ES)** How to run, structure, conventions and testing |
 | [`docs/API_ENDPOINTS.md`](docs/API_ENDPOINTS.md) | All REST endpoints with request/response shapes |
 | [`docs/TELEGRAM_COMMANDS.md`](docs/TELEGRAM_COMMANDS.md) | All bot commands with expected responses |
+| [`docs/DTO_REFACTORING.md`](docs/DTO_REFACTORING.md) | DTO response refactoring — before/after for Tasks, User Stories, Sprints and Sprint Assignments |

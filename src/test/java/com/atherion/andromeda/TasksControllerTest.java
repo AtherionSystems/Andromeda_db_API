@@ -1,6 +1,7 @@
 package com.atherion.andromeda;
 
 import com.atherion.andromeda.controllers.TasksController;
+import com.atherion.andromeda.dto.TaskResponse;
 import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.services.ProjectService;
@@ -60,7 +61,7 @@ class TasksControllerTest {
     void getTasksByProject_returns200WithList() throws Exception {
         Project project = buildProject(1L);
         Tasks task = buildTask(1L, project);
-        when(tasksService.findByProjectId(1L)).thenReturn(List.of(task));
+        when(tasksService.findByProjectIdAsResponse(1L)).thenReturn(List.of(TaskResponse.from(task)));
 
         mockMvc.perform(get("/api/projects/1/tasks"))
                 .andExpect(status().isOk())

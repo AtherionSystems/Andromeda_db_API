@@ -44,7 +44,7 @@ public class User {
 
     @Size(max = 255)
     @NotNull
-    @Column(name = "PASSWORD_HASH", nullable = false)
+    @Column(name = "PASSWORD_HASH")
     private String passwordHash;
 
     @Size(max = 255)
@@ -58,6 +58,10 @@ public class User {
 
     @Column(name = "TELEGRAM_ID", unique = true)
     private Long telegramId;
+
+    @Size(max = 200)
+    @Column(name = "IAM_SUB", length = 200, unique = true)
+    private String iamSub;
 
     @ColumnDefault("CURRENT_TIMESTAMP")
     @Column(name = "CREATED_AT")

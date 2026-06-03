@@ -1,6 +1,6 @@
-// SprintService.java
 package com.atherion.andromeda.services;
 
+import com.atherion.andromeda.dto.SprintResponse;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.repositories.SprintRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,4 +19,12 @@ public class SprintService {
     public Optional<Sprint> findById(Long id) { return sprintRepository.findById(id); }
     public Sprint save(Sprint sprint) { return sprintRepository.save(sprint); }
     public void deleteById(Long id) { sprintRepository.deleteById(id); }
+
+    public List<SprintResponse> findByProjectIdAsResponse(Long projectId) {
+        return sprintRepository.findByProjectIdAsResponse(projectId);
+    }
+
+    public Optional<SprintResponse> findByIdAsResponse(Long id) {
+        return sprintRepository.findByIdAsResponse(id);
+    }
 }

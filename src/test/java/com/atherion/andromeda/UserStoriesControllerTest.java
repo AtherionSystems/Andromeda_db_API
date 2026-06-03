@@ -44,7 +44,7 @@ class UserStoriesControllerTest {
 
     @Test
     void getById_notFound_returns404() throws Exception {
-        when(userStoryService.findById(99L)).thenReturn(Optional.empty());
+        when(userStoryService.findByIdAsResponse(99L)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/projects/1/capabilities/2/features/3/stories/99"))
                 .andExpect(status().isNotFound())

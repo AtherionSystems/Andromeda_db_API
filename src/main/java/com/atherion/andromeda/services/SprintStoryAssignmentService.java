@@ -1,6 +1,11 @@
 package com.atherion.andromeda.services;
 
+import com.atherion.andromeda.dto.AssignedUserSummary;
+import com.atherion.andromeda.dto.SprintStoryAssignmentResponse;
+import com.atherion.andromeda.dto.SprintTaskAssigneeRow;
 import com.atherion.andromeda.dto.SprintTaskRow;
+import com.atherion.andromeda.dto.SprintTaskSummary;
+import com.atherion.andromeda.dto.UserStorySummary;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.model.TaskAssignment;
 import com.atherion.andromeda.model.Tasks;
@@ -9,6 +14,7 @@ import com.atherion.andromeda.repositories.SprintRepository;
 import com.atherion.andromeda.repositories.SprintStoryAssignmentRepository;
 import com.atherion.andromeda.repositories.TaskAssignmentRepository;
 import com.atherion.andromeda.repositories.TasksRepository;
+import com.atherion.andromeda.repositories.UserStoryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +34,7 @@ public class SprintStoryAssignmentService {
     private final SprintRepository sprintRepository;
     private final TasksRepository tasksRepository;
     private final TaskAssignmentRepository taskAssignmentRepository;
+    private final UserStoryRepository userStoryRepository;
 
     public List<SprintStoryAssignment> findAll() { return sprintStoryAssignmentRepository.findAll(); }
     public List<SprintStoryAssignment> findBySprintId(Long sprintId) { return sprintStoryAssignmentRepository.findBySprint_Id(sprintId); }
@@ -95,6 +102,67 @@ public class SprintStoryAssignmentService {
                 .thenComparingInt(row -> statusOrder(row.getStatus()))
                 .thenComparingInt(row -> priorityOrder(row.getPriority())));
         return new ArrayList<>(rows);
+    }
+
+    public List<SprintStoryAssignmentResponse> findBySprintIdAsResponse(Long sprintId) {
+        return enrichWithDetails(sprintStoryAssignmentRepository.findBySprintIdAsResponse(sprintId));
+    }
+
+    public Optional<SprintStoryAssignmentResponse> findByIdAsResponse(Long id) {
+        return sprintStoryAssignmentRepository.findByIdAsResponse(id)
+                .map(ssa -> enrichWithDetails(List.of(ssa)).get(0));
+    }
+
+    private List<SprintStoryAssignmentResponse> enrichWithDetails(List<SprintStoryAssignmentResponse> assignments) {
+        if (assignments.isEmpty()) return assignments;
+
+        List<Long> storyIds = assignments.stream()
+                .map(SprintStoryAssignmentResponse::userStoryId)
+                .distinct()
+                .toList();
+
+        // Query 2: tasks con assignees agrupadas por storyId → taskId
+        Map<Long, Map<Long, SprintTaskSummaryBuilder>> buildersByStory = new HashMap<>();
+        for (SprintTaskAssigneeRow row : tasksRepository.findTasksWithAssigneesByStoryIds(storyIds)) {
+            buildersByStory
+                    .computeIfAbsent(row.userStoryId(), ignored -> new HashMap<>())
+                    .computeIfAbsent(row.taskId(), ignored -> new SprintTaskSummaryBuilder(row))
+                    .addAssignee(row.assigneeUserId(), row.assigneeUserName());
+        }
+        Map<Long, List<SprintTaskSummary>> tasksByStory = new HashMap<>();
+        buildersByStory.forEach((storyId, builders) ->
+                tasksByStory.put(storyId, builders.values().stream().map(SprintTaskSummaryBuilder::build).toList()));
+
+        // Query 3: user story summaries indexadas por id
+        Map<Long, UserStorySummary> storiesById = userStoryRepository.findSummariesByIds(storyIds)
+                .stream()
+                .collect(Collectors.toMap(UserStorySummary::id, s -> s));
+
+        return assignments.stream()
+                .map(a -> a.withDetails(
+                        storiesById.get(a.userStoryId()),
+                        tasksByStory.getOrDefault(a.userStoryId(), List.of())
+                ))
+                .toList();
+    }
+
+    private static final class SprintTaskSummaryBuilder {
+        private final SprintTaskAssigneeRow base;
+        private final List<AssignedUserSummary> assignees = new ArrayList<>();
+
+        SprintTaskSummaryBuilder(SprintTaskAssigneeRow base) {
+            this.base = base;
+        }
+
+        void addAssignee(Long userId, String userName) {
+            if (userId != null) assignees.add(new AssignedUserSummary(userId, userName));
+        }
+
+        SprintTaskSummary build() {
+            return new SprintTaskSummary(base.taskId(), base.taskTitle(), base.taskPriority(),
+                    base.taskStatus(), base.taskDueDate(), base.estimatedHours(), base.actualHours(),
+                    List.copyOf(assignees));
+        }
     }
 
     public SprintStoryAssignment save(SprintStoryAssignment sprintStoryAssignment) { return sprintStoryAssignmentRepository.save(sprintStoryAssignment); }

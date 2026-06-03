@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: andromeda-blue-internal
+  namespace: andromeda
+  labels:
+    app: andromeda
+    slot: blue
+spec:
+  type: ClusterIP
+  selector:
+    app: andromeda
+    slot: blue
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080

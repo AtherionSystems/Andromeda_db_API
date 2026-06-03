@@ -23,4 +23,5 @@ public class UserService {
     public boolean usernameExists(String username) { return userRepository.existsByUsername(username); }
     public boolean emailExists(String email) { return userRepository.existsByEmail(email); }
     public boolean telegramIdExists(Long telegramId) { return userRepository.existsByTelegramId(telegramId); }
+    public Optional<User> findByEmail(String email) { return userRepository.findByEmail(email); }
 }

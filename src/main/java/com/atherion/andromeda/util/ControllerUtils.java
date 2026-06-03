@@ -21,6 +21,10 @@ public final class ControllerUtils {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
     }
 
+    public static ResponseEntity<?> forbidden(String message) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", message));
+    }
+
     public static Long asLong(Object value) {
         if (value == null) return null;
         if (value instanceof Number number) return number.longValue();

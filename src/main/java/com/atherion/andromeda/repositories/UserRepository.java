@@ -1,4 +1,3 @@
-// UserRepository.java
 package com.atherion.andromeda.repositories;
 
 import com.atherion.andromeda.model.User;
@@ -16,6 +15,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByEmail(String email);
     boolean existsByTelegramId(Long telegramId);
     Optional<User> findByUsername(String username);
+    Optional<User> findByEmail(String email);
+    Optional<User> findByIamSub(String iamSub);
     Optional<User> findByTelegramId(Long telegramId);
 
     @Modifying
