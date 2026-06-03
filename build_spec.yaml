@@ -2,12 +2,6 @@ version: 0.1
 component: build
 timeoutInSeconds: 600
 
-# Pipeline parameters (set in OCI DevOps → Pipeline Parameters):
-#   TARGET_SLOT  — "blue" or "green" (required, no default)
-#
-# These are passed automatically by the Deployment Pipeline trigger.
-# When running manually, set TARGET_SLOT in the pipeline run form.
-
 env:
   variables:
     REGION: "mx-queretaro-1"
@@ -52,8 +46,3 @@ steps:
     command: |
       docker push ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
       echo "Pushed: ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
-
-outputArtifacts:
-  - name: andromeda_image_tag
-    type: BINARY
-    location: /tmp/image_tag.txt
