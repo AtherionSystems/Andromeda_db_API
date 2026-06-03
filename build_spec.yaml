@@ -7,6 +7,8 @@ env:
     REGION: "mx-queretaro-1"
     TENANCY_NAMESPACE: "axieboiigznv"
     IMAGE_NAME: "andromeda-backend"
+    NAMESPACE: "andromeda"
+    CLUSTER_ID: "ocid1.cluster.oc1.mx-queretaro-1.aaaaaaaa4itexmvxmqsixz3xyoyokcsttqvrbfhegdbu6p7axcw32fci7h2a"
   exportedVariables:
     - IMAGE_TAG
     - TARGET_SLOT
@@ -47,3 +49,30 @@ steps:
     command: |
       docker push ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
       echo "Pushed: ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
+
+  - type: Command
+    name: "Configure kubectl"
+    timeoutInSeconds: 60
+    command: |
+      oci ce cluster create-kubeconfig \
+        --cluster-id ${CLUSTER_ID} \
+        --file $HOME/.kube/config \
+        --region ${REGION} \
+        --token-version 2.0.0 \
+        --kube-endpoint PUBLIC_ENDPOINT
+      kubectl cluster-info
+
+  - type: Command
+    name: "Update image on inactive slot"
+    timeoutInSeconds: 120
+    command: |
+      SLOT="${TARGET_SLOT:-green}"
+      IMAGE="${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
+      echo "Setting image on slot: ${SLOT} → ${IMAGE}"
+      kubectl set image deployment/andromeda-${SLOT} \
+        andromeda=${IMAGE} \
+        -n ${NAMESPACE}
+      kubectl rollout status deployment/andromeda-${SLOT} \
+        -n ${NAMESPACE} \
+        --timeout=120s
+      echo "Rollout complete on slot: ${SLOT}"
