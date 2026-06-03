@@ -7,6 +7,8 @@ env:
     REGION: "mx-queretaro-1"
     TENANCY_NAMESPACE: "axieboiigznv"
     IMAGE_NAME: "andromeda-backend"
+    TARGET_SLOT: ${TARGET_SLOT}
+    AUTH_TOKEN: ${AUTH_TOKEN}
   exportedVariables:
     - IMAGE_TAG
     - TARGET_SLOT
@@ -28,7 +30,7 @@ steps:
     command: |
       docker login ${REGION}.ocir.io \
         --username "${TENANCY_NAMESPACE}/a01571222@tec.mx" \
-        --password "${OCIR_AUTH_TOKEN}"
+        --password "${AUTH_TOKEN}"
 
   - type: Command
     name: "Build Docker image"
