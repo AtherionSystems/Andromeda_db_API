@@ -1,31 +1,59 @@
 version: 0.1
 component: build
-timeoutInSeconds: 3600
-runAs: root
+timeoutInSeconds: 600
+
+# Pipeline parameters (set in OCI DevOps → Pipeline Parameters):
+#   TARGET_SLOT  — "blue" or "green" (required, no default)
+#
+# These are passed automatically by the Deployment Pipeline trigger.
+# When running manually, set TARGET_SLOT in the pipeline run form.
 
 env:
   variables:
     REGION: "mx-queretaro-1"
-    OCIR_SERVER: "mx-queretaro-1.ocir.io"
     TENANCY_NAMESPACE: "axieboiigznv"
-    REPO_NAME: "andromeda-backend"
-    IMAGE_TAG: "latest"
+    IMAGE_NAME: "andromeda-backend"
+  exportedVariables:
+    - IMAGE_TAG
+    - TARGET_SLOT
 
 steps:
   - type: Command
-    name: "Build Docker Image"
+    name: "Set image tag"
+    timeoutInSeconds: 30
     command: |
-      docker build -t ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG} .
+      COMMIT_HASH=$(echo "${OCI_BUILD_RUN_COMMIT_HASH}" | cut -c1-7)
+      BUILD_DATE=$(date +%Y%m%d)
+      export IMAGE_TAG="${TARGET_SLOT}-${BUILD_DATE}-${COMMIT_HASH}"
+      echo "IMAGE_TAG=$IMAGE_TAG"
+      echo "TARGET_SLOT=$TARGET_SLOT"
 
   - type: Command
-    name: "Push to OCIR"
+    name: "Docker login to OCIR"
+    timeoutInSeconds: 60
     command: |
-      docker login ${OCIR_SERVER} \
-        --username "axieboiigznv/a01571222@tec.mx" \
-        --password "${AUTH_TOKEN}"
-      docker push ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
+      echo "${OCIR_AUTH_TOKEN}" | docker login \
+        ${REGION}.ocir.io \
+        --username "${TENANCY_NAMESPACE}/a01571222@tec.mx" \
+        --password-stdin
+
+  - type: Command
+    name: "Build Docker image"
+    timeoutInSeconds: 400
+    command: |
+      docker build \
+        -t ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} \
+        -f MtdrSpring/backend/Dockerfile \
+        MtdrSpring/backend
+
+  - type: Command
+    name: "Push image to OCIR"
+    timeoutInSeconds: 120
+    command: |
+      docker push ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+      echo "Pushed: ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
 
 outputArtifacts:
-  - name: andromeda_image
-    type: DOCKER_IMAGE
-    location: ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
+  - name: andromeda_image_tag
+    type: BINARY
+    location: /tmp/image_tag.txt

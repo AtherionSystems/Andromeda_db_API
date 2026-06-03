@@ -1,0 +1,1565 @@
+{
+  "info": {
+    "_postman_id": "ccfd0e30-4aa3-4a3d-a3be-cdd9b8764669",
+    "name": "Andromeda",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "43448100"
+  },
+  "item": [
+    {
+      "name": "Project",
+      "item": [
+        {
+          "name": "Projects",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ProjectID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Projects",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto Andromeda Postman\",\r\n  \"description\": \"Auditoria de endpoints\",\r\n  \"status\": \"active\",\r\n  \"startDate\": \"2026-04-14T10:00:00Z\",\r\n  \"endDate\": \"2026-06-30T18:00:00Z\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Projects",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto patch\",\r\n  \"description\": \"Proyecto de desarrollo de una aplicación web para la gestión de proyectos\",\r\n  \"status\": \"paused\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/29",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "29"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Projects",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto Andromeda Postman\",\r\n  \"description\": \"Auditoria de endpoints\",\r\n  \"status\": \"active\",\r\n  \"startDate\": \"2026-04-14T10:00:00Z\",\r\n  \"endDate\": \"2026-06-30T18:00:00Z\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/27",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "27"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Project member",
+      "item": [
+        {
+          "name": "Project members",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto patch\",\r\n  \"description\": \"Proyecto de desarrollo de una aplicación web para la gestión de proyectos\",\r\n  \"status\": \"paused\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/project-members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "project-members"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Project member ID",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto patch\",\r\n  \"description\": \"Proyecto de desarrollo de una aplicación web para la gestión de proyectos\",\r\n  \"status\": \"paused\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/project-members/21",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "project-members",
+                "21"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Project member",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"projectId\": 27,\r\n  \"userId\": 27,\r\n  \"role\": \"owner\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/project-members",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "project-members"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Project member",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"projectId\": 27,\r\n  \"userId\": 27,\r\n  \"role\": \"member\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/project-members/22",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "project-members",
+                "22"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Project member ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/project-members/22",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "project-members",
+                "22"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Task",
+      "item": [
+        {
+          "name": "ProjectTasks",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Diseñar base de datos\",\r\n  \"description\": \"Tablas principales y relaciones\",\r\n  \"status\": \"todo\",\r\n  \"priority\": \"medium\",\r\n  \"startDate\": \"2026-04-14T10:00:00Z\",\r\n  \"dueDate\": \"2026-04-20T18:00:00Z\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tasks",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"in_progress\",\r\n  \"priority\": \"critical\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/tasks/42",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "tasks",
+                "42"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "ProjectTaskId",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"in_progress\",\r\n  \"priority\": \"critical\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/tasks/42",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "tasks",
+                "42"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Task status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/tasks?status=done",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "done"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Task UserStory",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/tasks?userStoryId=64",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "userStoryId",
+                  "value": "64"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tasks AssignedTo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/tasks?assignedTo=36",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "tasks"
+              ],
+              "query": [
+                {
+                  "key": "assignedTo",
+                  "value": "36"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Task assignments",
+      "item": [
+        {
+          "name": "TaskAssignmentsID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/sprints/43/user_stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "sprints",
+                "43",
+                "user_stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TaskAssignment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"userId\": 27\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/tasks/41/assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "tasks",
+                "41",
+                "assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TaskAssignemnt",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/tasks/3/assignments/26",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "tasks",
+                "3",
+                "assignments",
+                "26"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TaskAssignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/task-assignments",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "task-assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "TaskAssignmentsByUserID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/task-assignments?userId=36",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "task-assignments"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "36"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "LogUser",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/logs?userId=27&from=2026-01-01T00:00:00&to=2026-01-30T23:59:59",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "logs"
+              ],
+              "query": [
+                {
+                  "key": "userId",
+                  "value": "27"
+                },
+                {
+                  "key": "from",
+                  "value": "2026-01-01T00:00:00"
+                },
+                {
+                  "key": "to",
+                  "value": "2026-01-30T23:59:59"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "LogProject",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/29/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "29",
+                "logs"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logs",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"userId\": 27,\r\n  \"entity\": \"task\",\r\n  \"entityId\": 41,\r\n  \"action\": \"task_event\",\r\n  \"detail\": \"detail_task_event\",\r\n  \"logDate\": \"2026-04-14T10:30:00\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "logs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User",
+      "item": [
+        {
+          "name": "Users",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UserID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/27",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "27"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UserID",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Juan P.\",\r\n  \"username\": \"juanp2\",\r\n  \"password\": \"newSecret\",\r\n  \"email\": \"juan2@example.com\",\r\n  \"phone\": \"5599999999\",\r\n  \"userTypeId\": 48\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/34",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "34"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "UserID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Juan P.\",\r\n  \"username\": \"juanp2\",\r\n  \"password\": \"newSecret\",\r\n  \"email\": \"juan2@example.com\",\r\n  \"phone\": \"5599999999\",\r\n  \"userTypeId\": 48\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/users/34",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "34"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Juan Perez\",\r\n  \"username\": \"juanp\",\r\n  \"password\": \"secret123\",\r\n  \"email\": \"juan@example.com\",\r\n  \"phone\": \"5512345678\",\r\n  \"userTypeId\": 50\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"aluce\",\r\n  \"password\": \"secret123\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sprints",
+      "item": [
+        {
+          "name": "Sprints",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"username\": \"juanp\",\r\n  \"password\": \"secret123\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "sprints"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sprint",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Sprint 1\",\r\n  \"goal\": \"Completar historias críticas\",\r\n  \"status\": \"planned\",\r\n  \"startDate\": \"2026-04-15T09:00:00\",\r\n  \"dueDate\": \"2026-04-30T18:00:00\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/28/sprints",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "28",
+                "sprints"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sprints ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/sprints/43",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "sprints",
+                "43"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Sprint tasks",
+      "item": [
+        {
+          "name": "Sprint tasks",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Sprint 1\",\r\n  \"goal\": \"Completar historias críticas\",\r\n  \"status\": \"planned\",\r\n  \"startDate\": \"2026-04-15T09:00:00\",\r\n  \"dueDate\": \"2026-04-30T18:00:00\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/sprints/42/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "sprints",
+                "42",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Sprint task",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"taskId\": \"51\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/44/sprints/2/tasks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "44",
+                "sprints",
+                "2",
+                "tasks"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Proyecto Andromeda Postman\",\r\n  \"description\": \"Auditoria de endpoints\",\r\n  \"status\": \"active\",\r\n  \"startDate\": \"2026-04-14T10:00:00Z\",\r\n  \"endDate\": \"2026-06-30T18:00:00Z\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Capabilities",
+      "item": [
+        {
+          "name": "Capabilities",
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"projectId\": 27,\r\n  \"userId\": 27,\r\n  \"role\": \"owner\"\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Capabilities ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Capabilities",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Gestión de Proyectos\",\r\n  \"description\": \"Integrar todo lo relacionado con la gestión de proyectos\",\r\n  \"status\": \"active\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Capabilities ID",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"cancelled\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Capabilities ID",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Features",
+      "item": [
+        {
+          "name": "Features",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Features ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Features",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"name\": \"Crear y administrar proyectos\",\r\n  \"description\": \"Relacionado con la gestion de proyectos por administrador\",\r\n  \"status\": \"active\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Features ID",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"cancelled\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User stories",
+      "item": [
+        {
+          "name": "User stories Flow",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1/stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User stories ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1/stories/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1",
+                "stories",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User stories",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Como administrador quiero crear proyectos para organizar equipos\",\r\n  \"description\": \"El administrador debe poder crear un proyecto desde la página web y asignar los miembros del proyecto\",\r\n  \"acceptanceCriteria\": \"Debe crearse el proyecto y tener asignado a los miembros del proyecto\",\r\n  \"priority\": \"high\",\r\n  \"status\": \"todo\",\r\n  \"storyPoints\": 5,\r\n  \"createdById\": 36,\r\n  \"ownerId\": 110\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1/stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User stories ID",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"status\": \"in_progress\",\r\n  \"storyPoints\": 8,\r\n  \"updatedById\": 36\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1/stories/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1",
+                "stories",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User Stories Project",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User story dependencies",
+      "item": []
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/dashboard?projectId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "dashboard"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "User story assignments",
+      "item": [
+        {
+          "name": "User story assignments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/capabilities/2/features/1/stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "capabilities",
+                "2",
+                "features",
+                "1",
+                "stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User story assignments ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/134/sprints/43/user_stories/58",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "134",
+                "sprints",
+                "43",
+                "user_stories",
+                "58"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "User story assignments",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Como administrador quiero crear proyectos para organizar equipos\",\r\n  \"description\": \"El administrador debe poder crear un proyecto desde la página web y asignar los miembros del proyecto\",\r\n  \"acceptanceCriteria\": \"Debe crearse el proyecto y tener asignado a los miembros del proyecto\",\r\n  \"priority\": \"high\",\r\n  \"status\": \"todo\",\r\n  \"storyPoints\": 5,\r\n  \"createdById\": 36,\r\n  \"ownerId\": 110\r\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/projects/1/sprints/2/user_stories",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "projects",
+                "1",
+                "sprints",
+                "2",
+                "user_stories"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "New Request",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RAG",
+      "item": [
+        {
+          "name": "Test Embed",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/rag/test-embed",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "rag",
+                "test-embed"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ingest RAG",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/admin/rag/ingest?projectId=134",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "admin",
+                "rag",
+                "ingest"
+              ],
+              "query": [
+                {
+                  "key": "projectId",
+                  "value": "134"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "default"
+    }
+  ]
+}
