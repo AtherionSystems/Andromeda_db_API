@@ -118,6 +118,8 @@ else
   echo -n "  WALLET_KEYSTORE_PASSWORD: ";     read -rs WALLET_KS;     echo ""
   echo -n "  TELEGRAM_BOT_TOKEN: ";           read -rs TG_TOKEN;      echo ""
   echo -n "  TELEGRAM_BOT_USERNAME: ";        read -r  TG_USER
+  echo -n "  JWT_SECRET: ";                   read -rs JWT_SECRET;    echo ""
+  echo -n "  OAUTH2_ISSUER_URI: ";            read -r  OAUTH2_URI
 
   kubectl create secret generic andromeda-secrets \
     --from-literal=DB_USERNAME="$DB_USERNAME" \
@@ -126,6 +128,8 @@ else
     --from-literal=WALLET_KEYSTORE_PASSWORD="$WALLET_KS" \
     --from-literal=TELEGRAM_BOT_TOKEN="$TG_TOKEN" \
     --from-literal=TELEGRAM_BOT_USERNAME="$TG_USER" \
+    --from-literal=JWT_SECRET="$JWT_SECRET" \
+    --from-literal=OAUTH2_ISSUER_URI="$OAUTH2_URI" \
     -n "$NAMESPACE"
   ok "andromeda-secrets created."
 fi
@@ -154,17 +158,14 @@ fi
 # =============================================================================
 info "Step 7: Apply Blue-Green Kubernetes manifests"
 
-# Deployments
 kubectl apply -f "$K8S_DIR/andromeda-deployment-blue.yaml"
 kubectl apply -f "$K8S_DIR/andromeda-deployment-green.yaml"
 ok "Deployments applied (blue + green)."
 
-# Internal services (ClusterIP — for smoke tests)
 kubectl apply -f "$K8S_DIR/andromeda-service-blue-internal.yaml"
 kubectl apply -f "$K8S_DIR/andromeda-service-green-internal.yaml"
 ok "Internal services applied."
 
-# Active service (LoadBalancer — public)
 kubectl apply -f "$K8S_DIR/andromeda-service-active.yaml"
 ok "Active LoadBalancer service applied."
 
@@ -173,8 +174,6 @@ ok "Active LoadBalancer service applied."
 # =============================================================================
 info "Step 8: Restore active slot"
 
-# Read from local state file written by blue-green-swap.sh.
-# Defaults to 'blue' on first ever bringup.
 if [[ -f ".bluegreen-state" ]]; then
   ACTIVE_SLOT=$(cat .bluegreen-state)
   ok "Read active slot from .bluegreen-state: $ACTIVE_SLOT"
@@ -184,21 +183,18 @@ else
   echo "$ACTIVE_SLOT" > .bluegreen-state
 fi
 
-# Validate value
 if [[ "$ACTIVE_SLOT" != "blue" && "$ACTIVE_SLOT" != "green" ]]; then
   echo "  WARNING: .bluegreen-state contains invalid value '$ACTIVE_SLOT'. Defaulting to 'blue'."
   ACTIVE_SLOT="blue"
   echo "$ACTIVE_SLOT" > .bluegreen-state
 fi
 
-# Patch the Service selector to the correct slot
 kubectl patch service andromeda-service \
   -n "$NAMESPACE" \
   --type='json' \
   -p="[{\"op\":\"replace\",\"path\":\"/spec/selector/slot\",\"value\":\"$ACTIVE_SLOT\"}]"
 ok "Service selector patched → slot=$ACTIVE_SLOT"
 
-# Recreate ConfigMap (cluster was deleted, so it no longer exists)
 kubectl create configmap bluegreen-state \
   --from-literal=active-slot="$ACTIVE_SLOT" \
   -n "$NAMESPACE" \
