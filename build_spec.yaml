@@ -51,21 +51,30 @@ steps:
       echo "Pushed: ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
 
   - type: Command
-    name: "Configure kubectl"
-    timeoutInSeconds: 60
+    name: "Install OCI CLI and configure kubectl"
+    timeoutInSeconds: 120
     command: |
+      # Install OCI CLI
+      curl -fsSL https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh | \
+        bash -s -- --accept-all-defaults --install-dir /tmp/oci-cli --exec-dir /tmp/oci-bin
+      export PATH="/tmp/oci-bin:$PATH"
+
+      # Configure kubectl using instance principal auth
       oci ce cluster create-kubeconfig \
         --cluster-id ${CLUSTER_ID} \
         --file $HOME/.kube/config \
         --region ${REGION} \
         --token-version 2.0.0 \
-        --kube-endpoint PUBLIC_ENDPOINT
+        --kube-endpoint PUBLIC_ENDPOINT \
+        --auth instance_principal
+
       kubectl cluster-info
 
   - type: Command
     name: "Update image on inactive slot"
     timeoutInSeconds: 120
     command: |
+      export PATH="/tmp/oci-bin:$PATH"
       SLOT="${TARGET_SLOT:-green}"
       IMAGE="${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"
       echo "Setting image on slot: ${SLOT} → ${IMAGE}"
