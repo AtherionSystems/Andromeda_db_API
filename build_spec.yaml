@@ -38,8 +38,8 @@ steps:
     command: |
       docker build \
         -t ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} \
-        -f /workspace/GitHubConn/MtdrSpring/backend/Dockerfile \
-        /workspace/GitHubConn/MtdrSpring/backend
+        -f /workspace/GitHubConn/Dockerfile \
+        /workspace/GitHubConn
 
   - type: Command
     name: "Push image to OCIR"
