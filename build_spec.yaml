@@ -18,7 +18,7 @@ steps:
     command: |
       echo "DEBUG TARGET_SLOT=${TARGET_SLOT}"
       echo "DEBUG AUTH_TOKEN length=${#AUTH_TOKEN}"
-      COMMIT_HASH=$(echo "${OCI_BUILD_RUN_COMMIT_HASH}" | cut -c1-7)
+      COMMIT_HASH=$(git -C GitHubConn rev-parse --short HEAD 2>/dev/null || echo "noref")
       BUILD_DATE=$(date +%Y%m%d)
       SLOT="${TARGET_SLOT:-green}"
       export IMAGE_TAG="${SLOT}-${BUILD_DATE}-${COMMIT_HASH}"
