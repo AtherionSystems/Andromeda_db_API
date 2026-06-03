@@ -1,0 +1,22 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: andromeda-service
+  namespace: andromeda
+  annotations:
+    oci.oraclecloud.com/load-balancer-type: "lb"
+    service.beta.kubernetes.io/oci-load-balancer-subnet1: "ocid1.subnet.oc1.mx-queretaro-1.aaaaaaaamdh6h7zsrf2g4iqoptx4tqfsrchhsaxvqlfg6zfmepxcges3rzea"
+    service.beta.kubernetes.io/oci-load-balancer-shape: "flexible"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-min: "10"
+    service.beta.kubernetes.io/oci-load-balancer-shape-flex-max: "100"
+spec:
+  type: LoadBalancer
+  # This selector is patched by blue-green-swap.sh to point at the active slot.
+  # Initial value: blue. After first swap: green. Managed by bluegreen-state ConfigMap.
+  selector:
+    app: andromeda
+    slot: blue
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: bluegreen-state
+  namespace: andromeda
+data:
+  # Tracks which slot is currently receiving production traffic.
+  # Values: "blue" | "green"
+  # Updated automatically by blue-green-swap.sh after every successful deploy.
+  # bringup.sh reads this to restore the correct selector on cluster recreation.
+  active-slot: "blue"
