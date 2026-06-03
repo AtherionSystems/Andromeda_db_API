@@ -26,10 +26,9 @@ steps:
     name: "Docker login to OCIR"
     timeoutInSeconds: 60
     command: |
-      echo "${OCIR_AUTH_TOKEN}" | docker login \
-        ${REGION}.ocir.io \
+      docker login ${REGION}.ocir.io \
         --username "${TENANCY_NAMESPACE}/a01571222@tec.mx" \
-        --password-stdin
+        --password "${OCIR_AUTH_TOKEN}"
 
   - type: Command
     name: "Build Docker image"
