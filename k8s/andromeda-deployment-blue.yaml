@@ -22,7 +22,7 @@ spec:
         - name: ocir-secret
       containers:
         - name: andromeda
-          image: mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:blue-latest
+          image: mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:${IMAGE_TAG}
           ports:
             - containerPort: 8080
           env:
@@ -60,6 +60,16 @@ spec:
                 secretKeyRef:
                   name: andromeda-secrets
                   key: TELEGRAM_BOT_USERNAME
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: JWT_SECRET
+            - name: OAUTH2_ISSUER_URI
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: OAUTH2_ISSUER_URI
           volumeMounts:
             - name: wallet-volume
               mountPath: /app/wallet
