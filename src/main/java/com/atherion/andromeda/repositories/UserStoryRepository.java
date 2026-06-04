@@ -18,6 +18,9 @@ public interface UserStoryRepository extends JpaRepository<UserStory, Long> {
     List<UserStory> findByFeature_Id(Long featureId);
     List<UserStory> findByOwner_Id(Long ownerId);
     List<UserStory> findByFeature_Capability_Project_Id(Long projectId);
+    long countByFeature_Id(Long featureId);
+    long countByFeature_Capability_Id(Long capabilityId);
+    long countByFeature_Capability_Project_Id(Long projectId);
 
     @Query("""
             SELECT new com.atherion.andromeda.dto.UserStoryResponse(

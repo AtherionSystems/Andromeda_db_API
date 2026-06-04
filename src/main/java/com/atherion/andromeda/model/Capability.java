@@ -25,7 +25,7 @@ public class Capability {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "PROJECT_ID", nullable = false)
     private Project project;
 

@@ -75,9 +75,8 @@ public class CapabilitiesController {
         Capability capability = capabilityService.findById(capabilityId)
                 .filter(c -> c.getProject().getId().equals(projectId))
                 .orElse(null);
-        if (capability == null) {
-            return notFound("Capability not found");
-        }
+        if (capability == null) return notFound("Capability not found");
+
         capabilityService.deleteById(capabilityId);
         return ResponseEntity.noContent().build();
     }

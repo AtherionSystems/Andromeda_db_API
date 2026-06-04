@@ -9,4 +9,6 @@ import java.util.Optional;
 @Repository
 public interface SprintRetrospectiveRepository extends JpaRepository<SprintRetrospective, Long> {
     Optional<SprintRetrospective> findBySprint_Id(Long sprintId);
+    boolean existsBySprint_Id(Long sprintId);
+    long countBySprint_Project_Id(Long projectId);
 }

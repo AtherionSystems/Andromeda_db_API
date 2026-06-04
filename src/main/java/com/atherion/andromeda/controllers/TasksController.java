@@ -109,9 +109,8 @@ public class TasksController {
     // DELETE /api/projects/{projectId}/tasks/{taskId}
     @DeleteMapping("/{taskId}")
     public ResponseEntity<?> deleteTask(@PathVariable Long taskId) {
-        if (tasksService.findById(taskId).isEmpty()) {
-            return notFound("Task not found");
-        }
+        if (tasksService.findById(taskId).isEmpty()) return notFound("Task not found");
+
         tasksService.deleteById(taskId);
         return ResponseEntity.noContent().build();
     }
