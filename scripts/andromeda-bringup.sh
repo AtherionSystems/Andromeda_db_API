@@ -1,100 +1,96 @@
 #!/bin/bash
 # =============================================================================
-# Andromeda OKE Bring-Up Script
-# Run this from Cloud Shell after recreating the OKE cluster.
-# Prerequisites: OCI CLI configured, kubectl configured for andromedaoke.
+# andromeda-bringup.sh  (Blue-Green edition)
+# Brings up a fresh OKE cluster for Andromeda after Custom Create in Console.
+#
+# What this script does:
+#   1. Prompts for the new cluster OCID and configures kubectl
+#   2. Waits for the node to be Ready
+#   3. Creates namespace, OCIR secret, andromeda-secrets, db-wallet-secret
+#   4. Applies all Blue-Green manifests (deployments + services + configmap)
+#   5. Restores the active slot from .bluegreen-state (defaults to "blue")
+#   6. Waits for the Load Balancer external IP
+#
+# Prerequisites:
+#   - OKE cluster created via Custom Create using VCN oke-vcn-quick-andromedaoke-1b67f3489
+#   - OCI CLI configured in Cloud Shell
+#   - Wallet directory available locally
+#   - Run from repo root: bash scripts/andromeda-bringup.sh
 # =============================================================================
+set -euo pipefail
 
-set -e
+# --- helpers -----------------------------------------------------------------
+ok()   { echo "  [OK] $*"; }
+fail() { echo "  [FAIL] $*" >&2; exit 1; }
+info() { echo ""; echo "--- $* ---"; }
 
-# -----------------------------------------------------------------------------
-# CONFIGURATION — update these if your cluster changes
-# -----------------------------------------------------------------------------
-CLUSTER_ID="${CLUSTER_ID:-}"           # Set via env or will prompt
-REGION="mx-queretaro-1"
+# --- config ------------------------------------------------------------------
 NAMESPACE="andromeda"
-IMAGE="mx-queretaro-1.ocir.io/axieboiigznv/andromeda-backend:0.1"
-OCIR_SERVER="mx-queretaro-1.ocir.io"
-MANIFEST="k8s/andromeda-deployment.yaml"
+REGION="mx-queretaro-1"
+OCIR_SERVER="$REGION.ocir.io"
+K8S_DIR="k8s"
 
-# Colors
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-RED='\033[0;31m'
-NC='\033[0m'
+# =============================================================================
+# STEP 1 — kubectl config
+# =============================================================================
+info "Step 1: Configure kubectl"
 
-ok()   { echo -e "${GREEN}[OK]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WAIT]${NC} $1"; }
-fail() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+echo -n "Paste the cluster OCID (from OCI Console → Cluster Details): "
+read -r CLUSTER_OCID
 
-echo ""
-echo "========================================"
-echo "  Andromeda OKE Bring-Up"
-echo "========================================"
-echo ""
-
-# -----------------------------------------------------------------------------
-# STEP 1 — Configure kubectl
-# -----------------------------------------------------------------------------
-echo "--- Step 1: Configure kubectl ---"
-
-if [ -z "$CLUSTER_ID" ]; then
-  echo -n "Paste your cluster OCID: "
-  read -r CLUSTER_ID
+if [[ -z "$CLUSTER_OCID" ]]; then
+  fail "Cluster OCID cannot be empty."
 fi
 
 oci ce cluster create-kubeconfig \
-  --cluster-id "$CLUSTER_ID" \
+  --cluster-id "$CLUSTER_OCID" \
+  --file "$HOME/.kube/config" \
   --region "$REGION" \
   --token-version 2.0.0 \
-  --kube-endpoint PUBLIC_ENDPOINT \
-  --overwrite
+  --kube-endpoint PUBLIC_ENDPOINT
 
-kubectl cluster-info --request-timeout=10s > /dev/null 2>&1 \
-  && ok "kubectl connected to cluster" \
-  || fail "kubectl cannot reach cluster — is the node pool running and Ready?"
+ok "kubeconfig written."
+kubectl cluster-info
 
-# -----------------------------------------------------------------------------
-# STEP 2 — Wait for at least 1 node to be Ready
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 2: Wait for node Ready ---"
-warn "Waiting for node to become Ready (up to 5 min)..."
+# =============================================================================
+# STEP 2 — Wait for node Ready
+# =============================================================================
+info "Step 2: Wait for node Ready"
 
-for i in $(seq 1 30); do
-  READY=$(kubectl get nodes --no-headers 2>/dev/null | grep -c " Ready" || true)
-  if [ "$READY" -ge 1 ]; then
-    ok "Node is Ready"
-    break
+ATTEMPTS=0
+MAX_ATTEMPTS=30
+until kubectl get nodes 2>/dev/null | grep -q " Ready"; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [[ $ATTEMPTS -ge $MAX_ATTEMPTS ]]; then
+    fail "Node not Ready after $((MAX_ATTEMPTS * 10))s. Check OCI Console → Node Pools → pool1 → Details."
   fi
-  if [ "$i" -eq 30 ]; then
-    fail "No nodes Ready after 5 min. Check OCI Console → Node Pools → pool1 → Details."
-  fi
+  echo "  Waiting for node... (${ATTEMPTS}/${MAX_ATTEMPTS})"
   sleep 10
 done
 
-# -----------------------------------------------------------------------------
-# STEP 3 — Create namespace
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 3: Create namespace ---"
+ok "Node is Ready."
+kubectl get nodes
+
+# =============================================================================
+# STEP 3 — Namespace
+# =============================================================================
+info "Step 3: Create namespace"
 
 kubectl get namespace "$NAMESPACE" > /dev/null 2>&1 \
-  && ok "Namespace '$NAMESPACE' already exists" \
-  || { kubectl create namespace "$NAMESPACE" && ok "Namespace '$NAMESPACE' created"; }
+  && ok "Namespace '$NAMESPACE' already exists." \
+  || { kubectl create namespace "$NAMESPACE" && ok "Namespace '$NAMESPACE' created."; }
 
-# -----------------------------------------------------------------------------
+# =============================================================================
 # STEP 4 — OCIR image pull secret
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 4: OCIR image pull secret ---"
+# =============================================================================
+info "Step 4: OCIR image pull secret"
 
 if kubectl get secret ocir-secret -n "$NAMESPACE" > /dev/null 2>&1; then
-  ok "ocir-secret already exists — skipping"
+  ok "ocir-secret already exists — skipping."
 else
-  echo -n "OCI username (format: <tenancy>/<username>, e.g. axieboiigznv/a01571222@tec.mx): "
+  echo -n "OCI username (format: axieboiigznv/<your-email>): "
   read -r OCIR_USER
-  echo -n "OCI Auth Token (from OCI Console → Profile → Auth Tokens): "
+  echo -n "OCI Auth Token (OCI Console → Profile → Auth Tokens): "
   read -rs OCIR_TOKEN
   echo ""
 
@@ -104,112 +100,152 @@ else
     --docker-password="$OCIR_TOKEN" \
     --docker-email="a01571222@tec.mx" \
     -n "$NAMESPACE"
-  ok "ocir-secret created"
+  ok "ocir-secret created."
 fi
 
-# -----------------------------------------------------------------------------
-# STEP 5 — App secrets (andromeda-secrets + db-wallet-secret)
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 5: App secrets ---"
+# =============================================================================
+# STEP 5 — App secrets
+# =============================================================================
+info "Step 5: App secrets (andromeda-secrets)"
 
 if kubectl get secret andromeda-secrets -n "$NAMESPACE" > /dev/null 2>&1; then
-  ok "andromeda-secrets already exists — skipping"
+  ok "andromeda-secrets already exists — skipping."
 else
-  echo "Enter secret values for andromeda-secrets:"
-  echo -n "  DB_USERNAME: "; read -r DB_USERNAME
-  echo -n "  DB_PASSWORD: "; read -rs DB_PASSWORD; echo ""
-  echo -n "  WALLET_TRUSTSTORE_PASSWORD: "; read -rs WALLET_TS_PASS; echo ""
-  echo -n "  WALLET_KEYSTORE_PASSWORD: "; read -rs WALLET_KS_PASS; echo ""
-  echo -n "  TELEGRAM_BOT_TOKEN: "; read -rs TG_TOKEN; echo ""
-  echo -n "  TELEGRAM_BOT_USERNAME: "; read -r TG_USER
+  echo "Enter values for andromeda-secrets:"
+  echo -n "  DB_USERNAME: ";                  read -r  DB_USERNAME
+  echo -n "  DB_PASSWORD: ";                  read -rs DB_PASSWORD;   echo ""
+  echo -n "  WALLET_TRUSTSTORE_PASSWORD: ";   read -rs WALLET_TS;     echo ""
+  echo -n "  WALLET_KEYSTORE_PASSWORD: ";     read -rs WALLET_KS;     echo ""
+  echo -n "  TELEGRAM_BOT_TOKEN: ";           read -rs TG_TOKEN;      echo ""
+  echo -n "  TELEGRAM_BOT_USERNAME: ";        read -r  TG_USER
+  echo -n "  JWT_SECRET: ";                   read -rs JWT_SECRET;    echo ""
+  echo -n "  OAUTH2_ISSUER_URI: ";            read -r  OAUTH2_URI
 
   kubectl create secret generic andromeda-secrets \
     --from-literal=DB_USERNAME="$DB_USERNAME" \
     --from-literal=DB_PASSWORD="$DB_PASSWORD" \
-    --from-literal=WALLET_TRUSTSTORE_PASSWORD="$WALLET_TS_PASS" \
-    --from-literal=WALLET_KEYSTORE_PASSWORD="$WALLET_KS_PASS" \
+    --from-literal=WALLET_TRUSTSTORE_PASSWORD="$WALLET_TS" \
+    --from-literal=WALLET_KEYSTORE_PASSWORD="$WALLET_KS" \
     --from-literal=TELEGRAM_BOT_TOKEN="$TG_TOKEN" \
     --from-literal=TELEGRAM_BOT_USERNAME="$TG_USER" \
+    --from-literal=JWT_SECRET="$JWT_SECRET" \
+    --from-literal=OAUTH2_ISSUER_URI="$OAUTH2_URI" \
     -n "$NAMESPACE"
-  ok "andromeda-secrets created"
+  ok "andromeda-secrets created."
 fi
 
+# =============================================================================
+# STEP 6 — Wallet secret
+# =============================================================================
+info "Step 6: DB wallet secret (db-wallet-secret)"
+
 if kubectl get secret db-wallet-secret -n "$NAMESPACE" > /dev/null 2>&1; then
-  ok "db-wallet-secret already exists — skipping"
+  ok "db-wallet-secret already exists — skipping."
 else
   echo -n "Path to wallet directory (e.g. /home/a01571222/wallet): "
   read -r WALLET_DIR
 
-  [ -d "$WALLET_DIR" ] || fail "Wallet directory '$WALLET_DIR' not found."
+  [[ -d "$WALLET_DIR" ]] || fail "Wallet directory '$WALLET_DIR' not found."
 
   kubectl create secret generic db-wallet-secret \
     --from-file="$WALLET_DIR" \
     -n "$NAMESPACE"
-  ok "db-wallet-secret created"
+  ok "db-wallet-secret created."
 fi
 
-# -----------------------------------------------------------------------------
-# STEP 6 — Apply deployment manifest
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 6: Apply manifest ---"
+# =============================================================================
+# STEP 7 — Apply Blue-Green manifests
+# =============================================================================
+info "Step 7: Apply Blue-Green Kubernetes manifests"
 
-[ -f "$MANIFEST" ] || fail "Manifest not found at '$MANIFEST'. Run this script from your repo root."
+kubectl apply -f "$K8S_DIR/andromeda-deployment-blue.yaml"
+kubectl apply -f "$K8S_DIR/andromeda-deployment-green.yaml"
+ok "Deployments applied (blue + green)."
 
-kubectl apply -f "$MANIFEST"
-ok "Manifest applied"
+kubectl apply -f "$K8S_DIR/andromeda-service-blue-internal.yaml"
+kubectl apply -f "$K8S_DIR/andromeda-service-green-internal.yaml"
+ok "Internal services applied."
 
-# -----------------------------------------------------------------------------
-# STEP 7 — Wait for pod Running
-# -----------------------------------------------------------------------------
-echo ""
-echo "--- Step 7: Wait for pod Running ---"
-warn "Waiting for pod to start (up to 5 min — image pull takes time)..."
+kubectl apply -f "$K8S_DIR/andromeda-service-active.yaml"
+ok "Active LoadBalancer service applied."
 
-for i in $(seq 1 30); do
-  STATUS=$(kubectl get pods -n "$NAMESPACE" --no-headers 2>/dev/null | grep "andromeda" | awk '{print $3}' | head -1)
-  if [ "$STATUS" = "Running" ]; then
-    ok "Pod is Running"
-    break
+# =============================================================================
+# STEP 8 — Restore active slot
+# =============================================================================
+info "Step 8: Restore active slot"
+
+if [[ -f ".bluegreen-state" ]]; then
+  ACTIVE_SLOT=$(cat .bluegreen-state)
+  ok "Read active slot from .bluegreen-state: $ACTIVE_SLOT"
+else
+  ACTIVE_SLOT="blue"
+  ok "No .bluegreen-state found — defaulting to: $ACTIVE_SLOT"
+  echo "$ACTIVE_SLOT" > .bluegreen-state
+fi
+
+if [[ "$ACTIVE_SLOT" != "blue" && "$ACTIVE_SLOT" != "green" ]]; then
+  echo "  WARNING: .bluegreen-state contains invalid value '$ACTIVE_SLOT'. Defaulting to 'blue'."
+  ACTIVE_SLOT="blue"
+  echo "$ACTIVE_SLOT" > .bluegreen-state
+fi
+
+kubectl patch service andromeda-service \
+  -n "$NAMESPACE" \
+  --type='json' \
+  -p="[{\"op\":\"replace\",\"path\":\"/spec/selector/slot\",\"value\":\"$ACTIVE_SLOT\"}]"
+ok "Service selector patched → slot=$ACTIVE_SLOT"
+
+kubectl create configmap bluegreen-state \
+  --from-literal=active-slot="$ACTIVE_SLOT" \
+  -n "$NAMESPACE" \
+  --dry-run=client -o yaml | kubectl apply -f -
+ok "bluegreen-state ConfigMap restored — active-slot=$ACTIVE_SLOT"
+
+# =============================================================================
+# STEP 9 — Wait for Load Balancer external IP
+# =============================================================================
+info "Step 9: Waiting for Load Balancer external IP"
+
+echo "  (This can take 2–4 minutes on a fresh cluster)"
+
+ATTEMPTS=0
+MAX_ATTEMPTS=30
+EXTERNAL_IP=""
+
+until [[ -n "$EXTERNAL_IP" ]]; do
+  ATTEMPTS=$((ATTEMPTS + 1))
+  if [[ $ATTEMPTS -ge $MAX_ATTEMPTS ]]; then
+    fail "Load Balancer IP not assigned after $((MAX_ATTEMPTS * 10))s.
+  Debug: kubectl describe svc andromeda-service -n andromeda
+  Common cause: missing port 80 ingress rule on oke-svclbseclist-* security list."
   fi
-  if [ "$i" -eq 30 ]; then
-    echo ""
-    echo "Pod status after 5 min:"
-    kubectl get pods -n "$NAMESPACE"
-    echo ""
-    echo "Pod events:"
-    kubectl describe pod -n "$NAMESPACE" -l app=andromeda | tail -20
-    fail "Pod did not reach Running state. Check logs above."
+
+  EXTERNAL_IP=$(kubectl get svc andromeda-service \
+    -n "$NAMESPACE" \
+    -o jsonpath='{.status.loadBalancer.ingress[0].ip}' 2>/dev/null || true)
+
+  if [[ -z "$EXTERNAL_IP" ]]; then
+    echo "  Waiting for IP... (${ATTEMPTS}/${MAX_ATTEMPTS})"
+    sleep 10
   fi
-  echo "  Status: ${STATUS:-Pending} (attempt $i/30)..."
-  sleep 10
 done
 
-# -----------------------------------------------------------------------------
-# STEP 8 — Get external IP
-# -----------------------------------------------------------------------------
+ok "External IP assigned: $EXTERNAL_IP"
+
+# =============================================================================
+# DONE
+# =============================================================================
 echo ""
-echo "--- Step 8: Get external IP ---"
-warn "Waiting for Load Balancer external IP (up to 4 min)..."
-
-for i in $(seq 1 24); do
-  EXTERNAL_IP=$(kubectl get svc andromeda-service -n "$NAMESPACE" --no-headers 2>/dev/null | awk '{print $4}')
-  if [ -n "$EXTERNAL_IP" ] && [ "$EXTERNAL_IP" != "<pending>" ]; then
-    ok "Load Balancer ready"
-    echo ""
-    echo "========================================"
-    echo -e "  ${GREEN}Andromeda is UP${NC}"
-    echo "  External IP : $EXTERNAL_IP"
-    echo "  API base URL: http://$EXTERNAL_IP/api"
-    echo "  Health check: http://$EXTERNAL_IP/actuator/health"
-    echo "========================================"
-    echo ""
-    echo "Post this IP in your team channel now."
-    exit 0
-  fi
-  echo "  Still pending (attempt $i/24)..."
-  sleep 10
-done
-
-fail "Load Balancer IP still pending after 4 min. Check OCI Console → Networking → Load Balancers."
+echo "================================================================"
+echo "  Andromeda is up."
+echo ""
+echo "  External IP:  $EXTERNAL_IP"
+echo "  API base URL: http://$EXTERNAL_IP/api"
+echo "  Health check: http://$EXTERNAL_IP/actuator/health"
+echo "  Active slot:  $ACTIVE_SLOT"
+echo ""
+echo "  Post this IP in the team channel immediately."
+echo ""
+echo "  Reminder: add port 80 ingress rule to oke-svclbseclist-*"
+echo "  if not already present (OCI Console → VCN → Security Lists)."
+echo "================================================================"

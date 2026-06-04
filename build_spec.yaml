@@ -1,31 +1,49 @@
 version: 0.1
 component: build
-timeoutInSeconds: 3600
-runAs: root
+timeoutInSeconds: 600
 
 env:
   variables:
     REGION: "mx-queretaro-1"
-    OCIR_SERVER: "mx-queretaro-1.ocir.io"
     TENANCY_NAMESPACE: "axieboiigznv"
-    REPO_NAME: "andromeda-backend"
-    IMAGE_TAG: "latest"
+    IMAGE_NAME: "andromeda-backend"
+  exportedVariables:
+    - IMAGE_TAG
+    - TARGET_SLOT
 
 steps:
   - type: Command
-    name: "Build Docker Image"
+    name: "Set image tag"
+    timeoutInSeconds: 30
     command: |
-      docker build -t ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG} .
+      COMMIT_HASH=$(git -C /workspace/GitHubConn rev-parse --short HEAD 2>/dev/null || echo "noref")
+      BUILD_DATE=$(date +%Y%m%d)
+      SLOT="${TARGET_SLOT:-green}"
+      export IMAGE_TAG="${SLOT}-${BUILD_DATE}-${COMMIT_HASH}"
+      export TARGET_SLOT="${SLOT}"
+      echo "IMAGE_TAG=$IMAGE_TAG"
+      echo "TARGET_SLOT=$TARGET_SLOT"
 
   - type: Command
-    name: "Push to OCIR"
+    name: "Docker login to OCIR"
+    timeoutInSeconds: 60
     command: |
-      docker login ${OCIR_SERVER} \
-        --username "axieboiigznv/a01571222@tec.mx" \
-        --password "${AUTH_TOKEN}"
-      docker push ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
+      echo "${AUTH_TOKEN}" | docker login ${REGION}.ocir.io \
+        --username "${TENANCY_NAMESPACE}/a01571222@tec.mx" \
+        --password-stdin
 
-outputArtifacts:
-  - name: andromeda_image
-    type: DOCKER_IMAGE
-    location: ${OCIR_SERVER}/${TENANCY_NAMESPACE}/${REPO_NAME}:${IMAGE_TAG}
+  - type: Command
+    name: "Build Docker image"
+    timeoutInSeconds: 400
+    command: |
+      docker build \
+        -t ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG} \
+        -f /workspace/GitHubConn/Dockerfile \
+        /workspace/GitHubConn
+
+  - type: Command
+    name: "Push image to OCIR"
+    timeoutInSeconds: 120
+    command: |
+      docker push ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}
+      echo "Pushed: ${REGION}.ocir.io/${TENANCY_NAMESPACE}/${IMAGE_NAME}:${IMAGE_TAG}"

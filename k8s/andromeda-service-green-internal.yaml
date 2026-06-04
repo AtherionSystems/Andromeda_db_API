@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: andromeda-green-internal
+  namespace: andromeda
+  labels:
+    app: andromeda
+    slot: green
+spec:
+  type: ClusterIP
+  selector:
+    app: andromeda
+    slot: green
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
