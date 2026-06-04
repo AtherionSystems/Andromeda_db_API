@@ -1,39 +1,39 @@
-# Andromeda API — Endpoint Reference
+# Andromeda API — Referencia de Endpoints
 
-Base URL (local): `http://localhost:8080`
+URL base (local): `http://localhost:8080`
 
-All request and response bodies use `application/json`.  
-Dates use ISO-8601 format (`2025-06-15T00:00:00Z` for `Instant`, `2025-06-15T10:30:00` for `LocalDateTime`).
+Todos los cuerpos de request y response usan `application/json`.  
+Las fechas usan formato ISO-8601 (`2025-06-15T00:00:00Z` para `Instant`, `2025-06-15T10:30:00` para `LocalDateTime`).
 
 ---
 
-## Table of Contents
+## Tabla de Contenidos
 
-- [Root & Health](#root--health)
+- [Raíz y Health](#raíz-y-health)
 - [Auth](#auth)
-- [Users](#users)
-- [Projects](#projects)
-- [Tasks](#tasks)
-- [Task Assignments](#task-assignments)
+- [Usuarios](#usuarios)
+- [Proyectos](#proyectos)
+- [Tareas](#tareas)
+- [Asignaciones de Tarea](#asignaciones-de-tarea)
 - [Sprints](#sprints)
-- [Sprint Tasks](#sprint-tasks)
-- [Sprint Story Assignments](#sprint-story-assignments)
-- [Project Members](#project-members)
+- [Tareas de Sprint](#tareas-de-sprint)
+- [Asignaciones de Historia a Sprint](#asignaciones-de-historia-a-sprint)
+- [Miembros de Proyecto](#miembros-de-proyecto)
 - [Logs](#logs)
 - [Dashboard](#dashboard)
-- [AI Notifications](#ai-notifications)
-- [Error Responses](#error-responses)
-- [Enum Values](#enum-values)
-- [V5 Product Backlog Endpoints](#v5-product-backlog-endpoints)
+- [Notificaciones de IA](#notificaciones-de-ia)
+- [Respuestas de Error](#respuestas-de-error)
+- [Valores de Enums](#valores-de-enums)
+- [Endpoints del Product Backlog (V5)](#endpoints-del-product-backlog-v5)
 
 ---
 
-## Root & Health
+## Raíz y Health
 
 ### `GET /`
-Returns API metadata and a list of available endpoint groups.
+Devuelve metadatos de la API y una lista de grupos de endpoints disponibles.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 {
   "service": "Andromeda Backend API",
@@ -45,9 +45,9 @@ Returns API metadata and a list of available endpoint groups.
 ---
 
 ### `GET /health`
-Liveness check.
+Verificación de disponibilidad (liveness check).
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 {
   "status": "UP"
@@ -59,9 +59,9 @@ Liveness check.
 ## Auth
 
 ### `POST /api/auth/register`
-Register a new user account.
+Registra una nueva cuenta de usuario.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "name": "Santiago Quiroz",
@@ -73,16 +73,16 @@ Register a new user account.
 }
 ```
 
-| Field | Type | Required | Notes |
+| Campo | Tipo | Requerido | Notas |
 |---|---|---|---|
-| name | string | yes | |
-| username | string | yes | Must be unique |
-| password | string | yes | Stored as BCrypt hash |
-| email | string | yes | Must be unique |
+| name | string | sí | |
+| username | string | sí | Debe ser único |
+| password | string | sí | Se almacena como hash BCrypt |
+| email | string | sí | Debe ser único |
 | phone | string | no | |
-| userTypeId | number | yes | FK to user_type table |
+| userTypeId | number | sí | FK a la tabla user_type |
 
-**Response `201`**
+**Respuesta `201`**
 ```json
 {
   "id": 3,
@@ -96,18 +96,18 @@ Register a new user account.
 }
 ```
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `409` | Username or email already taken |
-| `400` | Missing required field |
+| `409` | El nombre de usuario o email ya está en uso |
+| `400` | Falta un campo requerido |
 
 ---
 
 ### `POST /api/auth/login`
-Authenticate an existing user.
+Autentica a un usuario existente.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "username": "santiago",
@@ -115,22 +115,22 @@ Authenticate an existing user.
 }
 ```
 
-**Response `200`** — same shape as register response.
+**Respuesta `200`** — misma forma que la respuesta de registro.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `401` | Invalid credentials |
-| `404` | User not found |
+| `401` | Credenciales inválidas |
+| `404` | Usuario no encontrado |
 
 ---
 
-## Users
+## Usuarios
 
 ### `GET /api/users`
-List all users.
+Lista todos los usuarios.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -146,26 +146,26 @@ List all users.
 ]
 ```
 
-> `telegramId` is an internal field managed by the bot's `/link` command and is not exposed in API responses.
+> `telegramId` es un campo interno gestionado por el comando `/link` del bot y no se expone en las respuestas de la API.
 
 ---
 
 ### `GET /api/users/{id}`
-Get one user by ID.
+Obtiene un usuario por ID.
 
-**Response `200`** — single user object (same shape as above).
+**Respuesta `200`** — objeto de usuario único (misma forma que arriba).
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | User not found |
+| `404` | Usuario no encontrado |
 
 ---
 
 ### `PUT /api/users/{id}`
-Update a user. All fields are optional; only supplied fields are changed.
+Actualiza un usuario. Todos los campos son opcionales; solo se modifican los campos enviados.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "name": "Javier G.",
@@ -177,36 +177,36 @@ Update a user. All fields are optional; only supplied fields are changed.
 }
 ```
 
-**Response `200`** — updated user object.
+**Respuesta `200`** — objeto de usuario actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | User not found |
-| `409` | Username or email already taken |
+| `404` | Usuario no encontrado |
+| `409` | El nombre de usuario o email ya está en uso |
 
 ---
 
 ### `DELETE /api/users/{id}`
-Delete a user.
+Elimina un usuario.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | User not found |
+| `404` | Usuario no encontrado |
 
 ---
 
-## Projects
+## Proyectos
 
-Alias supported for all project routes in this section: `/projects`.
+Alias disponible para todas las rutas de proyectos en esta sección: `/projects`.
 
 ### `GET /api/projects`
-List all projects.
+Lista todos los proyectos.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -224,21 +224,21 @@ List all projects.
 ---
 
 ### `GET /api/projects/{id}`
-Get one project by ID.
+Obtiene un proyecto por ID.
 
-**Response `200`** — single project object (same shape as above).
+**Respuesta `200`** — objeto de proyecto único (misma forma que arriba).
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Project not found |
+| `404` | Proyecto no encontrado |
 
 ---
 
 ### `POST /api/projects`
-Create a new project.
+Crea un nuevo proyecto.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "name": "New Project",
@@ -249,53 +249,53 @@ Create a new project.
 }
 ```
 
-| Field | Type | Required | Default |
+| Campo | Tipo | Requerido | Default |
 |---|---|---|---|
-| name | string | yes | — |
+| name | string | sí | — |
 | description | string | no | null |
 | status | string | no | `active` |
 | startDate | Instant | no | null |
 | endDate | Instant | no | null |
 
-**Response `201`** — created project object.
+**Respuesta `201`** — objeto de proyecto creado.
 
 ---
 
 ### `PATCH /api/projects/{id}`
-Partially update a project. Only supplied fields are changed.
+Actualiza parcialmente un proyecto. Solo se modifican los campos enviados.
 
-**Request body** — same shape as POST, all fields optional.
+**Cuerpo de la request** — misma forma que POST, todos los campos opcionales.
 
-**Response `200`** — updated project object.
+**Respuesta `200`** — objeto de proyecto actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Project not found |
+| `404` | Proyecto no encontrado |
 
 ---
 
 ### `DELETE /api/projects/{id}`
 Delete a project. **Cascades** to all capabilities, features, user stories, tasks, task assignments, project members, sprints, sprint assignments, and sprint retrospectives.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
 | `404` | Project not found |
 | `403` | Only managers and owners can delete a project |
 
 ---
 
-## Tasks
+## Tareas
 
-All task endpoints are nested under a project: `/api/projects/{projectId}/tasks`.
+Todos los endpoints de tareas están anidados bajo un proyecto: `/api/projects/{projectId}/tasks`.
 
 ### `GET /api/projects/{projectId}/tasks`
-List all tasks in a project.
+Lista todas las tareas de un proyecto.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -319,21 +319,21 @@ List all tasks in a project.
 ---
 
 ### `GET /api/projects/{projectId}/tasks/{taskId}`
-Get one task by ID.
+Obtiene una tarea por ID.
 
-**Response `200`** — single task object (same shape as above).
+**Respuesta `200`** — objeto de tarea único (misma forma que arriba).
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Task not found |
+| `404` | Tarea no encontrada |
 
 ---
 
 ### `POST /api/projects/{projectId}/tasks`
-Create a task inside a project.
+Crea una tarea dentro de un proyecto.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "title": "Fix login redirect bug",
@@ -348,61 +348,61 @@ Create a task inside a project.
 }
 ```
 
-| Field | Type | Required | Default | Notes |
+| Campo | Tipo | Requerido | Default | Notas |
 |---|---|---|---|---|
-| title | string | yes | — | |
+| title | string | sí | — | |
 | description | string | no | null | |
 | priority | string | no | `medium` | |
 | status | string | no | `todo` | |
-| estimatedHours | decimal | no | null | Enforced ≤ 4.0 by the Telegram bot |
-| actualHours | decimal | no | null | Set by the bot's `/completetask` command |
+| estimatedHours | decimal | no | null | Máximo 4.0 según el bot de Telegram |
+| actualHours | decimal | no | null | Se establece con el comando `/completetask` del bot |
 | storyPoints | integer | no | null | |
-| acceptanceCriteria | string | no | null | Definition of done |
+| acceptanceCriteria | string | no | null | Definición de terminado |
 | startDate | Instant | no | null | |
 | dueDate | Instant | no | null | |
 
-**Response `201`** — created task object.
+**Respuesta `201`** — objeto de tarea creado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing title |
-| `404` | Project not found |
+| `400` | Falta el título |
+| `404` | Proyecto no encontrado |
 
 ---
 
 ### `PATCH /api/projects/{projectId}/tasks/{taskId}`
-Partially update a task. Only supplied fields are changed.
+Actualiza parcialmente una tarea. Solo se modifican los campos enviados.
 
-**Request body** — same shape as POST, all fields optional.
+**Cuerpo de la request** — misma forma que POST, todos los campos opcionales.
 
-**Response `200`** — updated task object.
+**Respuesta `200`** — objeto de tarea actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Task not found |
+| `404` | Tarea no encontrada |
 
 ---
 
 ### `DELETE /api/projects/{projectId}/tasks/{taskId}`
 Delete a task. **Cascades** to all task assignments.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Task not found |
+| `404` | Tarea no encontrada |
 
 ---
 
-## Task Assignments
+## Asignaciones de Tarea
 
 ### `GET /api/projects/{projectId}/tasks/{taskId}/assignments`
-List all users assigned to a task.
+Lista todos los usuarios asignados a una tarea.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -419,17 +419,17 @@ List all users assigned to a task.
 ### `POST /api/projects/{projectId}/tasks/{taskId}/assignments`
 Assign a user to a task. The user must be a member of the project, and the task must belong to the project.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "userId": 2
 }
 ```
 
-**Response `201`** — assignment object (same shape as above).
+**Respuesta `201`** — objeto de asignación (misma forma que arriba).
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
 | `404` | Task not found |
 | `404` | User not found |
@@ -439,49 +439,49 @@ Assign a user to a task. The user must be a member of the project, and the task 
 ---
 
 ### `DELETE /api/projects/{projectId}/tasks/{taskId}/assignments/{userId}`
-Remove a user's assignment from a task.
+Elimina la asignación de un usuario de una tarea.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Assignment not found |
+| `404` | Asignación no encontrada |
 
 ---
 
 ## Sprints
 
-All sprint endpoints are nested under a project: `/api/projects/{projectId}/sprints`.
+Todos los endpoints de sprints están anidados bajo un proyecto: `/api/projects/{projectId}/sprints`.
 
 ### `GET /api/projects/{projectId}/sprints`
-List all sprints in a project.
+Lista todos los sprints de un proyecto.
 
-**Response `200`** — array of sprint objects.
+**Respuesta `200`** — arreglo de objetos de sprint.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Project not found |
+| `404` | Proyecto no encontrado |
 
 ---
 
 ### `GET /api/projects/{projectId}/sprints/{sprintId}`
-Get one sprint by ID.
+Obtiene un sprint por ID.
 
-**Response `200`** — single sprint object.
+**Respuesta `200`** — objeto de sprint único.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
+| `404` | Sprint no encontrado |
 
 ---
 
 ### `POST /api/projects/{projectId}/sprints`
-Create a sprint inside a project.
+Crea un sprint dentro de un proyecto.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "name": "Sprint 7",
@@ -492,219 +492,219 @@ Create a sprint inside a project.
 }
 ```
 
-| Field | Type | Required | Default |
+| Campo | Tipo | Requerido | Default |
 |---|---|---|---|
-| name | string | yes | — |
+| name | string | sí | — |
 | goal | string | no | null |
 | status | string | no | `planned` |
 | startDate | LocalDateTime | no | null |
 | dueDate | LocalDateTime | no | null |
 | actualEnd | LocalDateTime | no | null |
 
-**Response `201`** — created sprint object.
+**Respuesta `201`** — objeto de sprint creado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing name |
-| `404` | Project not found |
+| `400` | Falta el nombre |
+| `404` | Proyecto no encontrado |
 
 ---
 
 ### `PATCH /api/projects/{projectId}/sprints/{sprintId}`
-Partially update a sprint. Only supplied fields are changed.
+Actualiza parcialmente un sprint. Solo se modifican los campos enviados.
 
-**Response `200`** — updated sprint object.
+**Respuesta `200`** — objeto de sprint actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
+| `404` | Sprint no encontrado |
 
 ---
 
 ### `DELETE /api/projects/{projectId}/sprints/{sprintId}`
 Delete a sprint. **Cascades** to all sprint story assignments and sprint retrospective.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
 | `404` | Sprint not found |
 | `403` | Only managers and owners can delete sprints |
 
 ---
 
-## Sprint Tasks
+## Tareas de Sprint
 
-All sprint-task endpoints are nested under a project sprint:
+Todos los endpoints de tareas-sprint están anidados bajo un sprint de proyecto:
 `/api/projects/{projectId}/sprints/{sprintId}/tasks`.
 
-Alias supported: `/api/projects/{projectId}/sprints/{sprintId}/sprint_tasks`.
+Alias disponible: `/api/projects/{projectId}/sprints/{sprintId}/sprint_tasks`.
 
 ### `GET /api/projects/{projectId}/sprints/{sprintId}/tasks`
-List all task links in a sprint.
+Lista todos los vínculos de tarea en un sprint.
 
-**Response `200`** — array of sprint-task objects.
+**Respuesta `200`** — arreglo de objetos tarea-sprint.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
+| `404` | Sprint no encontrado |
 
 ---
 
 ### `GET /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
-Get one sprint-task link by ID.
+Obtiene un vínculo tarea-sprint por ID.
 
-**Response `200`** — single sprint-task object.
+**Respuesta `200`** — objeto tarea-sprint único.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint task not found |
+| `404` | Sprint no encontrado |
+| `404` | Tarea de sprint no encontrada |
 
 ---
 
 ### `POST /api/projects/{projectId}/sprints/{sprintId}/tasks`
-Add a task to a sprint.
+Agrega una tarea a un sprint.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "taskId": 15
 }
 ```
 
-**Response `201`** — created sprint-task object.
+**Respuesta `201`** — objeto tarea-sprint creado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing taskId |
-| `404` | Sprint not found |
-| `404` | Task not found |
-| `409` | Task is already active in this sprint |
+| `400` | Falta taskId |
+| `404` | Sprint no encontrado |
+| `404` | Tarea no encontrada |
+| `409` | La tarea ya está activa en este sprint |
 
 ---
 
 ### `PATCH /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
-Partially update a sprint-task link. Supported fields: `removedAt`, `movedToId`.
+Actualiza parcialmente un vínculo tarea-sprint. Campos disponibles: `removedAt`, `movedToId`.
 
-**Response `200`** — updated sprint-task object.
+**Respuesta `200`** — objeto tarea-sprint actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint task not found |
+| `404` | Sprint no encontrado |
+| `404` | Tarea de sprint no encontrada |
 
 ---
 
 ### `DELETE /api/projects/{projectId}/sprints/{sprintId}/tasks/{sprintTaskId}`
-Delete a sprint-task link.
+Elimina un vínculo tarea-sprint.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint task not found |
+| `404` | Sprint no encontrado |
+| `404` | Tarea de sprint no encontrada |
 
 ---
 
-## Sprint Story Assignments
+## Asignaciones de Historia a Sprint
 
-Sprint story assignment endpoints are nested under a project sprint:
+Los endpoints de asignación de historias a sprint están anidados bajo un sprint de proyecto:
 `/api/projects/{projectId}/sprints/{sprintId}/user_stories`.
 
 ### `GET /api/projects/{projectId}/sprints/{sprintId}/user_stories`
-List all sprint-story links in a sprint.
+Lista todos los vínculos historia-sprint en un sprint.
 
-**Response `200`** — array of sprint-story assignment objects.
+**Respuesta `200`** — arreglo de objetos asignación historia-sprint.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
+| `404` | Sprint no encontrado |
 
 ---
 
 ### `GET /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
-Get one sprint-story link by ID.
+Obtiene un vínculo historia-sprint por ID.
 
-**Response `200`** — single sprint-story assignment object.
+**Respuesta `200`** — objeto asignación historia-sprint único.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint story assignment not found |
+| `404` | Sprint no encontrado |
+| `404` | Asignación de historia a sprint no encontrada |
 
 ---
 
 ### `POST /api/projects/{projectId}/sprints/{sprintId}/user_stories`
-Add a user story to a sprint.
+Agrega una historia de usuario a un sprint.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "userStoryId": 15
 }
 ```
 
-**Response `201`** — created sprint-story assignment object.
+**Respuesta `201`** — objeto asignación historia-sprint creado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing userStoryId |
-| `404` | Sprint not found |
-| `404` | User story not found |
-| `409` | User story is already active in this sprint |
+| `400` | Falta userStoryId |
+| `404` | Sprint no encontrado |
+| `404` | Historia de usuario no encontrada |
+| `409` | La historia de usuario ya está activa en este sprint |
 
 ---
 
 ### `PATCH /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
-Partially update a sprint-story link. Supported fields: `removedAt`, `movedToId`.
+Actualiza parcialmente un vínculo historia-sprint. Campos disponibles: `removedAt`, `movedToId`.
 
-**Response `200`** — updated sprint-story assignment object.
+**Respuesta `200`** — objeto asignación historia-sprint actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint story assignment not found |
+| `404` | Sprint no encontrado |
+| `404` | Asignación de historia a sprint no encontrada |
 
 ---
 
 ### `DELETE /api/projects/{projectId}/sprints/{sprintId}/user_stories/{sprintStoryAssignmentId}`
-Delete a sprint-story link.
+Elimina un vínculo historia-sprint.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Sprint not found |
-| `404` | Sprint story assignment not found |
+| `404` | Sprint no encontrado |
+| `404` | Asignación de historia a sprint no encontrada |
 
 ---
 
-## Project Members
+## Miembros de Proyecto
 
 ### `GET /api/project-members`
-List project members. Results can be filtered with query parameters.
+Lista los miembros de proyectos. Se pueden filtrar con parámetros de query.
 
-| Query param | Type | Description |
+| Parámetro de query | Tipo | Descripción |
 |---|---|---|
-| projectId | number | Filter by project |
-| userId | number | Filter by user |
+| projectId | number | Filtrar por proyecto |
+| userId | number | Filtrar por usuario |
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -722,21 +722,21 @@ List project members. Results can be filtered with query parameters.
 ---
 
 ### `GET /api/project-members/{id}`
-Get one membership record by ID.
+Obtiene un registro de membresía por ID.
 
-**Response `200`** — single member object (same shape as above).
+**Respuesta `200`** — objeto de miembro único (misma forma que arriba).
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Member record not found |
+| `404` | Registro de miembro no encontrado |
 
 ---
 
 ### `POST /api/project-members`
-Add a user to a project.
+Agrega un usuario a un proyecto.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "projectId": 1,
@@ -745,72 +745,72 @@ Add a user to a project.
 }
 ```
 
-| Field | Type | Required | Default |
+| Campo | Tipo | Requerido | Default |
 |---|---|---|---|
-| projectId | number | yes | — |
-| userId | number | yes | — |
+| projectId | number | sí | — |
+| userId | number | sí | — |
 | role | string | no | `member` |
 
-**Response `201`** — created member object.
+**Respuesta `201`** — objeto de miembro creado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Project or user not found |
-| `409` | User is already a member of this project |
+| `404` | Proyecto o usuario no encontrado |
+| `409` | El usuario ya es miembro de este proyecto |
 
 ---
 
 ### `PUT /api/project-members/{id}`
-Update a membership record (change role or re-assign to a different project/user).
+Actualiza un registro de membresía (cambiar rol o reasignar a diferente proyecto/usuario).
 
-**Request body** — same shape as POST, all fields optional.
+**Cuerpo de la request** — misma forma que POST, todos los campos opcionales.
 
-**Response `200`** — updated member object.
+**Respuesta `200`** — objeto de miembro actualizado.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Member record, project, or user not found |
-| `409` | Target project/user combination already exists |
+| `404` | Registro de miembro, proyecto o usuario no encontrado |
+| `409` | La combinación proyecto/usuario ya existe |
 
 ---
 
 ### `DELETE /api/project-members/{id}`
-Remove a member from a project.
+Elimina un miembro de un proyecto.
 
-**Response `204`** — no body.
+**Respuesta `204`** — sin cuerpo.
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `404` | Member record not found |
+| `404` | Registro de miembro no encontrado |
 
 ---
 
 ## Logs
 
-Legacy aliases also supported:
-- `/logs` (same as `/api/logs`)
-- `/projects/{projectId}/logs` (same as `/api/projects/{projectId}/logs`)
+Alias legacy disponibles:
+- `/logs` (igual que `/api/logs`)
+- `/projects/{projectId}/logs` (igual que `/api/projects/{projectId}/logs`)
 
 ### `GET /api/logs`
-Search the audit log. All query parameters are optional and combinable.
+Busca en el log de auditoría. Todos los parámetros de query son opcionales y combinables.
 
-| Query param | Type | Description |
+| Parámetro de query | Tipo | Descripción |
 |---|---|---|
-| projectId | number | Logs for a project or its tasks |
-| taskId | number | Logs for a specific task |
-| userId | number | Logs created by a specific user |
-| from | ISO datetime | Lower bound on `logDate` |
-| to | ISO datetime | Upper bound on `logDate` |
+| projectId | number | Logs de un proyecto o sus tareas |
+| taskId | number | Logs de una tarea específica |
+| userId | number | Logs creados por un usuario específico |
+| from | ISO datetime | Límite inferior en `logDate` |
+| to | ISO datetime | Límite superior en `logDate` |
 
-**Example**
+**Ejemplo**
 ```
 GET /api/logs?projectId=1&from=2025-01-01T00:00:00&to=2025-12-31T23:59:59
 ```
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 [
   {
@@ -825,22 +825,22 @@ GET /api/logs?projectId=1&from=2025-01-01T00:00:00&to=2025-12-31T23:59:59
 ]
 ```
 
-Results are ordered by `logDate` descending.
+Los resultados se ordenan por `logDate` descendente.
 
 ---
 
 ### `GET /api/projects/{projectId}/logs`
-Shorthand — returns all logs for a project and its tasks.  
-Equivalent to `GET /api/logs?projectId={projectId}`.
+Atajo — devuelve todos los logs de un proyecto y sus tareas.  
+Equivalente a `GET /api/logs?projectId={projectId}`.
 
-**Response `200`** — array of log objects.
+**Respuesta `200`** — arreglo de objetos de log.
 
 ---
 
 ### `POST /api/logs`
-Create a log entry manually.
+Crea una entrada de log manualmente.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "userId": 2,
@@ -852,25 +852,25 @@ Create a log entry manually.
 }
 ```
 
-| Field | Type | Required | Notes |
+| Campo | Tipo | Requerido | Notas |
 |---|---|---|---|
-| userId | number | no | FK to users table |
-| entity | string | no | e.g. `project`, `task` |
-| entityId | number | no | ID of the logged entity |
-| action | string | no | e.g. `create`, `update`, `delete` |
-| detail | string | no | Free-text description |
-| logDate | LocalDateTime | no | Defaults to current time |
+| userId | number | no | FK a la tabla users |
+| entity | string | no | ej. `project`, `task` |
+| entityId | number | no | ID de la entidad registrada |
+| action | string | no | ej. `create`, `update`, `delete` |
+| detail | string | no | Descripción en texto libre |
+| logDate | LocalDateTime | no | Por defecto la hora actual |
 
-**Response `201`** — created log object.
+**Respuesta `201`** — objeto de log creado.
 
 ---
 
 ## Dashboard
 
 ### `GET /api/dashboard?projectId={projectId}`
-Returns aggregated KPIs for a project in a single response.
+Devuelve KPIs agregados de un proyecto en una sola respuesta.
 
-**Response `200`**
+**Respuesta `200`**
 ```json
 {
   "projectId": 1,
@@ -882,20 +882,20 @@ Returns aggregated KPIs for a project in a single response.
 }
 ```
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing `projectId` query param |
-| `500` | KPI aggregation error |
+| `400` | Falta el parámetro `projectId` |
+| `500` | Error al agregar KPIs |
 
 ---
 
-## AI Notifications
+## Notificaciones de IA
 
 ### `POST /api/ai/notify`
-Generate and send an AI-assisted Telegram notification.
+Genera y envía una notificación de Telegram asistida por IA.
 
-**Request body**
+**Cuerpo de la request**
 ```json
 {
   "chatId": "123456789",
@@ -903,75 +903,75 @@ Generate and send an AI-assisted Telegram notification.
 }
 ```
 
-**Response `200`**
+**Respuesta `200`**
 ```text
 Notification sent.
 ```
 
-**Errors**
-| Status | Reason |
+**Errores**
+| Status | Razón |
 |---|---|
-| `400` | Missing `chatId` or `context` |
-| `500` | AI did not respond |
+| `400` | Falta `chatId` o `context` |
+| `500` | La IA no respondió |
 
 ---
 
 ### `GET /api/ai/status`
-Returns AI backend status.
+Devuelve el estado del backend de IA.
 
-**Response `200`**
+**Respuesta `200`**
 ```text
 AI online | model: <model-name> | latency: <ms> ms
 ```
 
-Alternative response when disabled:
+Respuesta alternativa cuando está deshabilitada:
 ```text
 AI disabled (agent.ai.enabled=false).
 ```
 
-Possible unavailable response:
+Respuesta posible cuando no está disponible:
 ```text
 AI backend unreachable.
 ```
 
 ---
 
-## Error Responses
+## Respuestas de Error
 
-All error responses follow this shape:
+Todas las respuestas de error siguen esta forma:
 
 ```json
 {
-  "error": "Human-readable message"
+  "error": "Mensaje legible"
 }
 ```
 
-| Status | Meaning |
+| Status | Significado |
 |---|---|
-| `400` | Bad request / validation failure |
-| `401` | Unauthenticated |
-| `404` | Resource not found |
-| `409` | Conflict (duplicate unique key) |
-| `500` | Internal server error |
+| `400` | Request inválida / fallo de validación |
+| `401` | No autenticado |
+| `404` | Recurso no encontrado |
+| `409` | Conflicto (clave única duplicada) |
+| `500` | Error interno del servidor |
 
 ---
 
-## Enum Values
+## Valores de Enums
 
-| Field | Allowed values |
+| Campo | Valores permitidos |
 |---|---|
 | Project `status` | `active` `paused` `completed` `cancelled` |
 | Task `status` | `todo` `in_progress` `review` `done` |
 | Task `priority` | `low` `medium` `high` `critical` |
 | Sprint `status` | `planned` `active` `completed` |
 | Member `role` | `owner` `manager` `member` |
-| Task `estimatedHours` | Positive decimal, max `4.0` (enforced by Telegram bot, not the REST API) |
-| Task `actualHours` | Positive decimal, recorded at completion |
-| Task `storyPoints` | Positive integer (common Fibonacci values: 1, 2, 3, 5, 8, 13) |
+| Task `estimatedHours` | Decimal positivo, máx. `4.0` (aplicado por el bot de Telegram, no por la API REST) |
+| Task `actualHours` | Decimal positivo, registrado al completar |
+| Task `storyPoints` | Entero positivo (valores Fibonacci comunes: 1, 2, 3, 5, 8, 13) |
 
 ---
 
-## V5 Product Backlog Endpoints
+## Endpoints del Product Backlog (V5)
 
 ### Capabilities
 DELETE cascades to features → user stories → tasks → task assignments.
@@ -1009,7 +1009,7 @@ DELETE cascades to tasks, task assignments, and sprint story assignments.
 ### Project Work Items (aggregate view)
 - `GET /api/projects/{projectId}/work-items`
 
-Returns one JSON payload with:
-- project summary
-- capabilities → features → user stories → tasks hierarchy
-- sprints with active story IDs
+Devuelve un payload JSON con:
+- resumen del proyecto
+- jerarquía capabilities → features → historias de usuario → tareas
+- sprints con los IDs de historias activas
