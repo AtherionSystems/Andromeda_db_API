@@ -13,21 +13,21 @@ PROJECTS
   ├── CAPABILITIES
   │     └── FEATURES
   │           └── USER_STORIES
-  │                 ├── TASKS                (tasks.user_story_id → user_stories.id)
-  │                 └── USER_STORY_DEPENDENCIES (historia ↔ historia)
+  │                 ├── TASKS                (tasks.user_story_id → user_stories.id, CASCADE)
+  │                 └── SPRINT_STORIES_ASSIGNMENTS (user_story_id FK, CASCADE)
   ├── SPRINTS
-  │     ├── SPRINT_STORIES_ASSIGNMENTS   (sprint ↔ user_story)
-  │     ├── SPRINT_RETROSPECTIVES        (1:1 con sprint)
-  │     └── STORY_SPILLOVERS             (historia que pasa de un sprint a otro)
-  ├── PROJECT_MEMBERS                    (project ↔ user con rol)
-  └── TECHNICAL_DEBT                     (asociada a project, opcionalmente a story/task)
+  │     ├── SPRINT_STORIES_ASSIGNMENTS   (sprint_id FK, CASCADE)
+  │     └── SPRINT_RETROSPECTIVES        (1:1 con sprint, CASCADE)
+  └── PROJECT_MEMBERS                    (project ↔ user con rol, CASCADE)
 
+TASKS ── TASK_ASSIGNMENTS ── USERS        (task_id FK, CASCADE)
 USERS ── USER_TYPE
-TASKS ── TASK_ASSIGNMENTS ── USERS
 LOGS                                     (auditoría transversal)
 CONVERSATION_SESSIONS                    (sesión del bot, por usuario de Telegram)
 ANDROMEDA_VECTORS                        (embeddings para RAG)
 ```
+
+> **Cascade deletes (V9):** todos los FK marcados con CASCADE eliminan los registros hijos automáticamente al borrar el padre. La excepción es `sprint_stories_assignments.moved_to → sprints`, que usa SET NULL.
 
 Patrón de auditoría: a partir de V5, la mayoría de las tablas de negocio (`projects`, `sprints`, `tasks`, `capabilities`, `features`, `user_stories`, etc.) incluyen `created_by`, `created_at`, `updated_by`, `updated_at` con FKs a `users` y un `CHECK (updated_at IS NULL OR updated_at >= created_at)`.
 
@@ -111,9 +111,6 @@ Pertenecen a una feature.
 | `owner_id` | | FK → `users` |
 | auditoría | | `created_by` obligatorio |
 
-### `USER_STORY_DEPENDENCIES`
-Dependencias entre historias. `story_id` (FK), `blocked_by_id` (FK), `dependency_type` ∈ {`blocks`, `related`, `duplicates`, `split_from`, `parent_child`} (default `blocks`). Único `(story_id, blocked_by_id)` y `CHECK (story_id != blocked_by_id)` para evitar auto-dependencias.
-
 ### `SPRINT_STORIES_ASSIGNMENTS`
 Asignación de historias a sprints (reemplaza a `sprint_tasks`). `sprint_id` (FK), `user_story_id` (FK), `added_at`, `removed_at`, `moved_to` (FK → sprints), `is_active` ∈ {0,1} (default 1).
 
@@ -121,12 +118,6 @@ Asignación de historias a sprints (reemplaza a `sprint_tasks`). `sprint_id` (FK
 
 ### `SPRINT_RETROSPECTIVES`
 Una por sprint (`sprint_id` único). `summary`, `what_went_well`, `what_went_wrong` (todos CLOB), + auditoría.
-
-### `STORY_SPILLOVERS`
-Historias que se "derraman" de un sprint a otro. `sprint_story_id` (FK → sprint_stories_assignments), `user_story_id` (FK), `origin_sprint_id` (FK), `destination_sprint_id` (FK), `reason` ∈ {`scope_change`, `blocked`, `underestimated`, `resource_unavailable`, `technical_issue`, `other`}, `detail`, + auditoría.
-
-### `TECHNICAL_DEBT`
-Deuda técnica del proyecto. `project_id` (FK), `user_story_id` (FK opcional), `task_id` (FK opcional), `title`, `description`, `debt_type` ∈ {`code_quality`, `missing_tests`, `security`, `performance`, `documentation`, `architecture`}, `priority` ∈ {`low`, `medium`, `high`, `critical`}, `status` ∈ {`open`, `in_progress`, `resolved`, `accepted`}, `assigned_to` (FK, obligatorio), `resolved_at`, + auditoría.
 
 ---
 
@@ -154,6 +145,8 @@ Almacén de embeddings para RAG. `id` (VARCHAR2(150), UUID determinista `md5(typ
 | V5 | `V5_update_bd.sql` | Refactor mayor: auditoría en tablas de negocio; nuevas tablas capabilities, features, user_stories, user_story_dependencies, sprint_stories_assignments, sprint_retrospectives, story_spillovers, technical_debt; `tasks.user_story_id`; **DROP** de sprint_tasks; quita story_points/acceptance_criteria de tasks |
 | V6 | `V6__conversation_sessions.sql` | Tabla `conversation_sessions` (memoria del bot) |
 | V7 | `V7__rag_vector_store.sql` | Tabla `andromeda_vectors` con tipo `VECTOR` (RAG) |
+| V8 | `V8__remove_unimplemented_tables.sql` | **DROP** de `story_spillovers`, `user_story_dependencies`, `technical_debt` (tablas diseñadas pero no implementadas) |
+| V9 | `V9__cascade_deletes.sql` | Recrea 12 FK constraints con `ON DELETE CASCADE`; `sprint_stories_assignments.moved_to` usa `ON DELETE SET NULL` |
 
 ### Lecciones de Oracle Autonomous Database
 

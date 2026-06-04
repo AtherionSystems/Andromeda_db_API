@@ -25,7 +25,7 @@ public class Feature {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "CAPABILITY_ID", nullable = false)
     private Capability capability;
 

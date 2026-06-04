@@ -276,14 +276,15 @@ Actualiza parcialmente un proyecto. Solo se modifican los campos enviados.
 ---
 
 ### `DELETE /api/projects/{id}`
-Elimina un proyecto.
+Delete a project. **Cascades** to all capabilities, features, user stories, tasks, task assignments, project members, sprints, sprint assignments, and sprint retrospectives.
 
 **Respuesta `204`** — sin cuerpo.
 
 **Errores**
 | Status | Razón |
 |---|---|
-| `404` | Proyecto no encontrado |
+| `404` | Project not found |
+| `403` | Only managers and owners can delete a project |
 
 ---
 
@@ -385,7 +386,7 @@ Actualiza parcialmente una tarea. Solo se modifican los campos enviados.
 ---
 
 ### `DELETE /api/projects/{projectId}/tasks/{taskId}`
-Elimina una tarea.
+Delete a task. **Cascades** to all task assignments.
 
 **Respuesta `204`** — sin cuerpo.
 
@@ -416,7 +417,7 @@ Lista todos los usuarios asignados a una tarea.
 ---
 
 ### `POST /api/projects/{projectId}/tasks/{taskId}/assignments`
-Asigna un usuario a una tarea.
+Assign a user to a task. The user must be a member of the project, and the task must belong to the project.
 
 **Cuerpo de la request**
 ```json
@@ -430,8 +431,10 @@ Asigna un usuario a una tarea.
 **Errores**
 | Status | Razón |
 |---|---|
-| `404` | Tarea o usuario no encontrado |
-| `409` | El usuario ya está asignado |
+| `404` | Task not found |
+| `404` | User not found |
+| `400` | Task does not belong to this project |
+| `400` | User is not a member of this project |
 
 ---
 
@@ -521,14 +524,15 @@ Actualiza parcialmente un sprint. Solo se modifican los campos enviados.
 ---
 
 ### `DELETE /api/projects/{projectId}/sprints/{sprintId}`
-Elimina un sprint.
+Delete a sprint. **Cascades** to all sprint story assignments and sprint retrospective.
 
 **Respuesta `204`** — sin cuerpo.
 
 **Errores**
 | Status | Razón |
 |---|---|
-| `404` | Sprint no encontrado |
+| `404` | Sprint not found |
+| `403` | Only managers and owners can delete sprints |
 
 ---
 
@@ -970,6 +974,8 @@ Todas las respuestas de error siguen esta forma:
 ## Endpoints del Product Backlog (V5)
 
 ### Capabilities
+DELETE cascades to features → user stories → tasks → task assignments.
+
 - `GET /api/projects/{projectId}/capabilities`
 - `GET /api/projects/{projectId}/capabilities/{capabilityId}`
 - `POST /api/projects/{projectId}/capabilities`
@@ -977,47 +983,30 @@ Todas las respuestas de error siguen esta forma:
 - `DELETE /api/projects/{projectId}/capabilities/{capabilityId}`
 
 ### Features
+DELETE cascades to user stories → tasks → task assignments.
+
 - `GET /api/projects/{projectId}/capabilities/{capabilityId}/features`
 - `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
 - `POST /api/projects/{projectId}/capabilities/{capabilityId}/features`
 - `PATCH /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
 - `DELETE /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}`
 
-### Historias de Usuario
+### User Stories
+DELETE cascades to tasks, task assignments, and sprint story assignments.
+
 - `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories`
 - `GET /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
 - `POST /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories`
 - `PATCH /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
 - `DELETE /api/projects/{projectId}/capabilities/{capabilityId}/features/{featureId}/stories/{storyId}`
 
-### Dependencias de Historias de Usuario
-- `GET /api/projects/{projectId}/stories/{storyId}/dependencies`
-- `GET /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
-- `POST /api/projects/{projectId}/stories/{storyId}/dependencies`
-- `PATCH /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
-- `DELETE /api/projects/{projectId}/stories/{storyId}/dependencies/{dependencyId}`
-
-### Retrospectiva de Sprint
+### Sprint Retrospective
 - `GET /api/projects/{projectId}/sprints/{sprintId}/retrospective`
 - `POST /api/projects/{projectId}/sprints/{sprintId}/retrospective`
 - `PATCH /api/projects/{projectId}/sprints/{sprintId}/retrospective`
 - `DELETE /api/projects/{projectId}/sprints/{sprintId}/retrospective`
 
-### Story Spillovers
-- `GET /api/projects/{projectId}/story-spillovers`
-- `GET /api/projects/{projectId}/story-spillovers/{spilloverId}`
-- `POST /api/projects/{projectId}/story-spillovers`
-- `PATCH /api/projects/{projectId}/story-spillovers/{spilloverId}`
-- `DELETE /api/projects/{projectId}/story-spillovers/{spilloverId}`
-
-### Deuda Técnica
-- `GET /api/projects/{projectId}/technical-debt`
-- `GET /api/projects/{projectId}/technical-debt/{debtId}`
-- `POST /api/projects/{projectId}/technical-debt`
-- `PATCH /api/projects/{projectId}/technical-debt/{debtId}`
-- `DELETE /api/projects/{projectId}/technical-debt/{debtId}`
-
-### Work Items del Proyecto (vista agregada)
+### Project Work Items (aggregate view)
 - `GET /api/projects/{projectId}/work-items`
 
 Devuelve un payload JSON con:

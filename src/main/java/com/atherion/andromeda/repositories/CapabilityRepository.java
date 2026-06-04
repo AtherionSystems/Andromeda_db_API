@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface CapabilityRepository extends JpaRepository<Capability, Long> {
     List<Capability> findByProject_Id(Long projectId);
+    long countByProject_Id(Long projectId);
 }

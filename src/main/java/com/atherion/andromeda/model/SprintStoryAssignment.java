@@ -25,7 +25,7 @@ public class SprintStoryAssignment {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @OnDelete(action = OnDeleteAction.RESTRICT)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     @JoinColumn(name = "SPRINT_ID", nullable = false)
     private Sprint sprint;
 

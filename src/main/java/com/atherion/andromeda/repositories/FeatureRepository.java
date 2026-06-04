@@ -10,4 +10,6 @@ import java.util.List;
 public interface FeatureRepository extends JpaRepository<Feature, Long> {
     List<Feature> findByCapability_Id(Long capabilityId);
     List<Feature> findByCapability_Project_Id(Long projectId);
+    long countByCapability_Id(Long capabilityId);
+    long countByCapability_Project_Id(Long projectId);
 }

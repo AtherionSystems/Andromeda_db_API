@@ -15,6 +15,11 @@ public interface TaskAssignmentRepository extends JpaRepository<TaskAssignment, 
 
     List<TaskAssignment> findByTask_Id(Long taskId);
     List<TaskAssignment> findByTask_IdIn(List<Long> taskIds);
+    long countByTask_Id(Long taskId);
+    long countByTask_Project_Id(Long projectId);
+
+    @Query("SELECT COUNT(ta) FROM TaskAssignment ta WHERE ta.task.userStoryId = :userStoryId")
+    long countByTaskUserStoryId(@Param("userStoryId") Long userStoryId);
 
     Optional<TaskAssignment> findByTask_IdAndUser_Id(Long taskId, Long userId);
 
