@@ -5,6 +5,7 @@ import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.TaskAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.model.User;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.TaskAssignmentService;
 import com.atherion.andromeda.services.TasksService;
 import com.atherion.andromeda.services.UserService;
@@ -35,6 +36,7 @@ class TaskAssignmentsControllerTest {
     @Mock private TaskAssignmentService taskAssignmentService;
     @Mock private TasksService tasksService;
     @Mock private UserService userService;
+    @Mock private ProjectMemberService projectMemberService;
 
     @InjectMocks private TaskAssignmentsController controller;
 
@@ -113,6 +115,7 @@ class TaskAssignmentsControllerTest {
 
         when(tasksService.findById(1L)).thenReturn(Optional.of(task));
         when(userService.findById(2L)).thenReturn(Optional.of(user));
+        when(projectMemberService.existsByProjectIdAndUserId(1L, 2L)).thenReturn(true);
         when(taskAssignmentService.save(any(TaskAssignment.class))).thenReturn(saved);
 
         String payload = """
@@ -142,7 +145,6 @@ class TaskAssignmentsControllerTest {
     @Test
     void assignUser_taskNotFound_returns404() throws Exception {
         when(tasksService.findById(999L)).thenReturn(Optional.empty());
-        when(userService.findById(1L)).thenReturn(Optional.of(buildUser(1L)));
 
         String payload = """
                 {"userId": 1}
@@ -152,7 +154,7 @@ class TaskAssignmentsControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Task or User not found"));
+                .andExpect(jsonPath("$.error").value("Task not found"));
     }
 
     @Test
@@ -168,7 +170,7 @@ class TaskAssignmentsControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(payload))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Task or User not found"));
+                .andExpect(jsonPath("$.error").value("User not found"));
     }
 
     @Test
