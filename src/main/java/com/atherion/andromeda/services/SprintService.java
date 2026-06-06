@@ -13,12 +13,22 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class SprintService {
     private final SprintRepository sprintRepository;
+    private final RagIngestionService ragIngestionService;
 
     public List<Sprint> findAll() { return sprintRepository.findAll(); }
     public List<Sprint> findByProjectId(Long projectId) { return sprintRepository.findByProject_Id(projectId); }
     public Optional<Sprint> findById(Long id) { return sprintRepository.findById(id); }
-    public Sprint save(Sprint sprint) { return sprintRepository.save(sprint); }
-    public void deleteById(Long id) { sprintRepository.deleteById(id); }
+
+    public Sprint save(Sprint sprint) {
+        Sprint saved = sprintRepository.save(sprint);
+        ragIngestionService.ingestSprintAsync(saved.getId());
+        return saved;
+    }
+
+    public void deleteById(Long id) {
+        ragIngestionService.deleteAsync("sprint", id);
+        sprintRepository.deleteById(id);
+    }
 
     public List<SprintResponse> findByProjectIdAsResponse(Long projectId) {
         return sprintRepository.findByProjectIdAsResponse(projectId);

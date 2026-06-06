@@ -17,6 +17,7 @@ import java.util.Optional;
 public interface UserStoryRepository extends JpaRepository<UserStory, Long> {
     List<UserStory> findByFeature_Id(Long featureId);
     List<UserStory> findByOwner_Id(Long ownerId);
+    List<UserStory> findByFeature_Capability_Id(Long capabilityId);
     List<UserStory> findByFeature_Capability_Project_Id(Long projectId);
     long countByFeature_Id(Long featureId);
     long countByFeature_Capability_Id(Long capabilityId);

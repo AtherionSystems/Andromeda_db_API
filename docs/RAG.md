@@ -9,21 +9,21 @@ y obtener respuestas basadas en datos reales del proyecto.
 ## Arquitectura
 
 ```
-INGESTA (una sola vez, manual)
-  Oracle Database (UserStories, Tasks, Sprints)
-        ↓ formateo de texto
+INGESTA (automática al guardar/borrar)
+  save(UserStory / Task / Sprint)
+        ↓ async (no bloquea el endpoint)
   EmbeddingService → API Gemini gemini-embedding-2
         ↓ vector de 3072 dimensiones
-  VectorStoreService → tabla andromeda_vectors (Oracle 26ai VECTOR)
+  VectorStoreService → upsert en andromeda_vectors (Oracle 26ai VECTOR)
 
 CONSULTA (en tiempo real, por pregunta)
   Pregunta del usuario
         ↓
   EmbeddingService → vector de la pregunta (3072 dims)
         ↓
-  VectorStoreService → VECTOR_DISTANCE (COSINE) → top 5 fragmentos relevantes
+  VectorStoreService → VECTOR_DISTANCE (COSINE) < 0.5 → fragmentos relevantes
         ↓
-  AiService.chat() → Gemini con los 5 fragmentos como contexto
+  AiService.chat() → Gemini con los fragmentos como contexto
         ↓
   Respuesta basada en datos reales del proyecto
 ```
@@ -46,41 +46,56 @@ Gestiona la persistencia y búsqueda de vectores en Oracle 26ai.
 - **Tabla**: `andromeda_vectors`
 - **Tipo de columna**: `VECTOR(3072, FLOAT32)` — tipo nativo de Oracle 23ai+
 - **Upsert**: DELETE + INSERT con UUID determinista (`type:entityId`)
-- **Búsqueda**: `ORDER BY VECTOR_DISTANCE(embedding, TO_VECTOR(?), COSINE) FETCH FIRST 5 ROWS ONLY`
+- **Búsqueda**: filtra por `VECTOR_DISTANCE(COSINE) < 0.5` y devuelve hasta 10 resultados ordenados por relevancia
 - **Filtro por proyecto**: todas las consultas están acotadas al `project_id` activo del usuario
+- **Delete**: elimina el vector correspondiente a una entidad por su UUID determinista
 
 ### RagIngestionService
 Orquesta la ingesta de datos de Oracle hacia el vector store.
 
-Procesa tres tipos de entidad por proyecto:
+Procesa tres tipos de entidad:
 
-| Entidad | Repositorio | Formato de texto indexado |
-|---|---|---|
-| UserStory | `UserStoryRepository` | `[UserStory #id] title \n Status \| Priority \| Points \n Description \n Acceptance Criteria` |
-| Tasks | `TasksRepository` | `[Task #id] title \n Status \| Priority \| Estimated hours \n Description` |
-| Sprint | `SprintRepository` | `[Sprint #id] name \n Status \| Start \| End \n Goal` |
+| Entidad | Formato de texto indexado |
+|---|---|
+| UserStory | `[UserStory #id] title \n Status \| Priority \| Points \n Owner: name \n Asignados: user1, user2 \n Description \n Acceptance Criteria` |
+| Tasks | `[Task #id] title \n Status \| Priority \| Estimated hours \n Asignados: user1, user2 \n Description` |
+| Sprint | `[Sprint #id] name \n Status \| Start \| End \n Goal` |
 
-La ingesta es **idempotente**: re-indexar el mismo proyecto no crea duplicados.
+La ingesta es **idempotente**: re-indexar la misma entidad no crea duplicados.
+
+Expone métodos `@Async @Transactional` llamados desde los services. Reciben el ID (no la entidad) para recargar las asociaciones lazy en una nueva transacción desde el hilo async.
+
+| Método | Cuándo se llama |
+|---|---|
+| `ingestUserStoryAsync(storyId)` | `UserStoryService.save()` |
+| `ingestTaskAsync(taskId)` | `TasksService.save()` — también `TaskAssignmentService.save()` y `TaskAssignmentService.deleteById()` para mantener los asignados actualizados en el vector |
+| `ingestSprintAsync(sprintId)` | `SprintService.save()` |
+| `deleteAsync(type, entityId)` | `*.deleteById()` en cada service, incluidos `FeatureService` y `CapabilityService` |
+
+También expone `ingest(projectId)` para re-indexación completa manual vía `RagController`.
 
 ### RagService
 Punto de entrada para consultas RAG llamadas desde `AiIntentRouter`.
 
 Flujo interno:
 1. Genera el embedding de la pregunta del usuario
-2. Busca los 5 fragmentos más similares en Oracle (filtrados por `projectId`)
-3. Une los fragmentos como contexto
-4. Llama a `AiService.chat()` con el prompt de sistema + contexto + pregunta
-5. Devuelve la respuesta del LLM
+2. Busca en Oracle los fragmentos con distancia coseno < 0.5 (hasta 10, filtrados por `projectId`)
+3. Si no hay fragmentos suficientemente relevantes, retorna `null` (el bot indica que no encontró información)
+4. Une los fragmentos como contexto
+5. Llama a `AiService.chat()` con el prompt de sistema + contexto + pregunta
+6. Devuelve la respuesta del LLM
 
-**Comportamiento por idioma**: el bot responde en el mismo idioma en que escribe el usuario. Si el usuario pregunta en español, la respuesta es en español; si pregunta en inglés, en inglés.
+**Umbral de distancia**: el valor 0.5 significa que solo se usan fragmentos con al menos ~75% de alineación semántica con la pregunta, evitando que el LLM reciba contexto irrelevante y alucine.
+
+**Comportamiento por idioma**: el bot responde en el mismo idioma en que escribe el usuario.
 
 ### RagController
-Endpoints REST para administración.
+Endpoints REST para re-indexación completa manual.
 
 | Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/api/admin/rag/ingest?projectId=X` | Indexa un proyecto específico |
-| `POST` | `/api/admin/rag/ingest` | Indexa todos los proyectos |
+| `POST` | `/api/admin/rag/ingest?projectId=X` | Re-indexa un proyecto específico |
+| `POST` | `/api/admin/rag/ingest` | Re-indexa todos los proyectos |
 
 ---
 
@@ -101,6 +116,8 @@ CREATE TABLE andromeda_vectors (
 
 **Nota**: la tabla se crea manualmente (Flyway está deshabilitado en este proyecto).
 El archivo de referencia es `src/main/resources/db/migration/V7__rag_vector_store.sql`.
+
+**Sin FK a tablas de negocio**: los vectores no tienen restricción referencial con `user_stories`, `tasks` o `sprints`. Los borrados en cascada que pasan por `FeatureService.deleteById()` o `CapabilityService.deleteById()` ahora limpian los vectores automáticamente antes de borrar la entidad padre. Si se borran datos directamente en DB sin pasar por la API, ejecutar `POST /api/admin/rag/ingest?projectId=X`.
 
 ---
 
@@ -135,11 +152,18 @@ filtrar los resultados de Oracle, evitando que se mezclen datos de diferentes pr
 
 ---
 
-## Flujo recomendado para un proyecto nuevo
+## Flujo para un proyecto nuevo
 
-1. El administrador crea el proyecto, capabilities, features, historias de usuario y tareas en Andromeda
-2. El administrador llama a `POST /api/admin/rag/ingest?projectId={id}` para indexar ese proyecto
-3. El bot ya puede responder preguntas sobre ese proyecto
+1. Crear el proyecto, capabilities, features, historias de usuario, tareas y sprints en Andromeda — **la indexación ocurre automáticamente** al guardar cada entidad
+2. El bot ya puede responder preguntas sobre ese proyecto sin ningún paso adicional
 
-Si se agregan entidades después de la ingesta inicial, volver a llamar al endpoint
-re-indexa solo las nuevas o modificadas (el upsert maneja duplicados mediante UUID).
+### Re-indexación manual
+
+Útil cuando:
+- Se borraron entidades en cascada (los vectores huérfanos quedaron en Oracle)
+- Se migró o importó datos directamente en la DB sin pasar por la API
+
+```
+POST /api/admin/rag/ingest?projectId={id}   # un proyecto
+POST /api/admin/rag/ingest                  # todos los proyectos
+```

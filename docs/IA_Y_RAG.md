@@ -78,15 +78,24 @@ CONSULTA (en tiempo real, por pregunta)
 
 ## 3. Router de intención (`telegram/AiIntentRouter`)
 
-Traduce un mensaje en lenguaje natural al comando del bot más cercano. Le pasa al LLM un *system prompt* con la jerarquía del dominio (Project → Capabilities → Features → User Stories → Tasks) y el catálogo de comandos disponibles, y exige una respuesta **solo JSON**: `{"cmd": "/comando", "args": "..."}`.
+Traduce un mensaje en lenguaje natural al comando del bot más cercano. Le pasa al LLM un *system prompt* con la jerarquía del dominio (Project → Capabilities → Features → User Stories → Tasks) y el catálogo completo de comandos (lectura **y escritura**), exigiendo una respuesta **solo JSON**: `{"cmd": "/comando", "args": "..."}`.
 
 - Si el mensaje es una pregunta abierta (p. ej. "¿qué tareas están pendientes?", "resume el sprint"), mapea a `/rag_query` y dispara el flujo RAG.
 - Si no puede mapear, devuelve `{"cmd": "none", "args": ""}`.
 - Usa `chatJsonWithHistory()` para resolver referencias como "ese proyecto" o "la tarea anterior", y guarda cada intercambio (user + assistant) en el historial de la sesión.
-- Resolución de argumentos:
-  - args vacíos → usa el ID activo de la sesión;
-  - args numéricos → se pasan tal cual;
-  - args con nombre → `EntityResolver` (búsqueda substring case-insensitive) → si no hay match, fallback a la sesión → si tampoco, se pasa el nombre tal cual.
+
+**Contexto inyectado en el system prompt** (scoped al proyecto activo de la sesión):
+- Lista de proyectos conocidos
+- Capabilities, features, user stories del proyecto activo
+- **Lista de tareas** del proyecto activo (taskId + título + estado)
+- **Lista de miembros** del proyecto activo (userId + username + nombre completo)
+
+**Resolución de argumentos:**
+- args vacíos → usa el ID activo de la sesión
+- args numéricos → se pasan tal cual
+- `/newtask` → primer segmento pipe resuelto como nombre de proyecto → ID numérico
+- `/assignuser` → dos tokens; cada uno resuelto independientemente (tarea por título vía `EntityResolver.resolveTaskByTitle`, usuario por nombre/username vía `EntityResolver.resolveUserByNameInProject`)
+- otros args con nombre → `EntityResolver` (búsqueda substring case-insensitive) → fallback a sesión
 
 ---
 

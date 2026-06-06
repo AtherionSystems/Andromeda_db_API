@@ -54,16 +54,17 @@ El bot conecta por **long-polling** al arrancar la aplicación y responde a coma
 ### Escritura (requieren `/link`)
 | Comando | Descripción |
 |---|---|
-| `/newproject <name> [\| description] [\| status]` | Crea un proyecto |
+| `/newproject <name> [\| description] [\| status]` | Crea un proyecto y **agrega automáticamente al creador como `owner`** |
 | `/newsprint <projectId> \| <name> [\| goal] [\| status] [\| startDate] [\| dueDate]` | Crea un sprint |
-| `/newtask <projectId> \| <title> \| <estimatedHours> \| <storyPoints> [\| priority] [\| acceptanceCriteria]` | Crea una tarea (máx 4 h; si excede, se rechaza y se sugiere dividir) |
+| `/newtask <projectId> \| <title> \| <estimatedHours> [\| priority]` | Crea una tarea (máx 4 h; si excede, se rechaza y se sugiere dividir) |
 | `/assigntask <sprintId> <taskId>` | Agrega tarea al sprint, la marca `in_progress` y auto-asigna desarrollador |
 | `/addsprinttask <sprintId> <taskId>` | Alias de `/assigntask` |
+| `/assignuser <taskId> <userId>` | Asigna un usuario (persona) a una tarea; re-indexa el vector RAG automáticamente |
 | `/completetask <taskId> <actualHours>` | Marca la tarea `done` y registra horas reales |
 | `/taskstatus <taskId> <status>` | Cambia el estado de una tarea |
 | `/taskpriority <taskId> <priority>` | Cambia la prioridad |
 | `/projectstatus <projectId> <status>` | Cambia el estado de un proyecto |
-| `/addmember <projectId> <userId> [role]` | Agrega un usuario al proyecto |
+| `/addmember <projectId> <userId> [role]` | Agrega un usuario al proyecto (requiere ser manager/owner) |
 
 ### IA y utilidades
 | Comando | Descripción |
@@ -80,10 +81,18 @@ El bot conecta por **long-polling** al arrancar la aplicación y responde a coma
 
 ## 3. Interacción con lenguaje natural
 
-El usuario no necesita recordar IDs ni comandos exactos. Por ejemplo:
+El usuario no necesita recordar IDs ni comandos exactos. El `AiIntentRouter` soporta tanto comandos de lectura como de escritura:
 
-- "muéstrame las tareas del proyecto Andromeda" → el router mapea a `/tasks` y `EntityResolver` resuelve "Andromeda" → projectId.
-- "¿qué historias están en progreso?" → `/rag_query` (RAG sobre el proyecto activo).
-- "y ese sprint, ¿cuál es su meta?" → usa el historial y el contexto activo de la sesión para resolver "ese sprint".
+**Lectura**
+- "muéstrame las tareas del proyecto Andromeda" → `/tasks <projectId>`
+- "¿qué historias están en progreso?" → `/rag_query` (RAG sobre el proyecto activo)
+- "y ese sprint, ¿cuál es su meta?" → usa el historial y el contexto activo de la sesión
+
+**Escritura**
+- "Add a new task for project RAG Test called 'Fix login' with 2 hours and high priority" → `/newtask <projectId> | Fix login | 2 | high`
+- "Assign the task 'Fix login' to user 27" → `/assignuser <taskId> 27`
+- "mark task 15 as done" → `/taskstatus 15 done`
+
+El router inyecta en el *system prompt* del LLM la lista de proyectos, capabilities, features, historias, tareas **y miembros** del proyecto activo, para que pueda resolver nombres propios a IDs numéricos sin que el usuario tenga que conocerlos.
 
 El contexto activo (proyecto/feature/historia/tarea) y el historial se mantienen en la sesión y persisten entre reinicios (ver [`IA_Y_RAG.md`](IA_Y_RAG.md) §4).

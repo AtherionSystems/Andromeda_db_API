@@ -14,6 +14,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TasksService {
     private final TasksRepository tasksRepository;
+    private final RagIngestionService ragIngestionService;
 
     public List<Tasks> findAll() { return tasksRepository.findAll(); }
     public List<Tasks> findByProjectId(Long projectId) { return tasksRepository.findByProject_Id(projectId); }
@@ -21,8 +22,17 @@ public class TasksService {
     public List<Tasks> findByProjectIdAndUserStoryId(Long projectId, Long userStoryId) { return tasksRepository.findByProject_IdAndUserStoryId(projectId, userStoryId); }
     public List<Tasks> findByProjectIdAndStatus(Long projectId, String status) { return tasksRepository.findByProject_IdAndStatus(projectId, status); }
     public Optional<Tasks> findById(Long id) { return tasksRepository.findById(id); }
-    public Tasks save(Tasks task) { return tasksRepository.save(task); }
-    public void deleteById(Long id) { tasksRepository.deleteById(id); }
+
+    public Tasks save(Tasks task) {
+        Tasks saved = tasksRepository.save(task);
+        ragIngestionService.ingestTaskAsync(saved.getId());
+        return saved;
+    }
+
+    public void deleteById(Long id) {
+        ragIngestionService.deleteAsync("task", id);
+        tasksRepository.deleteById(id);
+    }
 
     public List<TaskResponse> findByProjectIdAsResponse(Long projectId) {
         return tasksRepository.findByProjectIdFetched(projectId).stream().map(TaskResponse::from).toList();
