@@ -1,145 +1,145 @@
 # RAG — Retrieval-Augmented Generation
 
-Semantic search system over project data for the Andromeda Telegram bot.
-Allows users to ask open-ended questions in natural language about user stories, tasks, and sprints,
-and get answers grounded in real project data.
+Sistema de búsqueda semántica sobre datos del proyecto para el bot de Telegram de Andromeda.
+Permite a los usuarios hacer preguntas abiertas en lenguaje natural sobre historias de usuario, tareas y sprints,
+y obtener respuestas basadas en datos reales del proyecto.
 
 ---
 
-## Architecture
+## Arquitectura
 
 ```
-INGESTION (one-time, manual)
+INGESTA (una sola vez, manual)
   Oracle Database (UserStories, Tasks, Sprints)
-        ↓ text formatting
-  EmbeddingService → Gemini gemini-embedding-2 API
-        ↓ 3072-dimensional vector
-  VectorStoreService → andromeda_vectors table (Oracle 26ai VECTOR)
+        ↓ formateo de texto
+  EmbeddingService → API Gemini gemini-embedding-2
+        ↓ vector de 3072 dimensiones
+  VectorStoreService → tabla andromeda_vectors (Oracle 26ai VECTOR)
 
-QUERY (real-time, per question)
-  User question
+CONSULTA (en tiempo real, por pregunta)
+  Pregunta del usuario
         ↓
-  EmbeddingService → question vector (3072 dims)
+  EmbeddingService → vector de la pregunta (3072 dims)
         ↓
-  VectorStoreService → VECTOR_DISTANCE (COSINE) → top 5 relevant chunks
+  VectorStoreService → VECTOR_DISTANCE (COSINE) → top 5 fragmentos relevantes
         ↓
-  AiService.chat() → Gemini with the 5 chunks as context
+  AiService.chat() → Gemini con los 5 fragmentos como contexto
         ↓
-  Answer grounded in real project data
+  Respuesta basada en datos reales del proyecto
 ```
 
 ---
 
-## Components
+## Componentes
 
 ### EmbeddingService
-Converts text into a 3072-dimensional numeric vector using the native Gemini API.
+Convierte texto en un vector numérico de 3072 dimensiones usando la API nativa de Gemini.
 
-- **Model**: `gemini-embedding-2`
+- **Modelo**: `gemini-embedding-2`
 - **Endpoint**: `https://generativelanguage.googleapis.com/v1/models/gemini-embedding-2:embedContent`
-- **Input**: free-form text (user story, task, user question)
-- **Output**: `float[]` of 3072 elements
+- **Entrada**: texto libre (historia de usuario, tarea, pregunta del usuario)
+- **Salida**: `float[]` de 3072 elementos
 
 ### VectorStoreService
-Manages vector persistence and search in Oracle 26ai.
+Gestiona la persistencia y búsqueda de vectores en Oracle 26ai.
 
-- **Table**: `andromeda_vectors`
-- **Column type**: `VECTOR(3072, FLOAT32)` — native Oracle 23ai+ type
-- **Upsert**: DELETE + INSERT with deterministic UUID (`type:entityId`)
-- **Search**: `ORDER BY VECTOR_DISTANCE(embedding, TO_VECTOR(?), COSINE) FETCH FIRST 5 ROWS ONLY`
-- **Project filter**: all queries are scoped to the user's active `project_id`
+- **Tabla**: `andromeda_vectors`
+- **Tipo de columna**: `VECTOR(3072, FLOAT32)` — tipo nativo de Oracle 23ai+
+- **Upsert**: DELETE + INSERT con UUID determinista (`type:entityId`)
+- **Búsqueda**: `ORDER BY VECTOR_DISTANCE(embedding, TO_VECTOR(?), COSINE) FETCH FIRST 5 ROWS ONLY`
+- **Filtro por proyecto**: todas las consultas están acotadas al `project_id` activo del usuario
 
 ### RagIngestionService
-Orchestrates data ingestion from Oracle into the vector store.
+Orquesta la ingesta de datos de Oracle hacia el vector store.
 
-Processes three entity types per project:
+Procesa tres tipos de entidad por proyecto:
 
-| Entity | Repository | Indexed text format |
+| Entidad | Repositorio | Formato de texto indexado |
 |---|---|---|
 | UserStory | `UserStoryRepository` | `[UserStory #id] title \n Status \| Priority \| Points \n Description \n Acceptance Criteria` |
 | Tasks | `TasksRepository` | `[Task #id] title \n Status \| Priority \| Estimated hours \n Description` |
 | Sprint | `SprintRepository` | `[Sprint #id] name \n Status \| Start \| End \n Goal` |
 
-Ingestion is **idempotent**: re-indexing the same project does not create duplicates.
+La ingesta es **idempotente**: re-indexar el mismo proyecto no crea duplicados.
 
 ### RagService
-Entry point for RAG queries called from `AiIntentRouter`.
+Punto de entrada para consultas RAG llamadas desde `AiIntentRouter`.
 
-Internal flow:
-1. Embeds the user's question
-2. Searches the top 5 most similar chunks in Oracle (filtered by `projectId`)
-3. Joins the chunks as context
-4. Calls `AiService.chat()` with the system prompt + context + question
-5. Returns the LLM response
+Flujo interno:
+1. Genera el embedding de la pregunta del usuario
+2. Busca los 5 fragmentos más similares en Oracle (filtrados por `projectId`)
+3. Une los fragmentos como contexto
+4. Llama a `AiService.chat()` con el prompt de sistema + contexto + pregunta
+5. Devuelve la respuesta del LLM
 
-**Language behavior**: the bot responds in the same language the user writes in. If the user asks in Spanish, the answer is in Spanish; if in English, in English.
+**Comportamiento por idioma**: el bot responde en el mismo idioma en que escribe el usuario. Si el usuario pregunta en español, la respuesta es en español; si pregunta en inglés, en inglés.
 
 ### RagController
-REST endpoints for administration.
+Endpoints REST para administración.
 
-| Method | Path | Description |
+| Método | Ruta | Descripción |
 |---|---|---|
-| `POST` | `/api/admin/rag/ingest?projectId=X` | Index a specific project |
-| `POST` | `/api/admin/rag/ingest` | Index all projects |
+| `POST` | `/api/admin/rag/ingest?projectId=X` | Indexa un proyecto específico |
+| `POST` | `/api/admin/rag/ingest` | Indexa todos los proyectos |
 
 ---
 
-## Database table
+## Tabla de base de datos
 
 ```sql
 CREATE TABLE andromeda_vectors (
     id           VARCHAR2(150)  NOT NULL,  -- UUID: md5(type:entityId)
     entity_type  VARCHAR2(50)   NOT NULL,  -- "user_story" | "task" | "sprint"
-    entity_id    NUMBER         NOT NULL,  -- ID of the original record
-    project_id   NUMBER,                   -- used to filter by project in queries
-    text_content VARCHAR2(4000) NOT NULL,  -- human-readable text sent to the LLM
-    embedding    VECTOR(3072, FLOAT32),    -- semantic representation
+    entity_id    NUMBER         NOT NULL,  -- ID del registro original
+    project_id   NUMBER,                   -- usado para filtrar por proyecto en las consultas
+    text_content VARCHAR2(4000) NOT NULL,  -- texto legible enviado al LLM
+    embedding    VECTOR(3072, FLOAT32),    -- representación semántica
     created_at   TIMESTAMP DEFAULT SYSTIMESTAMP,
     CONSTRAINT pk_andromeda_vectors PRIMARY KEY (id)
 );
 ```
 
-**Note**: the table is created manually (Flyway is disabled in this project).
-The reference file is `src/main/resources/db/migration/V7__rag_vector_store.sql`.
+**Nota**: la tabla se crea manualmente (Flyway está deshabilitado en este proyecto).
+El archivo de referencia es `src/main/resources/db/migration/V7__rag_vector_store.sql`.
 
 ---
 
-## Configuration
+## Configuración
 
-| Property | Environment variable | Current value |
+| Propiedad | Variable de entorno | Valor actual |
 |---|---|---|
-| Embedding model | `AGENT_AI_EMBEDDING_MODEL` | `gemini-embedding-2` |
-| API Key | `AGENT_AI_API_KEY` | (Gemini API key) |
-| Base URL | `AGENT_AI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
+| Modelo de embedding | `AGENT_AI_EMBEDDING_MODEL` | `gemini-embedding-2` |
+| API Key | `AGENT_AI_API_KEY` | (clave de API de Gemini) |
+| URL base | `AGENT_AI_BASE_URL` | `https://generativelanguage.googleapis.com/v1beta/openai` |
 
-**Note on the URL**: `EmbeddingService` ignores the `/openai` suffix from `baseUrl` and replaces
-`v1beta` with `v1` to build the native embeddings endpoint. The rest of the app (chat)
-continues using Gemini's OpenAI-compatible endpoint.
-
----
-
-## Telegram bot integration
-
-RAG is triggered automatically when `AiIntentRouter` detects an open-ended question.
-The LLM classifies the message as `/rag_query` when it does not match any specific command.
-
-Example questions that trigger RAG:
-- *"What tasks are pending?"*
-- *"What is the goal of the current sprint?"*
-- *"Which user stories have high priority?"*
-- *"Summarize the project status"*
-- *"¿Qué tareas están bloqueadas?"*
-
-The active project context from the session (`session.getActiveProjectId()`) is used to
-filter Oracle results, preventing data from different projects from being mixed.
+**Nota sobre la URL**: `EmbeddingService` ignora el sufijo `/openai` de `baseUrl` y reemplaza
+`v1beta` con `v1` para construir el endpoint nativo de embeddings. El resto de la aplicación (chat)
+sigue usando el endpoint de Gemini compatible con OpenAI.
 
 ---
 
-## Recommended flow for a new project
+## Integración con el bot de Telegram
 
-1. Admin creates the project, capabilities, features, user stories, and tasks in Andromeda
-2. Admin calls `POST /api/admin/rag/ingest?projectId={id}` to index that project
-3. The bot can now answer questions about that project
+RAG se activa automáticamente cuando `AiIntentRouter` detecta una pregunta abierta.
+El LLM clasifica el mensaje como `/rag_query` cuando no coincide con ningún comando específico.
 
-If entities are added after the initial ingest, calling the endpoint again
-re-indexes only the new/modified ones (upsert handles duplicates via UUID).
+Ejemplos de preguntas que activan RAG:
+- *"¿Qué tareas están pendientes?"*
+- *"¿Cuál es el objetivo del sprint actual?"*
+- *"¿Qué historias de usuario tienen prioridad alta?"*
+- *"Resume el estado del proyecto"*
+- *"What tasks are blocked?"*
+
+El contexto de proyecto activo de la sesión (`session.getActiveProjectId()`) se usa para
+filtrar los resultados de Oracle, evitando que se mezclen datos de diferentes proyectos.
+
+---
+
+## Flujo recomendado para un proyecto nuevo
+
+1. El administrador crea el proyecto, capabilities, features, historias de usuario y tareas en Andromeda
+2. El administrador llama a `POST /api/admin/rag/ingest?projectId={id}` para indexar ese proyecto
+3. El bot ya puede responder preguntas sobre ese proyecto
+
+Si se agregan entidades después de la ingesta inicial, volver a llamar al endpoint
+re-indexa solo las nuevas o modificadas (el upsert maneja duplicados mediante UUID).

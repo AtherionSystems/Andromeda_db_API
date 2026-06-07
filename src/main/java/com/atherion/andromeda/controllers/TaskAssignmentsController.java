@@ -5,6 +5,7 @@ import com.atherion.andromeda.dto.TaskAssignmentResponse;
 import com.atherion.andromeda.model.TaskAssignment;
 import com.atherion.andromeda.model.Tasks;
 import com.atherion.andromeda.model.User;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.TaskAssignmentService;
 import com.atherion.andromeda.services.TasksService;
 import com.atherion.andromeda.services.UserService;
@@ -27,6 +28,7 @@ public class TaskAssignmentsController {
     private final TaskAssignmentService taskAssignmentService;
     private final TasksService tasksService;
     private final UserService userService;
+    private final ProjectMemberService projectMemberService;
 
     // GET /api/projects/{projectId}/task-assignments
     // GET /api/projects/{projectId}/task-assignments?userId={id}
@@ -51,14 +53,20 @@ public class TaskAssignmentsController {
     }
 
     @PostMapping("/tasks/{taskId}/assignments")
-    public ResponseEntity<?> assignUserToTask(@PathVariable Long taskId,
+    public ResponseEntity<?> assignUserToTask(@PathVariable Long projectId,
+                                              @PathVariable Long taskId,
                                               @Valid @RequestBody AssignUserToTaskRequest request) {
         Tasks task = tasksService.findById(taskId).orElse(null);
-        User user = userService.findById(request.userId()).orElse(null);
+        if (task == null) return notFound("Task not found");
 
-        if (task == null || user == null) {
-            return notFound("Task or User not found");
-        }
+        User user = userService.findById(request.userId()).orElse(null);
+        if (user == null) return notFound("User not found");
+
+        if (!task.getProject().getId().equals(projectId))
+            return badRequest("Task does not belong to this project");
+
+        if (!projectMemberService.existsByProjectIdAndUserId(projectId, request.userId()))
+            return badRequest("User is not a member of this project");
 
         TaskAssignment assignment = new TaskAssignment();
         assignment.setTask(task);

@@ -135,9 +135,8 @@ public class UserStoriesController {
                         && s.getFeature().getCapability().getId().equals(capabilityId)
                         && s.getFeature().getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
-        if (story == null) {
-            return notFound("User story not found");
-        }
+        if (story == null) return notFound("User story not found");
+
         userStoryService.deleteById(storyId);
         return ResponseEntity.noContent().build();
     }

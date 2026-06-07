@@ -1,77 +1,6 @@
 ================================================================================
-  OCI IAM OAUTH2 — REACT FRONTEND INTEGRATION GUIDE
-  Andromeda Backend API  |  Spring Boot 4.0.3  |  Written: 2026-05-27
-================================================================================
-
-TABLE OF CONTENTS
------------------
-  1. Architecture Overview
-  2. How the Backend Validates Tokens
-  4. Frontend Environment Variables
-  5. File: src/ociAuth.tsx
-  6. File: src/index.tsx  (modifications)
-  7. File: src/api.ts     (authenticated fetch helper)
-  8. Usage Examples in Components
-  9. Public Endpoints (No Token Required)
- 10. Token Payload Reference
- 11. Common Errors & Fixes
- 12. Dev vs Prod Differences
-
-================================================================================
-  1. ARCHITECTURE OVERVIEW
-================================================================================
-
-  Browser (React SPA)
-       |
-       |  1. Redirect to OCI IAM login page
-       v
-  OCI IAM (IDCS — Identity Cloud Service)
-       |
-       |  2. Authorization Code  (redirect back to React)
-       v
-  React — exchanges code for tokens (Authorization Code + PKCE)
-       |
-       |  3. API calls with  Authorization: Bearer <access_token>
-       v
-  Spring Boot Backend  (prod profile)
-       |
-       |  4. Validates JWT signature using bundled /jwks.json
-       |     Key: kid=SIGNING_KEY, alg=RS256
-       v
-  Protected resource returned to browser
-
-KEY POINT:
-  In PROD mode the backend has NO /api/auth/login endpoint.
-  100% of authentication is delegated to OCI IAM.
-  The React app must obtain a JWT directly from OCI IAM.
-
-================================================================================
-  2. HOW THE BACKEND VALIDATES TOKENS
-================================================================================
-
-  Profile: prod  (SPRING_PROFILES_ACTIVE=prod)
-  -----------------------------------------------
-  - SecurityConfig registers a NimbusJwtDecoder built from src/main/resources/jwks.json
-  - The JWKS contains OCI IDCS's RSA-256 public key (kid: "SIGNING_KEY")
-  - Every incoming request to /api/** must carry:
-        Authorization: Bearer <JWT from OCI IAM>
-  - The custom JwtAuthFilter is DISABLED (FilterRegistrationBean.setEnabled(false))
-  - Spring Security's oauth2ResourceServer().jwt() handles all validation
-  - CORS allows: http://localhost:5173, http://localhost:3000, plus 4 OCI instance IPs
-
-  Profile: dev / default  (no SPRING_PROFILES_ACTIVE, or =dev)
-  -------------------------------------------------------------
-  - Uses the custom JwtAuthFilter + JwtUtil (HMAC-SHA256 with jwt.secret)
-  - Tokens are obtained from POST /api/auth/login (username + password)
-  - This is a different token format — NOT compatible with the OCI IAM flow below
-
-  *** THIS GUIDE IS FOR PROD PROFILE ONLY ***
-
-================================================================================
-  4. FRONTEND ENVIRONMENT VARIABLES
-================================================================================
-
-  Create a .env file at the root of your React project:
+  OCI IAM OAUTH2 — GUÍA DE INTEGRACIÓN PARA EL FRONTEND REACT
+  Andromeda Backend API  |  Spring Boot 4.0.3  |  Escrito: 2026-05-27
 
   # .env
   VITE_OCI_AUTH_URL=https://idcs-9f32f2619f6e4cf29d2a63de9154f879.identity.oraclecloud.com/oauth2/v1/authorize
@@ -82,15 +11,9 @@ KEY POINT:
   VITE_OCI_SCOPE=openid http://localhost:8080/read
   VITE_API_BASE_URL=http://localhost:8080
 
-  NOTE: Replace all values with your real OCI IAM domain, client ID and redirect URI.
-  For production builds, use a .env.production file with the actual backend IP.
+  NOTA: Reemplaza todos los valores con tu dominio real de OCI IAM, Client ID y URI de redirección.
+  Para builds de producción, usa un archivo .env.production con la IP real del backend.
 
-================================================================================
-  5. FILE: src/ociAuth.tsx
-================================================================================
-
-  This module implements Authorization Code + PKCE entirely in the browser.
-  No client secret is ever stored or sent from the browser.
 
 ----------- src/ociAuth.tsx -------------------------------------------------
 
@@ -364,13 +287,23 @@ export function isAuthenticated(): boolean {
 }
 
 -----------------------------------------------------------------------------
+  DEPENDENCIA REQUERIDA:
+  npm install jwt-decode
+  (o yarn add jwt-decode)
+
+  6. ARCHIVO: src/index.tsx  (modificaciones)
+
+  El index.tsx (o main.tsx en proyectos Vite) necesita:
+    a) Detectar si la URL actual es la ruta de callback OAuth2 (/callback)
+    b) Ejecutar handleCallback() antes de renderizar la app
+    c) Redirigir a / después del intercambio exitoso del token
+
+----------- src/main.tsx  (punto de entrada por defecto de Vite) ---------------
   DEPENDENCY NEEDED:
   npm install jwt-decode
   (or yarn add jwt-decode)
 
-================================================================================
   6. FILE: src/index.tsx  (modifications)
-================================================================================
 
   The index.tsx (or main.tsx in Vite projects) needs to:
     a) Detect if the current URL is the OAuth2 callback path (/callback)
@@ -420,6 +353,15 @@ bootstrap().catch(console.error);
 
 -----------------------------------------------------------------------------
 
+  CONFIGURACIÓN DEL ROUTER  (si usas React Router):
+  Agrega una ruta /callback que renderice una pantalla de carga simple.
+  El intercambio real del token ocurre en bootstrap() antes de que se monte el router.
+
+  // App.tsx o config del router
+  <Route path="/callback" element={<div>Authenticating...</div>} />
+
+  FALLBACK DE VITE (enrutamiento SPA):
+  Asegúrate de que tu servidor de desarrollo y producción sirvan index.html para todas las rutas:
   ROUTER SETUP  (if using React Router):
   Add a /callback route that renders a simple loading screen.
   The actual token exchange happens in bootstrap() before the router mounts.
@@ -437,14 +379,18 @@ bootstrap().catch(console.error);
       },
     });
 
+  Nginx (producción):
   Nginx (production):
     location / {
       try_files $uri $uri/ /index.html;
     }
 
 ================================================================================
+  7. ARCHIVO: src/api.ts  (helper de fetch autenticado)
+
+  Envuelve el fetch() nativo para adjuntar el token Bearer automáticamente.
+  Todas las llamadas a la API en la app deben pasar por este módulo.
   7. FILE: src/api.ts  (authenticated fetch helper)
-================================================================================
 
   Wraps the native fetch() to automatically attach the Bearer token.
   Every API call in the app should go through this module.
@@ -525,8 +471,10 @@ export const api = {
 -----------------------------------------------------------------------------
 
 ================================================================================
+  8. EJEMPLOS DE USO EN COMPONENTES
+
+  ── Activar login ─────────────────────────────────────────────────────────────
   8. USAGE EXAMPLES IN COMPONENTS
-================================================================================
 
   ── Trigger login ────────────────────────────────────────────────────────────
 
@@ -548,6 +496,7 @@ export const api = {
     );
   }
 
+  ── Obtener todos los proyectos ──────────────────────────────────────────────
   ── Fetch all projects ───────────────────────────────────────────────────────
 
   import { api } from './api';
@@ -564,6 +513,7 @@ export const api = {
     return <ul>{projects.map(p => <li key={p.id}>{p.name}</li>)}</ul>;
   }
 
+  ── Crear un proyecto ────────────────────────────────────────────────────────
   ── Create a project ─────────────────────────────────────────────────────────
 
   await api.post('/api/projects', {
@@ -571,150 +521,52 @@ export const api = {
     description: 'Main project',
   });
 
-  ── Update (PATCH) ───────────────────────────────────────────────────────────
+  ── Actualizar (PATCH) ───────────────────────────────────────────────────────
 
   await api.patch(`/api/projects/${id}`, { name: 'New Name' });
 
-  ── Delete ───────────────────────────────────────────────────────────────────
+  ── Eliminar ─────────────────────────────────────────────────────────────────
 
   await api.delete(`/api/projects/${id}`);
 
-  ── Raw fetch with apiFetch (if you need full response control) ───────────────
+  ── fetch raw con apiFetch (si necesitas control completo de la respuesta) ─────
 
   import { apiFetch } from './api';
 
   const user = await apiFetch<UserResponse>(`/api/users/${userId}`);
 
 ================================================================================
-  9. PUBLIC ENDPOINTS (NO TOKEN REQUIRED)
-================================================================================
-
-  These paths are permitted by the backend without a Bearer token:
-
-    GET  /              → API index (lists all endpoints)
-    GET  /health        → {"status":"UP"}
-    GET  /actuator/health
-    GET  /.well-known/jwks.json   (prod only — bundled OCI IAM public key)
-    OPTIONS /**         → Preflight CORS requests
-
-  NOTE: In prod, /api/auth/register and /api/auth/login do NOT exist.
-  Those endpoints are only present in the dev/default profile.
-
-================================================================================
-  10. TOKEN PAYLOAD REFERENCE
-================================================================================
-
-  The OCI IAM access token is a JWT with these relevant claims:
+  9. ENDPOINTS PÚBLICOS (SIN TOKEN REQUERIDO)
 
   Header:
     { "alg": "RS256", "kid": "SIGNING_KEY" }
 
-  Payload (typical OCI IDCS access token):
+  Payload (token de acceso típico de OCI IDCS):
     {
-      "sub":      "<user-ocid or username>",
+      "sub":      "<user-ocid o username>",
       "iss":      "https://idcs-<tenant>.identity.oraclecloud.com",
-      "aud":      ["http://localhost:8080"],     ← must match backend audience config
+      "aud":      ["http://localhost:8080"],     ← debe coincidir con la config de audiencia del backend
       "exp":      1748400000,
       "iat":      1748396400,
-      "jti":      "<unique token id>",
+      "jti":      "<id único del token>",
       "scope":    "openid http://localhost:8080/read",
-      "client_id":"<your OCI app client id>"
+      "client_id":"<tu client id de OCI app>"
     }
 
-  The id_token (OIDC) additionally contains:
+  El id_token (OIDC) adicionalmente contiene:
     {
-      "name":               "User Full Name",
+      "name":               "Nombre Completo del Usuario",
       "email":              "user@example.com",
       "preferred_username": "username",
       "sub":                "<user ocid>"
     }
 
-  The backend (JwtUtil in dev mode) embeds different claims:
+  El backend (JwtUtil en modo dev) incluye claims diferentes:
     {
       "sub":      "<username>",
       "userId":   <Long>,
       "userType": "<userType string>"
     }
-  ← These are NOT in OCI IAM tokens. Do not rely on userId/userType in prod.
+  ← Estos NO están en los tokens de OCI IAM. No depender de userId/userType en prod.
 
-================================================================================
-  11. COMMON ERRORS & FIXES
-================================================================================
-
-  ❌  401 Unauthorized from backend
-      Cause:  Token signed with wrong key, expired, or wrong audience.
-      Fix:    Verify VITE_OCI_SCOPE includes the correct audience scope.
-              Check application-prod.properties: audiences must match token aud.
-              Make sure jwks.json in resources matches your IDCS tenant.
-
-  ❌  CORS error in browser console
-      Cause:  Frontend origin not in CorsConfig.java allowed list.
-      Fix:    Add your frontend URL to CorsConfig.java and redeploy backend.
-              Current allowed origins: localhost:5173, localhost:3000, plus
-              4 static IPs (159.54.154.149, 140.84.181.23, 163.192.143.43, 160.34.209.27).
-
-  ❌  "OAuth2 state mismatch" error after redirect
-      Cause:  Browser cleared sessionStorage during the redirect (private/incognito).
-      Fix:    Use localStorage for state/verifier if targeting incognito users.
-              Replace sessionStorage with localStorage in ociAuth.tsx.
-
-  ❌  Token exchange returns 400 invalid_grant
-      Cause:  Redirect URI mismatch or code verifier wrong.
-      Fix:    VITE_OCI_REDIRECT_URI must exactly match what is registered in OCI
-              console, including trailing slash (or lack thereof).
-
-  ❌  "No authorization code in callback URL"
-      Cause:  User navigated to /callback directly without going through login().
-      Fix:    Redirect to / if no code param is present on /callback.
-
-  ❌  jwtDecode import error
-      Cause:  jwt-decode not installed.
-      Fix:    npm install jwt-decode
-
-  ❌  import.meta.env.VITE_* is undefined
-      Cause:  Variable not in .env or not prefixed with VITE_.
-      Fix:    All Vite env vars must start with VITE_.  Restart dev server after
-              editing .env.
-
-================================================================================
-  12. DEV VS PROD DIFFERENCES
-================================================================================
-
-  Feature                  | Dev Profile              | Prod Profile
-  -------------------------+--------------------------+------------------------
-  Auth provider            | Internal DB (JwtUtil)    | OCI IAM (IDCS)
-  Token algorithm          | HS256 (HMAC secret)      | RS256 (RSA public key)
-  Login endpoint           | POST /api/auth/login     | OCI IAM redirect
-  Register endpoint        | POST /api/auth/register  | ❌ Not available
-  Token validation         | JwtAuthFilter (custom)   | Spring OAuth2 RS JWT
-  JWKS                     | N/A                      | Bundled /jwks.json
-  Token claims: userId     | ✅ Present               | ❌ Not present
-  Token claims: userType   | ✅ Present               | ❌ Not present
-  Audience enforcement     | N/A                      | http://localhost:8080
-
-  FOR DEV: Use POST /api/auth/login with { "username": "...", "password": "..." }
-           Store the returned token and send as Authorization: Bearer <token>
-           No PKCE/redirect flow needed.
-
-  FOR PROD: Use the full ociAuth.tsx PKCE flow described in this guide.
-            The /api/auth/** routes do not exist.
-
-================================================================================
-  SUMMARY — MINIMAL INTEGRATION CHECKLIST
-================================================================================
-
-  [ ] npm install jwt-decode
-  [ ] Create .env with VITE_OCI_* variables filled in
-  [ ] Copy ociAuth.tsx to src/ociAuth.tsx
-  [ ] Copy api.ts to src/api.ts
-  [ ] Modify src/main.tsx: add bootstrap() with handleCallback() check
-  [ ] Add /callback route to your React Router config
-  [ ] Configure Vite / Nginx SPA fallback (serve index.html for all routes)
-  [ ] Register your app in OCI IAM console, copy Client ID
-  [ ] Add your frontend origin to CorsConfig.java if not already listed
-  [ ] Test: click Login → redirected to OCI → returns to /callback → app loads
-  [ ] All api.get/post/patch/delete calls work with Bearer token attached
-
-================================================================================
-  END OF GUIDE
 ================================================================================

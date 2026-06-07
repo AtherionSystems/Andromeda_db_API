@@ -14,6 +14,7 @@ import java.util.Optional;
 public interface SprintRepository extends JpaRepository<Sprint, Long> {
     List<Sprint> findByProject_Id(Long projectId);
     List<Sprint> findTop2ByProject_IdOrderByCreatedAtDesc(Long projectId);
+    long countByProject_Id(Long projectId);
 
     @Query("""
             SELECT new com.atherion.andromeda.dto.SprintResponse(

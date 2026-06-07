@@ -18,6 +18,14 @@ public interface TasksRepository extends JpaRepository<Tasks, Long> {
     List<Tasks> findByProject_Id(Long projectId);
     List<Tasks> findByUserStoryIdIn(List<Long> userStoryIds);
     List<Tasks> findByProject_IdAndUserStoryId(Long projectId, Long userStoryId);
+    long countByProject_Id(Long projectId);
+    long countByUserStoryId(Long userStoryId);
+
+    @Query(value = "SELECT COUNT(*) FROM tasks WHERE user_story_id IN (SELECT id FROM user_stories WHERE feature_id = :featureId)", nativeQuery = true)
+    long countByUserStoryFeatureId(@Param("featureId") Long featureId);
+
+    @Query(value = "SELECT COUNT(*) FROM tasks WHERE user_story_id IN (SELECT us.id FROM user_stories us JOIN features f ON us.feature_id = f.id WHERE f.capability_id = :capabilityId)", nativeQuery = true)
+    long countByUserStoryCapabilityId(@Param("capabilityId") Long capabilityId);
     List<Tasks> findByProject_IdAndStatus(Long projectId, String status);
 
     @Query("SELECT t FROM Tasks t JOIN FETCH t.project WHERE t.project.id = :projectId")

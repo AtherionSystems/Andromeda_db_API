@@ -1,43 +1,43 @@
-# Andromeda Bot — Telegram Command Reference
+# Andromeda Bot — Referencia de Comandos de Telegram
 
-The bot responds only to messages that start with `/`. Unknown commands are silently ignored.  
-Commands work in private chats and in groups (use the `@BotUsername` suffix in groups, e.g. `/projects@AndromedaBot`).
-
----
-
-## Table of Contents
-
-- [Info & Health](#info--health)
-- [Account Linking](#account-linking)
-- [Read — Projects](#read--projects)
-- [Read — Tasks](#read--tasks)
-- [Read — Members](#read--members)
-- [Read — Sprints](#read--sprints)
-- [Read — Sprint Board](#read--sprint-board)
-- [Read — Users](#read--users)
-- [Write — Create Project](#write--create-project)
-- [Write — Create Sprint](#write--create-sprint)
-- [Write — Create Task](#write--create-task)
-- [Write — Assign Task to Sprint](#write--assign-task-to-sprint)
-- [Write — Complete Task](#write--complete-task)
-- [Write — Update Task Status](#write--update-task-status)
-- [Write — Update Task Priority](#write--update-task-priority)
-- [Write — Update Project Status](#write--update-project-status)
-- [Write — Add Member](#write--add-member)
-- [Allowed Values](#allowed-values)
+El bot responde únicamente a mensajes que comienzan con `/`. Los comandos desconocidos se ignoran silenciosamente.  
+Los comandos funcionan en chats privados y en grupos (usa el sufijo `@BotUsername` en grupos, ej. `/projects@AndromedaBot`).
 
 ---
 
-## Info & Health
+## Tabla de Contenidos
+
+- [Info y Health](#info-y-health)
+- [Vinculación de Cuenta](#vinculación-de-cuenta)
+- [Lectura — Proyectos](#lectura--proyectos)
+- [Lectura — Tareas](#lectura--tareas)
+- [Lectura — Miembros](#lectura--miembros)
+- [Lectura — Sprints](#lectura--sprints)
+- [Lectura — Tablero de Sprint](#lectura--tablero-de-sprint)
+- [Lectura — Usuarios](#lectura--usuarios)
+- [Escritura — Crear Proyecto](#escritura--crear-proyecto)
+- [Escritura — Crear Sprint](#escritura--crear-sprint)
+- [Escritura — Crear Tarea](#escritura--crear-tarea)
+- [Escritura — Asignar Tarea a Sprint](#escritura--asignar-tarea-a-sprint)
+- [Escritura — Completar Tarea](#escritura--completar-tarea)
+- [Escritura — Actualizar Estado de Tarea](#escritura--actualizar-estado-de-tarea)
+- [Escritura — Actualizar Prioridad de Tarea](#escritura--actualizar-prioridad-de-tarea)
+- [Escritura — Actualizar Estado de Proyecto](#escritura--actualizar-estado-de-proyecto)
+- [Escritura — Agregar Miembro](#escritura--agregar-miembro)
+- [Valores Permitidos](#valores-permitidos)
+
+---
+
+## Info y Health
 
 ### `/ping`
-Check that the bot is reachable.
+Verifica que el bot esté disponible.
 
-**Example**
+**Ejemplo**
 ```
 /ping
 ```
-**Response**
+**Respuesta**
 ```
 Pong! Andromeda API is up and running.
 ```
@@ -45,13 +45,13 @@ Pong! Andromeda API is up and running.
 ---
 
 ### `/health`
-Check the overall API and bot status.
+Verifica el estado general de la API y el bot.
 
-**Example**
+**Ejemplo**
 ```
 /health
 ```
-**Response**
+**Respuesta**
 ```
 Status: OK
 Service: Andromeda Backend API
@@ -61,13 +61,13 @@ Bot: Connected
 ---
 
 ### `/help`
-List every available command with syntax hints.
+Lista todos los comandos disponibles con sugerencias de sintaxis.
 
-**Example**
+**Ejemplo**
 ```
 /help
 ```
-**Response**
+**Respuesta**
 ```
 Andromeda Bot — Commands
 ════════════════════════
@@ -113,45 +113,45 @@ OTHER
 
 ---
 
-## Account Linking
+## Vinculación de Cuenta
 
-All write commands require your Telegram account to be linked to a system user. Read commands work without linking.
+Todos los comandos de escritura requieren que tu cuenta de Telegram esté vinculada a un usuario del sistema. Los comandos de lectura funcionan sin vinculación.
 
 ### `/link <username> <password>`
-Authenticate with your system credentials. The bot stores your Telegram user ID so subsequent write commands know who you are.
+Autentícate con tus credenciales del sistema. El bot almacena tu ID de usuario de Telegram para que los comandos de escritura posteriores sepan quién eres.
 
-**Example**
+**Ejemplo**
 ```
 /link santiago secret123
 ```
-**Response**
+**Respuesta**
 ```
 Linked! Welcome, Santiago Quiroz (@santiago).
 You can now use all write commands.
 ```
 
-**Wrong credentials**
+**Credenciales incorrectas**
 ```
 Invalid username or password.
 ```
 
-**Already linked**
+**Ya vinculado**
 ```
 Already linked to @santiago. Welcome back, Santiago Quiroz!
 ```
 
 ---
 
-## Read — Projects
+## Lectura — Proyectos
 
 ### `/projects`
-List every project with its current status.
+Lista todos los proyectos con su estado actual.
 
-**Example**
+**Ejemplo**
 ```
 /projects
 ```
-**Response**
+**Respuesta**
 ```
 Projects (3)
 ───────────────────────
@@ -163,13 +163,13 @@ Projects (3)
 ---
 
 ### `/project <id>`
-Full details for one project, including member and task counts.
+Detalle completo de un proyecto, incluyendo conteos de miembros y tareas.
 
-**Example**
+**Ejemplo**
 ```
 /project 1
 ```
-**Response**
+**Respuesta**
 ```
 Project #1
 Name:    Andromeda Backend
@@ -180,23 +180,23 @@ Members: 4
 Tasks:   12
 ```
 
-**Not found**
+**No encontrado**
 ```
 Project #99 not found.
 ```
 
 ---
 
-## Read — Tasks
+## Lectura — Tareas
 
 ### `/tasks <projectId>`
-List all tasks that belong to a project.
+Lista todas las tareas que pertenecen a un proyecto.
 
-**Example**
+**Ejemplo**
 ```
 /tasks 1
 ```
-**Response**
+**Respuesta**
 ```
 Tasks for project #1 (4)
 ───────────────────────
@@ -209,13 +209,13 @@ Tasks for project #1 (4)
 ---
 
 ### `/task <id>`
-Full details for a single task.
+Detalle completo de una tarea.
 
-**Example**
+**Ejemplo**
 ```
 /task 3
 ```
-**Response**
+**Respuesta**
 ```
 Task #3
 Title:       Set up CI/CD pipeline
@@ -231,16 +231,16 @@ Due:         2025-03-15
 
 ---
 
-## Read — Members
+## Lectura — Miembros
 
 ### `/members <projectId>`
-List all members of a project with their roles.
+Lista todos los miembros de un proyecto con sus roles.
 
-**Example**
+**Ejemplo**
 ```
 /members 1
 ```
-**Response**
+**Respuesta**
 ```
 Members of project #1 (3)
 ───────────────────────
@@ -251,16 +251,16 @@ Members of project #1 (3)
 
 ---
 
-## Read — Sprints
+## Lectura — Sprints
 
 ### `/sprints <projectId>`
-List all sprints for a project with status and date range.
+Lista todos los sprints de un proyecto con estado y rango de fechas.
 
-**Example**
+**Ejemplo**
 ```
 /sprints 1
 ```
-**Response**
+**Respuesta**
 ```
 Sprints for project #1 (2)
 ───────────────────────
@@ -270,16 +270,16 @@ Sprints for project #1 (2)
 
 ---
 
-## Read — Sprint Board
+## Lectura — Tablero de Sprint
 
 ### `/sprinttasks <projectId>`
-Displays the task board for the **last 2 sprints** of a project. Tasks are grouped by sprint and ordered by status (in_progress → review → todo → done) then priority. Assignees are JOINed from task assignments.
+Muestra el tablero de tareas de los **últimos 2 sprints** de un proyecto. Las tareas se agrupan por sprint y se ordenan por estado (in_progress → review → todo → done) y luego por prioridad. Los responsables se obtienen mediante JOIN de las asignaciones de tareas.
 
-**Example**
+**Ejemplo**
 ```
 /sprinttasks 1
 ```
-**Response**
+**Respuesta**
 ```
 Sprint Board — Project #1
 ════════════════════════════════
@@ -298,23 +298,23 @@ Sprint Board — Project #1
     DONE    | high | 8 pts | 4.0h est / 3.5h act | @javier
 ```
 
-**No tasks found**
+**Sin tareas encontradas**
 ```
 No tasks found in recent sprints for project #1.
 ```
 
 ---
 
-## Read — Users
+## Lectura — Usuarios
 
 ### `/users`
-List every registered user.
+Lista todos los usuarios registrados.
 
-**Example**
+**Ejemplo**
 ```
 /users
 ```
-**Response**
+**Respuesta**
 ```
 Users (3)
 ───────────────────────
@@ -326,13 +326,13 @@ Users (3)
 ---
 
 ### `/user <id>`
-Details for a single user.
+Detalle de un usuario.
 
-**Example**
+**Ejemplo**
 ```
 /user 2
 ```
-**Response**
+**Respuesta**
 ```
 User #2
 Name:     Alfredo López
@@ -343,18 +343,18 @@ Phone:    +521234567890
 
 ---
 
-## Write — Create Project
+## Escritura — Crear Proyecto
 
 ### `/newproject <name> [| description] [| status]`
 
-Creates a new project. Description and status are optional; status defaults to `active`.  
-Use ` | ` (pipe with spaces) to separate fields — this allows spaces in the name and description.
+Crea un nuevo proyecto. La descripción y el estado son opcionales; el estado por defecto es `active`.  
+Usa ` | ` (pipe con espacios) para separar los campos — esto permite usar espacios en el nombre y la descripción.
 
-**Minimal (name only)**
+**Solo nombre**
 ```
 /newproject Andromeda v2
 ```
-**Response**
+**Respuesta**
 ```
 Project created!
 ID:     4
@@ -364,11 +364,11 @@ Status: active
 
 ---
 
-**With description**
+**Con descripción**
 ```
 /newproject Andromeda v2 | Complete backend rewrite
 ```
-**Response**
+**Respuesta**
 ```
 Project created!
 ID:     4
@@ -378,11 +378,11 @@ Status: active
 
 ---
 
-**With description and status**
+**Con descripción y estado**
 ```
 /newproject Andromeda v2 | Complete backend rewrite | paused
 ```
-**Response**
+**Respuesta**
 ```
 Project created!
 ID:     4
@@ -392,29 +392,29 @@ Status: paused
 
 ---
 
-**Invalid status**
+**Estado inválido**
 ```
 /newproject Andromeda v2 | desc | unknown
 ```
-**Response**
+**Respuesta**
 ```
 Invalid status 'unknown'. Valid: active, paused, completed, cancelled
 ```
 
 ---
 
-## Write — Create Sprint
+## Escritura — Crear Sprint
 
 ### `/newsprint <projectId> | <name> [| goal] [| status] [| startDate] [| dueDate]`
 
-Creates a sprint inside a project. Status defaults to `planned`.  
-Date formats accepted: `yyyy-MM-dd` or `yyyy-MM-ddTHH:mm:ss`.
+Crea un sprint dentro de un proyecto. El estado por defecto es `planned`.  
+Formatos de fecha aceptados: `yyyy-MM-dd` o `yyyy-MM-ddTHH:mm:ss`.
 
-**Example**
+**Ejemplo**
 ```
 /newsprint 1 | Sprint 3 | Finish auth module | active | 2026-04-15 | 2026-04-30
 ```
-**Response**
+**Respuesta**
 ```
 Sprint created!
 ID:      5
@@ -427,17 +427,17 @@ Due:     2026-04-30
 
 ---
 
-## Write — Create Task
+## Escritura — Crear Tarea
 
 ### `/newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]`
 
-Creates a task inside a project. `estimatedHours` must be > 0 and **≤ 4.0** — tasks estimated above 4 h are rejected with a subdivision suggestion. Priority defaults to `medium`.
+Crea una tarea dentro de un proyecto. `estimatedHours` debe ser > 0 y **≤ 4.0** — las tareas estimadas en más de 4 h se rechazan con una sugerencia de subdivisión. La prioridad por defecto es `medium`.
 
-**Minimal**
+**Mínimo**
 ```
 /newtask 1 | Fix login redirect bug | 2 | 3
 ```
-**Response**
+**Respuesta**
 ```
 Task created!
 ID:          7
@@ -450,11 +450,11 @@ Story pts:   3
 
 ---
 
-**With priority and acceptance criteria**
+**Con prioridad y criterios de aceptación**
 ```
 /newtask 1 | Fix login redirect bug | 1.5 | 3 | high | Error message must be visible within 2 seconds
 ```
-**Response**
+**Respuesta**
 ```
 Task created!
 ID:          7
@@ -467,11 +467,11 @@ Story pts:   3
 
 ---
 
-**Exceeds 4-hour limit**
+**Supera el límite de 4 horas**
 ```
 /newtask 1 | Big feature | 8 | 13
 ```
-**Response**
+**Respuesta**
 ```
 This task is estimated at 8.0 h, which exceeds the 4 h limit.
 Please split it into 2 subtasks of ≤ 4 h each and add them separately.
@@ -479,30 +479,30 @@ Please split it into 2 subtasks of ≤ 4 h each and add them separately.
 
 ---
 
-**Project not found**
+**Proyecto no encontrado**
 ```
 /newtask 99 | Some task | 2 | 3
 ```
-**Response**
+**Respuesta**
 ```
 Project #99 not found.
 ```
 
 ---
 
-## Write — Assign Task to Sprint
+## Escritura — Asignar Tarea a Sprint
 
 ### `/assigntask <sprintId> <taskId>`
 
-Adds the task to the sprint, sets its status to `in_progress`, records the start date, and auto-assigns the calling developer to the task.
+Agrega la tarea al sprint, establece su estado a `in_progress`, registra la fecha de inicio y auto-asigna al desarrollador que ejecuta el comando.
 
 Alias: `/addsprinttask <sprintId> <taskId>`
 
-**Example**
+**Ejemplo**
 ```
 /assigntask 2 7
 ```
-**Response**
+**Respuesta**
 ```
 Task assigned to sprint!
 Task:   #7 Fix login redirect bug
@@ -511,29 +511,29 @@ Status: todo → in_progress
 Dev:    @santiago
 ```
 
-**Already in sprint**
+**Ya está en el sprint**
 ```
 Task #7 is already in sprint #2.
 ```
 
-**Different projects**
+**Proyectos diferentes**
 ```
 Sprint #2 and task #7 belong to different projects.
 ```
 
 ---
 
-## Write — Complete Task
+## Escritura — Completar Tarea
 
 ### `/completetask <taskId> <actualHours>`
 
-Marks the task as `done`, records the actual hours worked, and sets the completion timestamp.
+Marca la tarea como `done`, registra las horas reales trabajadas y establece el timestamp de completado.
 
-**Example**
+**Ejemplo**
 ```
 /completetask 7 1.5
 ```
-**Response**
+**Respuesta**
 ```
 Task completed!
 ID:     7
@@ -543,11 +543,11 @@ Est. hours:  2.0 h
 Act. hours:  1.5 h  (-0.5 h)
 ```
 
-**Over estimate**
+**Por encima del estimado**
 ```
 /completetask 7 3.0
 ```
-**Response**
+**Respuesta**
 ```
 Task completed!
 ID:     7
@@ -559,15 +559,15 @@ Act. hours:  3.0 h  (+1.0 h)
 
 ---
 
-## Write — Update Task Status
+## Escritura — Actualizar Estado de Tarea
 
 ### `/taskstatus <taskId> <status>`
 
-**Example**
+**Ejemplo**
 ```
 /taskstatus 7 done
 ```
-**Response**
+**Respuesta**
 ```
 Task #7 updated.
 Title:  Fix login redirect bug
@@ -576,26 +576,26 @@ Status: in_progress → done
 
 ---
 
-**Invalid status**
+**Estado inválido**
 ```
 /taskstatus 7 finished
 ```
-**Response**
+**Respuesta**
 ```
 Invalid status 'finished'. Valid: todo, in_progress, review, done
 ```
 
 ---
 
-## Write — Update Task Priority
+## Escritura — Actualizar Prioridad de Tarea
 
 ### `/taskpriority <taskId> <priority>`
 
-**Example**
+**Ejemplo**
 ```
 /taskpriority 7 critical
 ```
-**Response**
+**Respuesta**
 ```
 Task #7 updated.
 Title:    Fix login redirect bug
@@ -604,15 +604,15 @@ Priority: medium → critical
 
 ---
 
-## Write — Update Project Status
+## Escritura — Actualizar Estado de Proyecto
 
 ### `/projectstatus <projectId> <status>`
 
-**Example**
+**Ejemplo**
 ```
 /projectstatus 1 completed
 ```
-**Response**
+**Respuesta**
 ```
 Project #1 updated.
 Name:   Andromeda Backend
@@ -621,17 +621,17 @@ Status: active → completed
 
 ---
 
-## Write — Add Member
+## Escritura — Agregar Miembro
 
 ### `/addmember <projectId> <userId> [role]`
 
-Adds a user to a project. Role defaults to `member`.
+Agrega un usuario a un proyecto. El rol por defecto es `member`.
 
-**Default role**
+**Rol por defecto**
 ```
 /addmember 1 3
 ```
-**Response**
+**Respuesta**
 ```
 Member added!
 Project: #1 Andromeda Backend
@@ -641,11 +641,11 @@ Role:    member
 
 ---
 
-**With explicit role**
+**Con rol explícito**
 ```
 /addmember 1 3 manager
 ```
-**Response**
+**Respuesta**
 ```
 Member added!
 Project: #1 Andromeda Backend
@@ -655,26 +655,26 @@ Role:    manager
 
 ---
 
-**Already a member**
+**Ya es miembro**
 ```
 /addmember 1 3
 ```
-**Response**
+**Respuesta**
 ```
 @santiago is already a member of project #1.
 ```
 
 ---
 
-## Allowed Values
+## Valores Permitidos
 
-| Field | Allowed values |
+| Campo | Valores permitidos |
 |---|---|
-| Project status | `active` `paused` `completed` `cancelled` |
-| Sprint status | `planned` `active` `completed` |
-| Task status | `todo` `in_progress` `review` `done` |
-| Task priority | `low` `medium` `high` `critical` |
-| Member role | `owner` `manager` `member` |
-| estimatedHours | Any positive decimal ≤ 4.0 (e.g. `1`, `2.5`, `4`) |
-| actualHours | Any positive decimal (e.g. `0.5`, `3.0`) |
-| storyPoints | Any positive integer (e.g. `1`, `3`, `8`, `13`) |
+| Estado del proyecto | `active` `paused` `completed` `cancelled` |
+| Estado del sprint | `planned` `active` `completed` |
+| Estado de la tarea | `todo` `in_progress` `review` `done` |
+| Prioridad de la tarea | `low` `medium` `high` `critical` |
+| Rol de miembro | `owner` `manager` `member` |
+| estimatedHours | Cualquier decimal positivo ≤ 4.0 (ej. `1`, `2.5`, `4`) |
+| actualHours | Cualquier decimal positivo (ej. `0.5`, `3.0`) |
+| storyPoints | Cualquier entero positivo (ej. `1`, `3`, `8`, `13`) |

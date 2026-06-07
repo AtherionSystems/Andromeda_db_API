@@ -90,9 +90,8 @@ public class FeaturesController {
                 .filter(f -> f.getCapability().getId().equals(capabilityId)
                         && f.getCapability().getProject().getId().equals(projectId))
                 .orElse(null);
-        if (feature == null) {
-            return notFound("Feature not found");
-        }
+        if (feature == null) return notFound("Feature not found");
+
         featureService.deleteById(featureId);
         return ResponseEntity.noContent().build();
     }

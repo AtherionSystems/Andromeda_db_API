@@ -17,6 +17,9 @@ import java.util.Optional;
 @Repository
 public interface SprintStoryAssignmentRepository extends JpaRepository<SprintStoryAssignment, Long> {
     List<SprintStoryAssignment> findBySprint_Id(Long sprintId);
+    long countBySprint_Id(Long sprintId);
+    long countBySprint_Project_Id(Long projectId);
+    long countByUserStoryId(Long userStoryId);
     boolean existsBySprint_IdAndUserStoryIdAndIsActiveAndRemovedAtIsNull(
             Long sprintId,
             Long userStoryId,

@@ -26,6 +26,11 @@ spec:
           ports:
             - containerPort: 8080
           env:
+            - name: OAUTH2_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: OAUTH2_AUDIENCE
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
             - name: DB_USERNAME
