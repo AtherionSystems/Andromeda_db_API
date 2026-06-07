@@ -10,6 +10,7 @@ import com.atherion.andromeda.services.CapabilityService;
 import com.atherion.andromeda.services.FeatureService;
 import com.atherion.andromeda.services.ProjectService;
 import com.atherion.andromeda.services.TasksService;
+import com.atherion.andromeda.services.ProjectMemberService;
 import com.atherion.andromeda.services.UserStoryService;
 import com.atherion.andromeda.telegram.ConversationSession;
 import com.atherion.andromeda.telegram.ConversationSessionManager;
@@ -190,17 +191,18 @@ class ConversationMemoryTest {
     @DisplayName("EntityResolver — name to ID resolution")
     class EntityResolverTests {
 
-        @Mock private ProjectService    projectService;
-        @Mock private CapabilityService capabilityService;
-        @Mock private FeatureService    featureService;
-        @Mock private TasksService      tasksService;
-        @Mock private UserStoryService  userStoryService;
+        @Mock private ProjectService       projectService;
+        @Mock private CapabilityService    capabilityService;
+        @Mock private FeatureService       featureService;
+        @Mock private TasksService         tasksService;
+        @Mock private UserStoryService     userStoryService;
+        @Mock private ProjectMemberService projectMemberService;
 
         private EntityResolver resolver;
 
         @BeforeEach
         void setUp() {
-            resolver = new EntityResolver(projectService, capabilityService, featureService, tasksService, userStoryService);
+            resolver = new EntityResolver(projectService, capabilityService, featureService, tasksService, userStoryService, projectMemberService);
         }
 
         @Test

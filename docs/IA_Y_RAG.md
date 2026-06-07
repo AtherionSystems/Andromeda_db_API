@@ -114,6 +114,28 @@ Implementada en 4 fases. Documento de referencia: [`AI_MEMORY.md`](AI_MEMORY.md)
 
 | Método | Ruta | Controller | Función |
 |---|---|---|---|
+| `POST` | `/api/chat` | `ChatController` | Chatbot web (lenguaje natural → respuesta) |
 | `POST` | `/api/ai/notify` | `AiNotifyController` | Notificación/disparo de IA |
 | `GET` | `/api/ai/status` | `AiNotifyController` | Estado/disponibilidad de la IA |
 | `POST` | `/api/admin/rag/ingest[?projectId=X]` | `RagController` | Ingesta de embeddings |
+
+### Chatbot Web (`POST /api/chat`)
+
+Expone `AiIntentRouter` como endpoint REST para el frontend. El flujo es idéntico al del bot de Telegram:
+
+```
+Frontend
+  → POST /api/chat  { "message": "..." }
+  → ChatController  (extrae userId del JWT)
+  → AiIntentRouter.route(message, userId)
+      ├── intent routing con LLM
+      ├── resolución de args (sesión + EntityResolver)
+      ├── BotCommandHandler  (comandos de lectura)
+      └── RagService          (preguntas abiertas → /rag_query)
+  ← { "reply": "..." }
+```
+
+- El `userId` de la app actúa como clave de sesión en lugar del `telegramUserId`. Las sesiones son independientes entre bot y frontend.
+- **Solo lectura:** los comandos de escritura retornan `"You must link your Telegram account first"` porque no existe vinculación Telegram en el contexto web.
+- **Historial multi-turno:** cada usuario mantiene una ventana deslizante de 5 intercambios, persistida en `CONVERSATION_SESSIONS`.
+- **Compatibilidad de perfiles:** en `prod` el `userId` se resuelve desde el `sub` del JWT de OCI; en `dev` se resuelve desde el `username` del JWT interno.

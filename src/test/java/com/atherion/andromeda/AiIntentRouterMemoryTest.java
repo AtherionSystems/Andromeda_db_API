@@ -55,7 +55,8 @@ class AiIntentRouterMemoryTest {
                 mock(com.atherion.andromeda.services.CapabilityService.class),
                 mock(com.atherion.andromeda.services.FeatureService.class),
                 mock(com.atherion.andromeda.services.TasksService.class),
-                mock(com.atherion.andromeda.services.UserStoryService.class)
+                mock(com.atherion.andromeda.services.UserStoryService.class),
+                mock(com.atherion.andromeda.services.ProjectMemberService.class)
         );
         router = new AiIntentRouter(aiService, ragService, commandHandler, sessionManager, entityResolver);
         when(aiService.isEnabled()).thenReturn(true);
