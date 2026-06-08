@@ -13,6 +13,7 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class TaskAssignmentService {
     private final TaskAssignmentRepository taskAssignmentRepository;
+    private final RagIngestionService ragIngestionService;
 
     public List<TaskAssignment> findAll() { return taskAssignmentRepository.findAll(); }
     public List<TaskAssignment> findByTaskId(Long taskId) { return taskAssignmentRepository.findByTask_Id(taskId); }
@@ -21,6 +22,17 @@ public class TaskAssignmentService {
     public List<TaskAssignment> findByTaskIdWithDetails(Long taskId) { return taskAssignmentRepository.findByTaskIdWithDetails(taskId); }
     public Optional<TaskAssignment> findByTaskIdAndUserId(Long taskId, Long userId) { return taskAssignmentRepository.findByTask_IdAndUser_Id(taskId, userId); }
     public Optional<TaskAssignment> findById(Long id) { return taskAssignmentRepository.findById(id); }
-    public TaskAssignment save(TaskAssignment taskAssignment) { return taskAssignmentRepository.save(taskAssignment); }
-    public void deleteById(Long id) { taskAssignmentRepository.deleteById(id); }
+
+    public TaskAssignment save(TaskAssignment taskAssignment) {
+        TaskAssignment saved = taskAssignmentRepository.save(taskAssignment);
+        ragIngestionService.ingestTaskAsync(saved.getTask().getId());
+        return saved;
+    }
+
+    public void deleteById(Long id) {
+        taskAssignmentRepository.findById(id).ifPresent(ta -> {
+            taskAssignmentRepository.deleteById(id);
+            ragIngestionService.ingestTaskAsync(ta.getTask().getId());
+        });
+    }
 }

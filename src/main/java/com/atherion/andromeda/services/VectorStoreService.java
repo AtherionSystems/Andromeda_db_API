@@ -50,33 +50,42 @@ public class VectorStoreService {
         }
     }
 
-    public List<String> search(float[] vector, int topK, Long projectId) {
+    public List<String> search(float[] vector, Long projectId, double maxDistance) {
         String vectorStr = Arrays.toString(vector);
 
         if (projectId != null) {
             return jdbcTemplate.query(
-                    "SELECT text_content FROM andromeda_vectors " +
-                    "WHERE project_id = ? " +
-                    "ORDER BY VECTOR_DISTANCE(embedding, TO_VECTOR(?, 3072, FLOAT32), COSINE) " +
-                    "FETCH FIRST ? ROWS ONLY",
+                    "SELECT text_content FROM (" +
+                    "  SELECT text_content, VECTOR_DISTANCE(embedding, TO_VECTOR(?, 3072, FLOAT32), COSINE) AS dist" +
+                    "  FROM andromeda_vectors WHERE project_id = ?" +
+                    ") WHERE dist < ? ORDER BY dist FETCH FIRST 10 ROWS ONLY",
                     ps -> {
-                        ps.setLong(1, projectId);
-                        ps.setClob(2, new StringReader(vectorStr));
-                        ps.setInt(3, topK);
+                        ps.setClob(1, new StringReader(vectorStr));
+                        ps.setLong(2, projectId);
+                        ps.setDouble(3, maxDistance);
                     },
                     (rs, rowNum) -> rs.getString("text_content")
             );
         }
 
         return jdbcTemplate.query(
-                "SELECT text_content FROM andromeda_vectors " +
-                "ORDER BY VECTOR_DISTANCE(embedding, TO_VECTOR(?, 3072, FLOAT32), COSINE) " +
-                "FETCH FIRST ? ROWS ONLY",
+                "SELECT text_content FROM (" +
+                "  SELECT text_content, VECTOR_DISTANCE(embedding, TO_VECTOR(?, 3072, FLOAT32), COSINE) AS dist" +
+                "  FROM andromeda_vectors" +
+                ") WHERE dist < ? ORDER BY dist FETCH FIRST 10 ROWS ONLY",
                 ps -> {
                     ps.setClob(1, new StringReader(vectorStr));
-                    ps.setInt(2, topK);
+                    ps.setDouble(2, maxDistance);
                 },
                 (rs, rowNum) -> rs.getString("text_content")
         );
+    }
+
+    @Transactional
+    public void delete(String type, Long entityId) {
+        String id = UUID.nameUUIDFromBytes(
+                (type + ":" + entityId).getBytes(StandardCharsets.UTF_8)
+        ).toString();
+        jdbcTemplate.update("DELETE FROM andromeda_vectors WHERE id = ?", id);
     }
 }

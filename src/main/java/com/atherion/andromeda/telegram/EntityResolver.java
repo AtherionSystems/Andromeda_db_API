@@ -16,11 +16,12 @@ import java.util.Optional;
 @RequiredArgsConstructor
 public class EntityResolver {
 
-    private final ProjectService    projectService;
-    private final CapabilityService capabilityService;
-    private final FeatureService    featureService;
-    private final TasksService      tasksService;
-    private final UserStoryService  userStoryService;
+    private final ProjectService       projectService;
+    private final CapabilityService    capabilityService;
+    private final FeatureService       featureService;
+    private final TasksService         tasksService;
+    private final UserStoryService     userStoryService;
+    private final ProjectMemberService projectMemberService;
 
     // ── AI context builders ───────────────────────────────────────────────────
 
@@ -141,6 +142,37 @@ public class EntityResolver {
                 .filter(t -> t.getTitle().equalsIgnoreCase(title)
                           || t.getTitle().toLowerCase().contains(lower))
                 .map(Tasks::getId)
+                .findFirst();
+    }
+
+    /** Compact member list for active project: "[5] @alice (Alice López), [6] @bob (Bob Ruiz)" */
+    public String buildMemberList(Long projectId) {
+        if (projectId == null) return "";
+        List<ProjectMember> members = projectMemberService.findByProjectIdWithUser(projectId);
+        if (members.isEmpty()) return "";
+        StringBuilder sb = new StringBuilder("Known members in active project (use userId for /assignuser): ");
+        for (int i = 0; i < members.size(); i++) {
+            User u = members.get(i).getUser();
+            sb.append("[").append(u.getId()).append("] @").append(u.getUsername())
+              .append(" (").append(u.getName()).append(")");
+            if (i < members.size() - 1) sb.append(", ");
+        }
+        return sb.toString();
+    }
+
+    /** Case-insensitive match on username or full name, scoped to project members when projectId is provided. */
+    public Optional<Long> resolveUserByNameInProject(String name, Long projectId) {
+        List<User> users = projectId != null
+                ? projectMemberService.findByProjectIdWithUser(projectId).stream()
+                    .map(ProjectMember::getUser).toList()
+                : List.of();
+        String lower = name.toLowerCase();
+        return users.stream()
+                .filter(u -> u.getUsername().equalsIgnoreCase(name)
+                          || u.getName().equalsIgnoreCase(name)
+                          || u.getUsername().toLowerCase().contains(lower)
+                          || u.getName().toLowerCase().contains(lower))
+                .map(User::getId)
                 .findFirst();
     }
 }

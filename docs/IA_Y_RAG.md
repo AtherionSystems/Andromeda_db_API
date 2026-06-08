@@ -78,15 +78,24 @@ CONSULTA (en tiempo real, por pregunta)
 
 ## 3. Router de intención (`telegram/AiIntentRouter`)
 
-Traduce un mensaje en lenguaje natural al comando del bot más cercano. Le pasa al LLM un *system prompt* con la jerarquía del dominio (Project → Capabilities → Features → User Stories → Tasks) y el catálogo de comandos disponibles, y exige una respuesta **solo JSON**: `{"cmd": "/comando", "args": "..."}`.
+Traduce un mensaje en lenguaje natural al comando del bot más cercano. Le pasa al LLM un *system prompt* con la jerarquía del dominio (Project → Capabilities → Features → User Stories → Tasks) y el catálogo completo de comandos (lectura **y escritura**), exigiendo una respuesta **solo JSON**: `{"cmd": "/comando", "args": "..."}`.
 
 - Si el mensaje es una pregunta abierta (p. ej. "¿qué tareas están pendientes?", "resume el sprint"), mapea a `/rag_query` y dispara el flujo RAG.
 - Si no puede mapear, devuelve `{"cmd": "none", "args": ""}`.
 - Usa `chatJsonWithHistory()` para resolver referencias como "ese proyecto" o "la tarea anterior", y guarda cada intercambio (user + assistant) en el historial de la sesión.
-- Resolución de argumentos:
-  - args vacíos → usa el ID activo de la sesión;
-  - args numéricos → se pasan tal cual;
-  - args con nombre → `EntityResolver` (búsqueda substring case-insensitive) → si no hay match, fallback a la sesión → si tampoco, se pasa el nombre tal cual.
+
+**Contexto inyectado en el system prompt** (scoped al proyecto activo de la sesión):
+- Lista de proyectos conocidos
+- Capabilities, features, user stories del proyecto activo
+- **Lista de tareas** del proyecto activo (taskId + título + estado)
+- **Lista de miembros** del proyecto activo (userId + username + nombre completo)
+
+**Resolución de argumentos:**
+- args vacíos → usa el ID activo de la sesión
+- args numéricos → se pasan tal cual
+- `/newtask` → primer segmento pipe resuelto como nombre de proyecto → ID numérico
+- `/assignuser` → dos tokens; cada uno resuelto independientemente (tarea por título vía `EntityResolver.resolveTaskByTitle`, usuario por nombre/username vía `EntityResolver.resolveUserByNameInProject`)
+- otros args con nombre → `EntityResolver` (búsqueda substring case-insensitive) → fallback a sesión
 
 ---
 
@@ -105,6 +114,28 @@ Implementada en 4 fases. Documento de referencia: [`AI_MEMORY.md`](AI_MEMORY.md)
 
 | Método | Ruta | Controller | Función |
 |---|---|---|---|
+| `POST` | `/api/chat` | `ChatController` | Chatbot web (lenguaje natural → respuesta) |
 | `POST` | `/api/ai/notify` | `AiNotifyController` | Notificación/disparo de IA |
 | `GET` | `/api/ai/status` | `AiNotifyController` | Estado/disponibilidad de la IA |
 | `POST` | `/api/admin/rag/ingest[?projectId=X]` | `RagController` | Ingesta de embeddings |
+
+### Chatbot Web (`POST /api/chat`)
+
+Expone `AiIntentRouter` como endpoint REST para el frontend. El flujo es idéntico al del bot de Telegram:
+
+```
+Frontend
+  → POST /api/chat  { "message": "..." }
+  → ChatController  (extrae userId del JWT)
+  → AiIntentRouter.route(message, userId)
+      ├── intent routing con LLM
+      ├── resolución de args (sesión + EntityResolver)
+      ├── BotCommandHandler  (comandos de lectura)
+      └── RagService          (preguntas abiertas → /rag_query)
+  ← { "reply": "..." }
+```
+
+- El `userId` de la app actúa como clave de sesión en lugar del `telegramUserId`. Las sesiones son independientes entre bot y frontend.
+- **Solo lectura:** los comandos de escritura retornan `"You must link your Telegram account first"` porque no existe vinculación Telegram en el contexto web.
+- **Historial multi-turno:** cada usuario mantiene una ventana deslizante de 5 intercambios, persistida en `CONVERSATION_SESSIONS`.
+- **Compatibilidad de perfiles:** en `prod` el `userId` se resuelve desde el `sub` del JWT de OCI; en `dev` se resuelve desde el `username` del JWT interno.

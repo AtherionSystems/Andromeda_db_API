@@ -19,6 +19,7 @@ public class ProjectMemberService {
 
     public List<ProjectMember> findAll() { return projectMemberRepository.findAll(); }
     public List<ProjectMember> findByProjectId(Long projectId) { return projectMemberRepository.findByProject_Id(projectId); }
+    public List<ProjectMember> findByProjectIdWithUser(Long projectId) { return projectMemberRepository.findByProjectIdWithUser(projectId); }
     public List<ProjectMember> findByUserId(Long userId) { return projectMemberRepository.findByUser_Id(userId); }
     public Optional<ProjectMember> findById(Long id) { return projectMemberRepository.findById(id); }
     public Optional<ProjectMember> findByProjectIdAndUserId(Long projectId, Long userId) {
