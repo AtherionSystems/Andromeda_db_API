@@ -21,6 +21,7 @@ Las fechas usan formato ISO-8601 (`2025-06-15T00:00:00Z` para `Instant`, `2025-0
 - [Miembros de Proyecto](#miembros-de-proyecto)
 - [Logs](#logs)
 - [Dashboard](#dashboard)
+- [Chatbot Web](#chatbot-web)
 - [Notificaciones de IA](#notificaciones-de-ia)
 - [Respuestas de Error](#respuestas-de-error)
 - [Valores de Enums](#valores-de-enums)
@@ -887,6 +888,50 @@ Devuelve KPIs agregados de un proyecto en una sola respuesta.
 |---|---|
 | `400` | Falta el parámetro `projectId` |
 | `500` | Error al agregar KPIs |
+
+---
+
+## Chatbot Web
+
+### `POST /api/chat`
+Envía un mensaje en lenguaje natural al chatbot. Reutiliza el mismo `AiIntentRouter`, sistema RAG e historial conversacional del bot de Telegram. Solo lectura: los comandos de escritura retornan un mensaje de "no vinculado".
+
+Requiere autenticación JWT.
+
+**Cuerpo de la request**
+```json
+{
+  "message": "lista mis proyectos"
+}
+```
+
+| Campo | Tipo | Requerido | Notas |
+|---|---|---|---|
+| message | string | sí | Máximo 2000 caracteres |
+
+**Respuesta `200`**
+```json
+{
+  "reply": "Projects (2)\n[1] Alpha — active\n[2] Beta — paused"
+}
+```
+
+**Errores**
+| Status | Razón |
+|---|---|
+| `400` | Mensaje vacío o la IA no pudo generar respuesta |
+| `404` | El usuario autenticado no existe en la base de datos |
+
+**Ejemplos de mensajes**
+
+| Mensaje | Tipo de respuesta |
+|---|---|
+| `"lista mis proyectos"` | Comando `/projects` |
+| `"muéstrame las tareas del proyecto 1"` | Comando `/tasks 1` |
+| `"¿qué user stories están pendientes?"` | Consulta RAG (búsqueda vectorial) |
+| `"resume el sprint actual"` | Consulta RAG |
+
+> Las sesiones son independientes por usuario y persisten entre requests. El chatbot recuerda el contexto activo (proyecto, tarea, etc.) del mismo modo que el bot de Telegram.
 
 ---
 

@@ -93,6 +93,7 @@ public class BotCommandHandler {
             case "/taskpriority"  -> handleTaskPriority(args, telegramUserId);
             case "/projectstatus" -> handleProjectStatus(args, telegramUserId);
             case "/addmember"     -> handleAddMember(args, telegramUserId);
+            case "/assignuser"    -> handleAssignUser(args, telegramUserId);
             case "/pingai"        -> handlePingAi();
             case "/suggest"       -> handleSuggest(args);
             case "/analyze"       -> handleAnalyze(args);
@@ -140,6 +141,7 @@ public class BotCommandHandler {
                 /taskpriority <taskId> <priority>             (any linked user)
                 /projectstatus <projectId> <status>           (manager/owner only)
                 /addmember <projectId> <userId> [role]        (manager/owner only)
+                /assignuser <taskId> <userId>                 (any linked user)
 
                 AI
                 /pingai                       Test AI backend connectivity
@@ -544,7 +546,13 @@ public class BotCommandHandler {
         project.setStatus(status);
         Project saved = projectService.save(project);
 
-        return String.format("Project created!\nID:     %d\nName:   %s\nStatus: %s",
+        ProjectMember ownership = new ProjectMember();
+        ownership.setProject(saved);
+        ownership.setUser(actor.get());
+        ownership.setRole("owner");
+        projectMemberService.save(ownership);
+
+        return String.format("Project created!\nID:     %d\nName:   %s\nStatus: %s\nYou were added as owner.",
                 saved.getId(), saved.getName(), saved.getStatus());
     }
 
@@ -848,6 +856,41 @@ public class BotCommandHandler {
 
         return String.format("Member added!\nProject: #%d %s\nUser:    @%s\nRole:    %s",
                 project.getId(), project.getName(), user.getUsername(), saved.getRole());
+    }
+
+    private String handleAssignUser(String args, Long telegramUserId) {
+        if (linkedUser(telegramUserId).isEmpty()) return NOT_LINKED;
+
+        String[] tokens = args.split("\\s+", 2);
+        if (tokens.length < 2) return "Usage: /assignuser <taskId> <userId>";
+
+        Long taskId = parseLong(tokens[0]);
+        Long userId = parseLong(tokens[1]);
+        if (taskId == null || userId == null) return "Usage: /assignuser <taskId> <userId>";
+
+        Tasks task = tasksService.findById(taskId).orElse(null);
+        if (task == null) return "Task #" + taskId + " not found.";
+
+        User user = userService.findById(userId).orElse(null);
+        if (user == null) return "User #" + userId + " not found.";
+
+        Long projectId = task.getProject().getId();
+        if (!projectMemberService.existsByProjectIdAndUserId(projectId, userId))
+            return "@" + user.getUsername() + " is not a member of the project. Add them first with /addmember.";
+
+        if (taskAssignmentService.findByTaskIdAndUserId(taskId, userId).isPresent())
+            return "@" + user.getUsername() + " is already assigned to task #" + taskId + ".";
+
+        TaskAssignment assignment = new TaskAssignment();
+        assignment.setTask(task);
+        assignment.setUser(user);
+        assignment.setAssignedAt(LocalDateTime.now());
+        taskAssignmentService.save(assignment);
+
+        return String.format("User assigned!\nTask:    #%d %s\nUser:    @%s (%s)\nProject: #%d %s",
+                task.getId(), task.getTitle(),
+                user.getUsername(), user.getName(),
+                task.getProject().getId(), task.getProject().getName());
     }
 
     private String handlePingAi() {

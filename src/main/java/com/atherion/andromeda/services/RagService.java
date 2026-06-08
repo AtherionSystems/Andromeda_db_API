@@ -26,7 +26,7 @@ public class RagService {
         float[] vector = embeddingService.embed(question);
         if (vector == null) return null;
 
-        List<String> chunks = vectorStoreService.search(vector, 5, projectId);
+        List<String> chunks = vectorStoreService.search(vector, projectId, 0.5);
         if (chunks.isEmpty()) {
             log.warn("RAG: no relevant chunks found for: {}", question);
             return null;

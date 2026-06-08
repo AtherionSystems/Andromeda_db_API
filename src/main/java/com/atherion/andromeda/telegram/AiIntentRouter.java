@@ -23,22 +23,36 @@ public class AiIntentRouter {
             The Andromeda hierarchy is: Project → Capabilities → Features → User Stories → Tasks.
 
             Available commands:
-              /projects                       — list all projects
-              /project <id>                   — project details
-              /capabilities <projectId>       — list capabilities in a project
-              /capability <id>                — capability details
-              /features <capabilityId>        — list features in a capability
-              /feature <id>                   — feature details
-              /projectstories <projectId>     — all user stories in a project
-              /userstories <featureId>        — user stories in a specific feature
-              /userstory <id>                 — user story details
-              /tasks <projectId>              — list tasks in a project
-              /task <id>                      — task details
-              /members <projectId>            — list project members
-              /sprints <projectId>            — list project sprints
-              /sprinttasks <projectId>        — sprint task board
-              /users                          — list all users
-              /user <id>                      — user details
+
+            READ
+              /projects                                         — list all projects
+              /project <id>                                     — project details
+              /capabilities <projectId>                         — list capabilities in a project
+              /capability <id>                                  — capability details
+              /features <capabilityId>                          — list features in a capability
+              /feature <id>                                     — feature details
+              /projectstories <projectId>                       — all user stories in a project
+              /userstories <featureId>                          — user stories in a specific feature
+              /userstory <id>                                   — user story details
+              /tasks <projectId>                                — list tasks in a project
+              /task <id>                                        — task details
+              /members <projectId>                              — list project members
+              /sprints <projectId>                              — list project sprints
+              /sprinttasks <projectId>                          — sprint task board
+              /users                                            — list all users
+              /user <id>                                        — user details
+
+            WRITE
+              /newproject <name> | <description> | <status>    — create a new project (status: active/paused/completed/cancelled)
+              /newtask <projectId> | <title> | <hours> | <priority>  — create a task (priority: low/medium/high/critical; hours ≤ 4)
+              /addmember <projectId> <userId> <role>            — add member to project (role: owner/manager/member)
+              /assignuser <taskId> <userId>                     — assign a user (person) to a task
+              /taskstatus <taskId> <status>                     — update task status (todo/in_progress/review/done)
+              /taskpriority <taskId> <priority>                 — update task priority (low/medium/high/critical)
+              /completetask <taskId> <actualHours>              — mark task as done with actual hours worked
+              /projectstatus <projectId> <status>               — update project status
+
+            AI
               /suggest <projectId>            — AI suggestions for a project
               /analyze <projectId>            — AI health analysis of a project
               /fix <taskId>                   — AI guidance to resolve a task
@@ -52,6 +66,10 @@ public class AiIntentRouter {
             - When the user asks about user stories for a project (not a feature), use /projectstories <projectId>.
             - When the user asks about user stories for a feature, use /userstories <featureId>.
             - When the user asks an open question about the project (e.g. "what tasks are pending?", "summarize the sprint", "which stories are in progress?"), use /rag_query with args "".
+            - When the user wants to assign a person/user to a task (not a sprint), use /assignuser <taskId> <userId>.
+            - For /assignuser args: two numeric IDs separated by a space — task ID first, then user ID.
+            - For /newtask args: use pipe separator — "projectId | title | hours | priority". All four fields required.
+            - For /newproject args: use pipe separator — "name | description | status".
             - If you cannot map the message to any command: {"cmd": "none", "args": ""}
             - Always use numeric IDs in args. Use the known entities and active context listed below to resolve names to IDs.
             - If the user refers to "the project", "this project", "it", or omits an entity ID and one is active, use the active entity's ID.
@@ -129,8 +147,11 @@ public class AiIntentRouter {
         String featureList     = entityResolver.buildFeatureList(session.getActiveCapabilityId());
         String userStoryList   = entityResolver.buildUserStoryList(session.getActiveFeatureId());
 
+        String memberList = entityResolver.buildMemberList(session.getActiveProjectId());
+
         boolean hasExtras = !contextSummary.isBlank() || !projectList.isBlank()
-                || !capabilityList.isBlank() || !featureList.isBlank() || !userStoryList.isBlank();
+                || !capabilityList.isBlank() || !featureList.isBlank()
+                || !userStoryList.isBlank() || !memberList.isBlank();
         if (!hasExtras) return BASE_SYSTEM_PROMPT;
 
         StringBuilder sb = new StringBuilder(BASE_SYSTEM_PROMPT);
@@ -138,6 +159,7 @@ public class AiIntentRouter {
         if (!capabilityList.isBlank()) sb.append("\n").append(capabilityList);
         if (!featureList.isBlank())    sb.append("\n").append(featureList);
         if (!userStoryList.isBlank())  sb.append("\n").append(userStoryList);
+        if (!memberList.isBlank())     sb.append("\n").append(memberList);
         if (!contextSummary.isBlank()) sb.append("\n\nUser's active context:\n").append(contextSummary);
         return sb.toString();
     }
@@ -151,12 +173,50 @@ public class AiIntentRouter {
         if (args.isEmpty()) {
             return applySessionFallback(cmd, session, args);
         }
+        // Commands with pipe-separated args where first token is a projectId
+        if ("/newtask".equals(cmd)) {
+            return resolvePipeFirstAsProject(args, session);
+        }
+        // /assignuser has two space-separated args: <taskId> <userId>
+        if ("/assignuser".equals(cmd)) {
+            return resolveAssignUserArgs(args, session);
+        }
         // Numeric args → nothing to resolve
         if (isNumeric(args)) {
             return args;
         }
         // Named args → try name resolution, then session fallback
         return resolveByNameOrSession(cmd, args, session);
+    }
+
+    /** For pipe-format commands where the first segment is a project name or ID. */
+    private String resolvePipeFirstAsProject(String args, ConversationSession session) {
+        String[] pipes = args.split("\\s*\\|\\s*", -1);
+        String first = pipes[0].trim();
+        String resolvedId = isNumeric(first) ? first
+                : entityResolver.resolveProjectByName(first)
+                    .map(Object::toString)
+                    .orElseGet(() -> session.hasActiveProject()
+                            ? session.getActiveProjectId().toString() : first);
+        if (pipes.length == 1) return resolvedId;
+        StringBuilder sb = new StringBuilder(resolvedId);
+        for (int i = 1; i < pipes.length; i++) sb.append(" | ").append(pipes[i].trim());
+        return sb.toString();
+    }
+
+    private String resolveAssignUserArgs(String args, ConversationSession session) {
+        String[] tokens = args.split("\\s+", 2);
+        if (tokens.length < 2) return args;
+
+        String taskIdStr = isNumeric(tokens[0]) ? tokens[0]
+                : entityResolver.resolveTaskByTitle(tokens[0], session.getActiveProjectId())
+                    .map(Object::toString).orElse(tokens[0]);
+
+        String userIdStr = isNumeric(tokens[1]) ? tokens[1]
+                : entityResolver.resolveUserByNameInProject(tokens[1], session.getActiveProjectId())
+                    .map(Object::toString).orElse(tokens[1]);
+
+        return taskIdStr + " " + userIdStr;
     }
 
     /** Uses session context to fill in a missing ID for the given command. */
