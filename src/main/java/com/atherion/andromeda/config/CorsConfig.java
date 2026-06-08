@@ -32,7 +32,9 @@ public class CorsConfig {
                 "http://159.54.154.149",
                 "http://140.84.181.23",
                 "http://163.192.143.43",
-                "http://160.34.209.27"
+                "http://160.34.209.27",
+                "https://atherionsystems.github.io",
+                "https://140.84.181.53.nip.io"
         ));
 
         // PATCH is required — the API has several @PatchMapping endpoints.
