@@ -24,7 +24,6 @@ Los comandos funcionan en chats privados y en grupos (usa el sufijo `@BotUsernam
 - [Escritura — Actualizar Prioridad de Tarea](#escritura--actualizar-prioridad-de-tarea)
 - [Escritura — Actualizar Estado de Proyecto](#escritura--actualizar-estado-de-proyecto)
 - [Escritura — Agregar Miembro](#escritura--agregar-miembro)
-- [Escritura — Asignar Usuario a Tarea](#escritura--asignar-usuario-a-tarea)
 - [Valores Permitidos](#valores-permitidos)
 
 ---
@@ -349,8 +348,7 @@ Phone:    +521234567890
 ### `/newproject <name> [| description] [| status]`
 
 Crea un nuevo proyecto. La descripción y el estado son opcionales; el estado por defecto es `active`.  
-Usa ` | ` (pipe con espacios) para separar los campos — esto permite usar espacios en el nombre y la descripción.  
-**El creador del proyecto queda agregado automáticamente como `owner`**, sin necesidad de llamar a `/addmember` después.
+Usa ` | ` (pipe con espacios) para separar los campos — esto permite usar espacios en el nombre y la descripción.
 
 **Solo nombre**
 ```
@@ -362,7 +360,20 @@ Project created!
 ID:     4
 Name:   Andromeda v2
 Status: active
-You were added as owner.
+```
+
+---
+
+**Con descripción**
+```
+/newproject Andromeda v2 | Complete backend rewrite
+```
+**Respuesta**
+```
+Project created!
+ID:     4
+Name:   Andromeda v2
+Status: active
 ```
 
 ---
@@ -377,7 +388,6 @@ Project created!
 ID:     4
 Name:   Andromeda v2
 Status: paused
-You were added as owner.
 ```
 
 ---
@@ -419,14 +429,13 @@ Due:     2026-04-30
 
 ## Escritura — Crear Tarea
 
-### `/newtask <projectId> | <title> | <estimatedHours> [| priority]`
+### `/newtask <projectId> | <title> | <estimatedHours> | <storyPoints> [| priority] [| acceptanceCriteria]`
 
-Crea una tarea dentro de un proyecto. `estimatedHours` debe ser > 0 y **≤ 4.0** — las tareas estimadas en más de 4 h se rechazan con una sugerencia de subdivisión. La prioridad por defecto es `medium`.  
-Al crear la tarea se dispara `ingestTaskAsync` automáticamente para indexarla en el RAG.
+Crea una tarea dentro de un proyecto. `estimatedHours` debe ser > 0 y **≤ 4.0** — las tareas estimadas en más de 4 h se rechazan con una sugerencia de subdivisión. La prioridad por defecto es `medium`.
 
 **Mínimo**
 ```
-/newtask 1 | Fix login redirect bug | 2
+/newtask 1 | Fix login redirect bug | 2 | 3
 ```
 **Respuesta**
 ```
@@ -436,13 +445,14 @@ Title:       Fix login redirect bug
 Project:     #1 Andromeda Backend
 Priority:    medium
 Est. hours:  2.0 h
+Story pts:   3
 ```
 
 ---
 
-**Con prioridad**
+**Con prioridad y criterios de aceptación**
 ```
-/newtask 1 | Fix login redirect bug | 1.5 | high
+/newtask 1 | Fix login redirect bug | 1.5 | 3 | high | Error message must be visible within 2 seconds
 ```
 **Respuesta**
 ```
@@ -452,6 +462,7 @@ Title:       Fix login redirect bug
 Project:     #1 Andromeda Backend
 Priority:    high
 Est. hours:  1.5 h
+Story pts:   3
 ```
 
 ---
@@ -651,50 +662,6 @@ Role:    manager
 **Respuesta**
 ```
 @santiago is already a member of project #1.
-```
-
----
-
-## Escritura — Asignar Usuario a Tarea
-
-### `/assignuser <taskId> <userId>`
-
-Asigna un usuario (persona) a una tarea existente. El usuario debe ser miembro del proyecto al que pertenece la tarea.  
-Al asignar, `TaskAssignmentService` llama `ingestTaskAsync` para **re-indexar el vector RAG** de la tarea incluyendo al nuevo asignado. El bot de RAG puede responder "¿quién está asignado a X?" después de este comando.
-
-**Ejemplo**
-```
-/assignuser 7 3
-```
-**Respuesta**
-```
-User assigned!
-Task:    #7 Fix login redirect bug
-User:    @santiago (Santiago Quiroz)
-Project: #1 Andromeda Backend
-```
-
----
-
-**Usuario no es miembro del proyecto**
-```
-User assigned!
-@pedro is not a member of the project. Add them first with /addmember.
-```
-
----
-
-**Ya estaba asignado**
-```
-@santiago is already assigned to task #7.
-```
-
----
-
-**Lenguaje natural equivalente**
-```
-Assign the task "Fix login redirect bug" to user 3
-Asigna la tarea 7 a santiago
 ```
 
 ---

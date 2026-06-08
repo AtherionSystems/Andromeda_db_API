@@ -19,4 +19,5 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
 	@Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.user WHERE pm.project.id = :projectId")
 	List<ProjectMember> findByProjectIdWithUser(@Param("projectId") Long projectId);
+	long countByProject_Id(Long projectId);
 }
