@@ -120,7 +120,8 @@ Todos los endpoints viven bajo `/api`. Resumen de grupos (rutas base reales toma
 | Story spillovers | `/api/projects/{projectId}/story-spillovers` | `StorySpilloversController` |
 | Deuda técnica | `/api/projects/{projectId}/technical-debt` | `TechnicalDebtController` |
 | Logs | (auditoría) | `LogController` |
-| Dashboard / KPIs | `/api/dashboard` | `DashboardController` |
+| Dashboard / KPIs (equipo) | `/api/dashboard` | `DashboardController` |
+| Vista de desarrollador (Me) | `/api/me` | `MeController` |
 | IA | `/api/ai` | `AiNotifyController` |
 | RAG (admin) | `/api/admin/rag` | `RagController` |
 | JWKS | `/.well-known/jwks.json` | `JwksController` |
