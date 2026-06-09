@@ -52,6 +52,24 @@ public interface TasksRepository extends JpaRepository<Tasks, Long> {
     List<TaskResponse> findByProjectIdAndAssignedUserIdAsResponse(@Param("projectId") Long projectId, @Param("userId") Long userId);
 
     @Query("""
+            SELECT new com.atherion.andromeda.dto.TaskResponse(
+                t.id, t.title, t.description, t.priority, t.status,
+                t.startDate, t.dueDate, t.actualEnd, t.estimatedHours, t.actualHours,
+                t.userStoryId, t.project.name, u.name
+            )
+            FROM TaskAssignment ta
+            JOIN ta.task t
+            JOIN ta.user u
+            WHERE u.id = :userId
+              AND (:projectId IS NULL OR t.project.id = :projectId)
+              AND (:status IS NULL OR t.status = :status)
+            """)
+    List<TaskResponse> findByAssignedUserIdAsResponse(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId,
+            @Param("status") String status);
+
+    @Query("""
             SELECT new com.atherion.andromeda.dto.SprintTaskAssigneeRow(
                 t.userStoryId, t.id, t.title, t.priority, t.status, t.dueDate,
                 t.estimatedHours, t.actualHours,
