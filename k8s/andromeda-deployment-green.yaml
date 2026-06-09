@@ -26,11 +26,6 @@ spec:
           ports:
             - containerPort: 8080
           env:
-            - name: OAUTH2_AUDIENCE
-              valueFrom:
-                secretKeyRef:
-                  name: andromeda-secrets
-                  key: OAUTH2_AUDIENCE
             - name: SPRING_PROFILES_ACTIVE
               value: "prod"
             - name: DB_USERNAME
@@ -75,6 +70,36 @@ spec:
                 secretKeyRef:
                   name: andromeda-secrets
                   key: OAUTH2_ISSUER_URI
+            - name: OAUTH2_AUDIENCE
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: OAUTH2_AUDIENCE
+            - name: AGENT_AI_ENABLED
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: AGENT_AI_ENABLED
+            - name: AGENT_AI_BASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: AGENT_AI_BASE_URL
+            - name: AGENT_AI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: AGENT_AI_API_KEY
+            - name: AGENT_AI_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: AGENT_AI_MODEL
+            - name: AGENT_AI_EMBEDDING_MODEL
+              valueFrom:
+                secretKeyRef:
+                  name: andromeda-secrets
+                  key: AGENT_AI_EMBEDDING_MODEL
           volumeMounts:
             - name: wallet-volume
               mountPath: /app/wallet
