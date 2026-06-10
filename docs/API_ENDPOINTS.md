@@ -21,6 +21,7 @@ Las fechas usan formato ISO-8601 (`2025-06-15T00:00:00Z` para `Instant`, `2025-0
 - [Miembros de Proyecto](#miembros-de-proyecto)
 - [Logs](#logs)
 - [Dashboard](#dashboard)
+- [Vista de desarrollador (Me)](#vista-de-desarrollador-me)
 - [Notificaciones de IA](#notificaciones-de-ia)
 - [Respuestas de Error](#respuestas-de-error)
 - [Valores de Enums](#valores-de-enums)
@@ -868,17 +869,41 @@ Crea una entrada de log manualmente.
 ## Dashboard
 
 ### `GET /api/dashboard?projectId={projectId}`
-Devuelve KPIs agregados de un proyecto en una sola respuesta.
+Devuelve KPIs de equipo de un proyecto en una sola respuesta. Todos los KPIs se calculan en paralelo.
 
 **Respuesta `200`**
 ```json
 {
   "projectId": 1,
   "generatedAt": "2026-05-11T09:00:00",
-  "completionRateBySprint": [],
-  "teamVelocity": [],
-  "taskDistribution": [],
-  "userTasksPerSprint": []
+  "burndownBySprint": [
+    {
+      "sprintName": "Sprint 1",
+      "totalStories": 10,
+      "completedStories": 6,
+      "remainingStories": 4,
+      "totalTasks": 20,
+      "completedTasks": 12,
+      "remainingTasks": 8,
+      "totalPoints": 50,
+      "completedPoints": 30,
+      "remainingPoints": 20
+    }
+  ],
+  "teamVelocity": [
+    { "sprintName": "Sprint 1", "pointsCompleted": 30, "pointsPlanned": 50 }
+  ],
+  "taskDistribution": [
+    { "status": "todo", "total": 5 },
+    { "status": "in_progress", "total": 3 },
+    { "status": "done", "total": 12 }
+  ],
+  "userTasksPerSprint": [
+    { "sprintName": "Sprint 1", "userName": "Alfredo", "tasksCompleted": 4 }
+  ],
+  "hoursPerUserBySprint": [
+    { "sprintName": "Sprint 1", "userName": "Alfredo", "actualHours": 12.5, "estimatedHours": 16.0 }
+  ]
 }
 ```
 
@@ -886,7 +911,119 @@ Devuelve KPIs agregados de un proyecto en una sola respuesta.
 | Status | Razón |
 |---|---|
 | `400` | Falta el parámetro `projectId` |
-| `500` | Error al agregar KPIs |
+
+---
+
+## Vista de desarrollador (Me)
+
+Endpoints personales del usuario autenticado. El usuario se resuelve automáticamente desde el JWT — no se pasa `userId` como parámetro.
+
+> **Autenticación:** perfil `dev` → Bearer token obtenido en `POST /api/auth/login`. Perfil `prod` → token de OCI IAM.
+
+---
+
+### `GET /api/me/projects`
+Devuelve los proyectos a los que pertenece el usuario autenticado (donde tiene un registro en `project_members`).
+
+**Respuesta `200`**
+```json
+[
+  {
+    "id": 1,
+    "name": "Andromeda Backend",
+    "description": "Main API project",
+    "status": "active",
+    "startDate": "2025-01-15T00:00:00",
+    "endDate": "2025-12-31T00:00:00",
+    "createdAt": "2025-01-10T09:00:00"
+  }
+]
+```
+
+**Errores**
+| Status | Razón |
+|---|---|
+| `401` | Usuario autenticado no encontrado en la BD |
+
+---
+
+### `GET /api/me/tasks`
+Devuelve las tareas asignadas al usuario autenticado. Puede filtrar entre todos sus proyectos o acotar a uno.
+
+| Parámetro de query | Tipo | Descripción |
+|---|---|---|
+| `projectId` | number | Opcional. Filtra por proyecto |
+| `status` | string | Opcional. Filtra por estado (`todo`, `in_progress`, `review`, `done`) |
+
+**Respuesta `200`**
+```json
+[
+  {
+    "id": 3,
+    "title": "Set up CI/CD pipeline",
+    "description": null,
+    "priority": "high",
+    "status": "in_progress",
+    "startDate": null,
+    "dueDate": "2025-03-15T00:00:00",
+    "actualEnd": null,
+    "estimatedHours": 3.0,
+    "actualHours": null,
+    "userStoryId": 7,
+    "projectName": "Andromeda Backend",
+    "assignedUserName": "Alfredo"
+  }
+]
+```
+
+**Errores**
+| Status | Razón |
+|---|---|
+| `401` | Usuario autenticado no encontrado en la BD |
+
+---
+
+### `GET /api/me/dashboard?projectId={projectId}`
+Devuelve KPIs personales del usuario autenticado dentro de un proyecto. Todos los KPIs se calculan en paralelo.
+
+| Parámetro de query | Tipo | Descripción |
+|---|---|---|
+| `projectId` | number | **Requerido.** Proyecto a consultar |
+
+**Respuesta `200`**
+```json
+{
+  "userId": 2,
+  "userName": "Alfredo Luce",
+  "projectId": 1,
+  "generatedAt": "2026-06-08T10:00:00",
+  "myTaskDistribution": [
+    { "status": "todo", "total": 2 },
+    { "status": "in_progress", "total": 1 },
+    { "status": "done", "total": 8 }
+  ],
+  "myHoursPerSprint": [
+    { "sprintName": "Sprint 1", "actualHours": 12.5, "estimatedHours": 16.0 },
+    { "sprintName": "Sprint 2", "actualHours": 9.0, "estimatedHours": 10.0 }
+  ],
+  "myTasksPerSprint": [
+    { "sprintName": "Sprint 1", "tasksCompleted": 5 },
+    { "sprintName": "Sprint 2", "tasksCompleted": 3 }
+  ]
+}
+```
+
+| KPI | Descripción |
+|---|---|
+| `myTaskDistribution` | Mis tareas en ese proyecto agrupadas por estado |
+| `myHoursPerSprint` | Mis horas estimadas vs reales por sprint |
+| `myTasksPerSprint` | Mis tareas completadas (`done`) por sprint |
+
+**Errores**
+| Status | Razón |
+|---|---|
+| `400` | Falta el parámetro `projectId` |
+| `401` | Usuario autenticado no encontrado en la BD |
 
 ---
 

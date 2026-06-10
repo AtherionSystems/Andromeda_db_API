@@ -3,6 +3,9 @@ package com.atherion.andromeda.repositories;
 import com.atherion.andromeda.model.Sprint;
 import com.atherion.andromeda.projections.BurndownProjection;
 import com.atherion.andromeda.projections.HoursPerUserProjection;
+import com.atherion.andromeda.projections.MyHoursPerSprintProjection;
+import com.atherion.andromeda.projections.MyTasksPerSprintProjection;
+import com.atherion.andromeda.projections.TaskDistributionProjection;
 import com.atherion.andromeda.projections.TeamVelocityProjection;
 import com.atherion.andromeda.projections.UserTasksPerSprintProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -84,4 +87,53 @@ public interface KpiRepository extends JpaRepository<Sprint, Long> {
     ORDER BY s.start_date
     """, nativeQuery = true)
     List<UserTasksPerSprintProjection> getUserTasksPerSprint(@Param("projectId") Long projectId);
+
+    @Query(value = """
+    SELECT t.status AS status,
+           COUNT(t.id) AS total
+    FROM task_assignments ta
+    JOIN tasks t ON ta.task_id = t.id
+    WHERE ta.user_id   = :userId
+      AND t.project_id = :projectId
+    GROUP BY t.status
+    """, nativeQuery = true)
+    List<TaskDistributionProjection> getMyTaskDistribution(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId);
+
+    @Query(value = """
+    SELECT s.name AS sprintName,
+           COALESCE(SUM(t.actual_hours), 0) AS actualHours,
+           COALESCE(SUM(t.estimated_hours), 0) AS estimatedHours
+    FROM sprint_stories_assignments ssa
+    JOIN sprints s       ON ssa.sprint_id     = s.id
+    JOIN user_stories us ON ssa.user_story_id = us.id
+    JOIN tasks t         ON t.user_story_id   = us.id
+    JOIN task_assignments ta ON ta.task_id    = t.id
+    WHERE s.project_id = :projectId
+      AND ta.user_id   = :userId
+    GROUP BY s.id, s.name, s.start_date
+    ORDER BY s.start_date
+    """, nativeQuery = true)
+    List<MyHoursPerSprintProjection> getMyHoursPerSprint(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId);
+
+    @Query(value = """
+    SELECT s.name AS sprintName,
+           COUNT(t.id) AS tasksCompleted
+    FROM sprint_stories_assignments ssa
+    JOIN sprints s       ON ssa.sprint_id     = s.id
+    JOIN user_stories us ON ssa.user_story_id = us.id
+    JOIN tasks t         ON t.user_story_id   = us.id
+    JOIN task_assignments ta ON ta.task_id    = t.id
+    WHERE s.project_id = :projectId
+      AND ta.user_id   = :userId
+      AND t.status     = 'done'
+    GROUP BY s.id, s.name, s.start_date
+    ORDER BY s.start_date
+    """, nativeQuery = true)
+    List<MyTasksPerSprintProjection> getMyTasksPerSprint(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId);
 }

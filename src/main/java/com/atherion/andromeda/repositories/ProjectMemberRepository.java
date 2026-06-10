@@ -1,5 +1,6 @@
 package com.atherion.andromeda.repositories;
 
+import com.atherion.andromeda.model.Project;
 import com.atherion.andromeda.model.ProjectMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,4 +20,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
 
 	@Query("SELECT pm FROM ProjectMember pm JOIN FETCH pm.user WHERE pm.project.id = :projectId")
 	List<ProjectMember> findByProjectIdWithUser(@Param("projectId") Long projectId);
+
+	@Query("SELECT pm.project FROM ProjectMember pm WHERE pm.user.id = :userId")
+	List<Project> findProjectsByUserId(@Param("userId") Long userId);
 }

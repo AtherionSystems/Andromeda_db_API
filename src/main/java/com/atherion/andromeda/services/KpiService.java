@@ -2,6 +2,7 @@ package com.atherion.andromeda.services;
 
 import com.atherion.andromeda.dto.dashboard.*;
 import com.atherion.andromeda.projections.TaskDistributionProjection;
+import com.atherion.andromeda.projections.TaskDistributionProjection;
 import com.atherion.andromeda.repositories.KpiRepository;
 import com.atherion.andromeda.repositories.TasksRepository;
 import lombok.RequiredArgsConstructor;
@@ -92,6 +93,43 @@ public class KpiService {
                         .map(p -> UserTasksPerSprintKPI.builder()
                                 .sprintName(p.getSprintName())
                                 .userName(p.getUserName())
+                                .tasksCompleted(p.getTasksCompleted() != null ? p.getTasksCompleted() : 0L)
+                                .build())
+                        .toList()
+        );
+    }
+
+    @Async
+    public CompletableFuture<List<TaskDistributionKPI>> getMyTaskDistribution(Long userId, Long projectId) {
+        return CompletableFuture.completedFuture(
+                kpiRepository.getMyTaskDistribution(userId, projectId).stream()
+                        .map(p -> TaskDistributionKPI.builder()
+                                .status(p.getStatus())
+                                .total(p.getTotal() != null ? p.getTotal() : 0L)
+                                .build())
+                        .toList()
+        );
+    }
+
+    @Async
+    public CompletableFuture<List<MyHoursPerSprintKPI>> getMyHoursPerSprint(Long userId, Long projectId) {
+        return CompletableFuture.completedFuture(
+                kpiRepository.getMyHoursPerSprint(userId, projectId).stream()
+                        .map(p -> MyHoursPerSprintKPI.builder()
+                                .sprintName(p.getSprintName())
+                                .actualHours(p.getActualHours())
+                                .estimatedHours(p.getEstimatedHours())
+                                .build())
+                        .toList()
+        );
+    }
+
+    @Async
+    public CompletableFuture<List<MyTasksPerSprintKPI>> getMyTasksPerSprint(Long userId, Long projectId) {
+        return CompletableFuture.completedFuture(
+                kpiRepository.getMyTasksPerSprint(userId, projectId).stream()
+                        .map(p -> MyTasksPerSprintKPI.builder()
+                                .sprintName(p.getSprintName())
                                 .tasksCompleted(p.getTasksCompleted() != null ? p.getTasksCompleted() : 0L)
                                 .build())
                         .toList()
