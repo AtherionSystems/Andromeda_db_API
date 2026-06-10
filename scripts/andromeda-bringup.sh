@@ -113,13 +113,19 @@ if kubectl get secret andromeda-secrets -n "$NAMESPACE" > /dev/null 2>&1; then
 else
   echo "Enter values for andromeda-secrets:"
   echo -n "  DB_USERNAME: ";                  read -r  DB_USERNAME
-  echo -n "  DB_PASSWORD: ";                  read -rs DB_PASSWORD;   echo ""
-  echo -n "  WALLET_TRUSTSTORE_PASSWORD: ";   read -rs WALLET_TS;     echo ""
-  echo -n "  WALLET_KEYSTORE_PASSWORD: ";     read -rs WALLET_KS;     echo ""
-  echo -n "  TELEGRAM_BOT_TOKEN: ";           read -rs TG_TOKEN;      echo ""
+  echo -n "  DB_PASSWORD: ";                  read -rs DB_PASSWORD;       echo ""
+  echo -n "  WALLET_TRUSTSTORE_PASSWORD: ";   read -rs WALLET_TS;         echo ""
+  echo -n "  WALLET_KEYSTORE_PASSWORD: ";     read -rs WALLET_KS;         echo ""
+  echo -n "  TELEGRAM_BOT_TOKEN: ";           read -rs TG_TOKEN;          echo ""
   echo -n "  TELEGRAM_BOT_USERNAME: ";        read -r  TG_USER
-  echo -n "  JWT_SECRET: ";                   read -rs JWT_SECRET;    echo ""
+  echo -n "  JWT_SECRET: ";                   read -rs JWT_SECRET;        echo ""
   echo -n "  OAUTH2_ISSUER_URI: ";            read -r  OAUTH2_URI
+  echo -n "  OAUTH2_AUDIENCE: ";              read -r  OAUTH2_AUDIENCE
+  echo -n "  AGENT_AI_ENABLED: ";             read -r  AGENT_AI_ENABLED
+  echo -n "  AGENT_AI_BASE_URL: ";            read -r  AGENT_AI_BASE_URL
+  echo -n "  AGENT_AI_API_KEY: ";             read -rs AGENT_AI_API_KEY;  echo ""
+  echo -n "  AGENT_AI_MODEL: ";               read -r  AGENT_AI_MODEL
+  echo -n "  AGENT_AI_EMBEDDING_MODEL: ";     read -r  AGENT_AI_EMBEDDING_MODEL
 
   kubectl create secret generic andromeda-secrets \
     --from-literal=DB_USERNAME="$DB_USERNAME" \
@@ -130,6 +136,12 @@ else
     --from-literal=TELEGRAM_BOT_USERNAME="$TG_USER" \
     --from-literal=JWT_SECRET="$JWT_SECRET" \
     --from-literal=OAUTH2_ISSUER_URI="$OAUTH2_URI" \
+    --from-literal=OAUTH2_AUDIENCE="$OAUTH2_AUDIENCE" \
+    --from-literal=AGENT_AI_ENABLED="$AGENT_AI_ENABLED" \
+    --from-literal=AGENT_AI_BASE_URL="$AGENT_AI_BASE_URL" \
+    --from-literal=AGENT_AI_API_KEY="$AGENT_AI_API_KEY" \
+    --from-literal=AGENT_AI_MODEL="$AGENT_AI_MODEL" \
+    --from-literal=AGENT_AI_EMBEDDING_MODEL="$AGENT_AI_EMBEDDING_MODEL" \
     -n "$NAMESPACE"
   ok "andromeda-secrets created."
 fi
