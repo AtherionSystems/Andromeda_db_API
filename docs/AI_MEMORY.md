@@ -130,4 +130,4 @@ persistHistory(telegramUserId)
 | `ConversationMemoryTest` | 19 tests: ConversationSession (6), ConversationSessionManager (5), EntityResolver (8) |
 | `AiIntentRouterMemoryTest` | 10 tests: Phase 1 session fallback (5), Phase 2 name resolution (5) |
 
-Todos los tests pasan sin necesidad de Spring context — usan `@ExtendWith(MockitoExtension.class)` con mocks de `ConversationSessionRepository` y `UserRepository`.
+Todos los tests pasan sin necesidad de Spring context — usando `@ExtendWith(MockitoExtension.class)` con mocks de `ConversationSessionRepository` y `UserRepository`
