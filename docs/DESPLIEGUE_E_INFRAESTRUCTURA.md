@@ -56,7 +56,7 @@ Pipeline de OCI DevOps (`version 0.1`, `runAs root`):
 | `unit-tests.yml` | Ejecuta la batería de pruebas unitarias |
 | `qodana.yml` | Análisis estático de código con JetBrains **Qodana** |
 
-La configuración de Qodana está en `qodana.yaml`; los resultados de una corrida se guardan en `qodana.sarif.json`.
+La configuración de Qodana está ubicada en `qodana.yaml`; los resultados de una corrida se guardan en `qodana.sarif.json`.
 
 ---
 
