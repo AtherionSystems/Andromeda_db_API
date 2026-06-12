@@ -106,7 +106,7 @@ Registra una nueva cuenta de usuario.
 ---
 
 ### `POST /api/auth/login`
-Autentica a un usuario existente.
+Autentica un usuario existente.
 
 **Cuerpo de la request**
 ```json
@@ -166,7 +166,7 @@ Obtiene un usuario por ID.
 ### `PUT /api/users/{id}`
 Actualiza un usuario. Todos los campos son opcionales; solo se modifican los campos enviados.
 
-**Cuerpo de la request**
+**Cuerpo del request**
 ```json
 {
   "name": "Javier G.",

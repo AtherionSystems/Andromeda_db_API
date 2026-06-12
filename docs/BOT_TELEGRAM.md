@@ -79,7 +79,7 @@ El bot conecta por **long-polling** al arrancar la aplicación y responde a coma
 
 ---
 
-## 3. Interacción con lenguaje natural
+## 3. Interacción usando lenguaje natural
 
 El usuario no necesita recordar IDs ni comandos exactos. El `AiIntentRouter` soporta tanto comandos de lectura como de escritura:
 
